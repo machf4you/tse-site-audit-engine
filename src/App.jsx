@@ -4,107 +4,175 @@ import {
   ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight
 } from 'lucide-react';
 
-const INITIAL_TASKS = [
+const INITIAL_SITES = [
   {
-    id: "t1",
-    website: "HF4You",
-    websiteUrl: "https://www.hf4you.co.uk",
-    priority: "high",
-    taskTitle: 'Add "Divan Beds" to the H1 heading',
-    currentVersion: "Browse Beds With Practical Storage Options",
-    requiredVersion: "Divan Beds With Practical Storage Options",
-    whyItMatters: "The target phrase is missing from the main H1 heading.",
-    successCheck: "Page Auditor will verify automatically.",
-    keyword: "Divan Beds",
-    completed: false
+    id: "bathroom-upgrades",
+    name: "Bathroom Upgrades",
+    url: "https://www.bathroomupgrades.co.uk",
+    status: "Connected",
+    lastAudit: "27 Jun 2026",
+    tasks: [
+      {
+        id: "t1",
+        pageUrl: "https://www.bathroomupgrades.co.uk/bathroom-renovations/",
+        priority: "high",
+        taskTitle: 'Add "Bathroom Renovations" to H1',
+        currentVersion: "Professional Bathroom Services",
+        requiredVersion: "Bathroom Renovations in South East London",
+        whyItMatters: "The target phrase is missing from the main H1 heading.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "Bathroom Renovations",
+        completed: false
+      },
+      {
+        id: "t2",
+        pageUrl: "https://www.bathroomupgrades.co.uk/bathroom-renovations/",
+        priority: "high",
+        taskTitle: "Create FAQ Schema",
+        currentVersion: "<!-- No FAQ Schema Block Detected -->",
+        requiredVersion: '<script type="application/ld+json">{\n  "@context": "https://schema.org",\n  "@type": "FAQPage",\n  "mainEntity": [...]\n}</script>',
+        whyItMatters: "FAQ markup is missing. Structured schema is needed for rich snippet placement.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "FAQPage",
+        completed: false
+      },
+      {
+        id: "t3",
+        pageUrl: "https://www.bathroomupgrades.co.uk/cheap-bathroom-suites/",
+        priority: "high",
+        taskTitle: "Fix Broken Internal Link",
+        currentVersion: '<a href="/cheap-suites/">Suites</a>',
+        requiredVersion: '<a href="/cheap-bathroom-suites/">Cheap Bathroom Suites</a>',
+        whyItMatters: "The internal link anchor text and target URL need optimization.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "cheap-bathroom-suites",
+        completed: false
+      },
+      {
+        id: "t4",
+        pageUrl: "https://www.bathroomupgrades.co.uk/",
+        priority: "medium",
+        taskTitle: "Improve Meta Description",
+        currentVersion: "<meta name=\"description\" content=\"We install bathrooms.\" />",
+        requiredVersion: "<meta name=\"description\" content=\"Expert bathroom renovations and suite installation in South East London.\" />",
+        whyItMatters: "The search description needs to be more compelling and descriptive.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "renovations",
+        completed: false
+      },
+      {
+        id: "t5",
+        pageUrl: "https://www.bathroomupgrades.co.uk/bathroom-ideas/",
+        priority: "medium",
+        taskTitle: "Add Alt Text",
+        currentVersion: '<img src="/images/ideas.jpg" alt="ideas" />',
+        requiredVersion: '<img src="/images/ideas.jpg" alt="Modern Bathroom Renovation Ideas Gallery" />',
+        whyItMatters: "Image description keyword is missing.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "Renovation",
+        completed: false
+      },
+      {
+        id: "t6",
+        pageUrl: "https://www.bathroomupgrades.co.uk/cheap-bathroom-suites/",
+        priority: "low",
+        taskTitle: "Expand Content",
+        currentVersion: "Our suites are the best quality and cheap.",
+        requiredVersion: "Our range of Cheap Bathroom Suites offers luxury styling at an affordable price, perfect for any home renovation project.",
+        whyItMatters: "On-page content is too thin to rank properly.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "Bathroom Suites",
+        completed: false
+      }
+    ]
   },
   {
-    id: "t2",
-    website: "Civion",
-    websiteUrl: "https://www.civion.es",
-    priority: "high",
-    taskTitle: "Create NIE Number landing page on Civion",
-    currentVersion: "<!-- No links to NIE page found on homepage -->",
-    requiredVersion: '<a href="/nie-number-application/">Get your Spanish NIE Number</a>',
-    whyItMatters: "The website is missing an incoming link to the NIE number application page.",
-    successCheck: "Page Auditor will verify automatically.",
-    keyword: "nie-number-application",
-    completed: false
+    id: "civion",
+    name: "Civion",
+    url: "https://www.civion.es",
+    status: "Connected",
+    lastAudit: "26 Jun 2026",
+    tasks: [
+      {
+        id: "t7",
+        pageUrl: "https://www.civion.es/nie-number-application/",
+        priority: "high",
+        taskTitle: "Create NIE Number landing page on Civion",
+        currentVersion: "<!-- No NIE Number link found on homepage -->",
+        requiredVersion: '<a href="/nie-number-application/">Get your Spanish NIE Number</a>',
+        whyItMatters: "Incoming internal link is missing.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "nie-number-application",
+        completed: false
+      },
+      {
+        id: "t8",
+        pageUrl: "https://www.civion.es/tie-card-application/",
+        priority: "high",
+        taskTitle: 'Add "TIE Card Application" to H1',
+        currentVersion: "Apply For TIE Card",
+        requiredVersion: "TIE Card Application Process in Spain",
+        whyItMatters: "H1 heading is missing keywords.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "TIE Card Application",
+        completed: false
+      },
+      {
+        id: "t9",
+        pageUrl: "https://www.civion.es/spanish-residency-services/",
+        priority: "medium",
+        taskTitle: "Optimize Page Title",
+        currentVersion: "<title>Residency Services - Spanish Visas</title>",
+        requiredVersion: "<title>Spanish Residency Services & Visas | Civion</title>",
+        whyItMatters: "The title lacks key branding and structure.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "Spanish Residency Services",
+        completed: false
+      }
+    ]
   },
   {
-    id: "t3",
-    website: "Bathroom Upgrades",
-    websiteUrl: "https://www.bathroomupgrades.co.uk",
-    priority: "high",
-    taskTitle: 'Add target phrase "bathroom renovations" to H1 heading',
-    currentVersion: "Ideas & Inspiration",
-    requiredVersion: "Bathroom Renovations & Design Ideas",
-    whyItMatters: "The main page title heading is too generic and lacks the target search phrase.",
-    successCheck: "Page Auditor will verify automatically.",
-    keyword: "bathroom renovations",
-    completed: false
-  },
-  {
-    id: "t4",
-    website: "Bathroom Upgrades",
-    websiteUrl: "https://www.bathroomupgrades.co.uk",
-    priority: "medium",
-    taskTitle: "Add FAQ schema to Bathroom Renovations page",
-    currentVersion: "<!-- No FAQ Schema Found -->",
-    requiredVersion: '<script type="application/ld+json">{\n  "@context": "https://schema.org",\n  "@type": "FAQPage",\n  "mainEntity": [...]\n}</script>',
-    whyItMatters: "FAQ markup is missing. Structured schema is needed for rich snippet placement.",
-    successCheck: "Page Auditor will verify automatically.",
-    keyword: "FAQPage",
-    completed: false
-  },
-  {
-    id: "t5",
-    website: "Bathroom Upgrades",
-    websiteUrl: "https://www.bathroomupgrades.co.uk",
-    priority: "medium",
-    taskTitle: 'Add local city name "London" to page title metadata',
-    currentVersion: "<title>Bathroom Fitting & Installation Experts</title>",
-    requiredVersion: "<title>Bathroom Fitting & Installation Experts in London</title>",
-    whyItMatters: "Geo-targeted traffic requires local city identifiers in the browser window title.",
-    successCheck: "Page Auditor will verify automatically.",
-    keyword: "London",
-    completed: false
-  },
-  {
-    id: "t6",
-    website: "The Search Equation",
-    websiteUrl: "https://page-auditor.thesearchequation.com",
-    priority: "medium",
-    taskTitle: 'Update main services heading to include "SEO Consultancy"',
-    currentVersion: "Professional Digital Growth Services",
-    requiredVersion: "Professional SEO Consultancy & Growth Services",
-    whyItMatters: "The primary keyword target is missing from the service index heading.",
-    successCheck: "Page Auditor will verify automatically.",
-    keyword: "SEO Consultancy",
-    completed: false
-  },
-  {
-    id: "t7",
-    website: "The Search Equation",
-    websiteUrl: "https://page-auditor.thesearchequation.com",
-    priority: "low",
-    taskTitle: 'Optimize image alt text on local services page',
-    currentVersion: '<img src="/images/seo-consulting.jpg" alt="SEO Services" />',
-    requiredVersion: '<img src="/images/seo-consulting.jpg" alt="Local SEO Services Consultancy" />',
-    whyItMatters: "Search engine image indexing requires precise keyword descriptive alt labels.",
-    successCheck: "Page Auditor will verify automatically.",
-    keyword: "Local SEO Services",
-    completed: false
+    id: "hf4you",
+    name: "HF4You",
+    url: "https://www.hf4you.co.uk",
+    status: "Connected",
+    lastAudit: "25 Jun 2026",
+    tasks: [
+      {
+        id: "t10",
+        pageUrl: "https://www.hf4you.co.uk/divans/",
+        priority: "high",
+        taskTitle: 'Add "Divan Beds" to H1 heading',
+        currentVersion: "Browse Beds With Practical Storage Options",
+        requiredVersion: "Divan Beds With Practical Storage Options",
+        whyItMatters: "The main page heading lacks the primary target keyword.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "Divan Beds",
+        completed: false
+      },
+      {
+        id: "t11",
+        pageUrl: "https://www.hf4you.co.uk/mattresses/",
+        priority: "medium",
+        taskTitle: "Fix duplicate H1 headings",
+        currentVersion: "<h1>Mattresses</h1>\n<h1>Double Mattresses</h1>",
+        requiredVersion: "<h1>Double Mattresses</h1>\n<!-- Changed secondary to H2 -->",
+        whyItMatters: "Only one primary H1 should represent the page title.",
+        successCheck: "Page Auditor will verify automatically.",
+        keyword: "Double Mattresses",
+        completed: false
+      }
+    ]
   }
 ];
 
 // Workflow indicator stepper
 const Stepper = ({ currentStep }) => {
   const steps = [
-    { id: "select", label: "Select Task" },
-    { id: "change", label: "Make Change" },
-    { id: "verify", label: "Verify" },
-    { id: "complete", label: "Complete" }
+    { id: "website", label: "Select Website" },
+    { id: "tasks", label: "Choose Task" },
+    { id: "fix", label: "Edit Content" },
+    { id: "verify", label: "Verify Success" }
   ];
 
   return (
@@ -126,9 +194,10 @@ const Stepper = ({ currentStep }) => {
 };
 
 export default function App() {
-  const [tasks, setTasks] = useState(INITIAL_TASKS);
-  const [currentView, setCurrentView] = useState("BACKLOG"); // BACKLOG, FOCUS, EDIT, ALL_CAUGHT_UP
-  const [activeTaskId, setActiveTaskId] = useState(null);
+  const [sites, setSites] = useState(INITIAL_SITES);
+  const [currentView, setCurrentView] = useState("WEBSITES"); // WEBSITES, SITE_TASKS, TASK_FOCUS, EDIT
+  const [selectedSiteId, setSelectedSiteId] = useState(null);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
   
   // Page Auditor Edit State
   const [editingContent, setEditingContent] = useState("");
@@ -141,20 +210,26 @@ export default function App() {
     setTimeout(() => setNotification(""), 4000);
   };
 
-  const activeTask = tasks.find(t => t.id === activeTaskId) || null;
+  const selectedSite = sites.find(s => s.id === selectedSiteId) || null;
+  const activeTask = selectedSite ? selectedSite.tasks.find(t => t.id === selectedTaskId) : null;
 
-  const handleStartWork = (taskId) => {
-    const task = tasks.find(t => t.id === taskId);
+  const handleOpenSite = (siteId) => {
+    setSelectedSiteId(siteId);
+    setCurrentView("SITE_TASKS");
+  };
+
+  const handleStartTask = (taskId) => {
+    const task = selectedSite.tasks.find(t => t.id === taskId);
     if (task) {
-      setActiveTaskId(taskId);
+      setSelectedTaskId(taskId);
       setEditingContent(task.currentVersion);
       setVerificationStatus("idle");
       setVerificationError("");
-      setCurrentView("FOCUS");
+      setCurrentView("TASK_FOCUS");
     }
   };
 
-  const handleBeginFix = () => {
+  const handleOpenWordPressEditor = () => {
     if (activeTask) {
       setEditingContent(activeTask.currentVersion);
       setVerificationStatus("idle");
@@ -167,12 +242,12 @@ export default function App() {
   const handleApplySuggestion = () => {
     if (activeTask) {
       setEditingContent(activeTask.requiredVersion);
-      showNotification("Suggested text copied into editor!");
+      showNotification("Suggested content copied into editor!");
     }
   };
 
   const handleVerifyChange = () => {
-    if (!activeTask) return;
+    if (!activeTask || !selectedSite) return;
     
     setVerificationStatus("loading");
     setVerificationError("");
@@ -184,11 +259,17 @@ export default function App() {
       if (isValid) {
         setVerificationStatus("success");
         // Update task state to completed
-        setTasks(prev => prev.map(t => {
-          if (t.id === activeTask.id) {
-            return { ...t, completed: true, currentVersion: editingContent };
+        setSites(prevSites => prevSites.map(s => {
+          if (s.id === selectedSite.id) {
+            const updatedTasks = s.tasks.map(t => {
+              if (t.id === activeTask.id) {
+                return { ...t, completed: true, currentVersion: editingContent };
+              }
+              return t;
+            });
+            return { ...s, tasks: updatedTasks };
           }
-          return t;
+          return s;
         }));
         showNotification("Verification passed! Task complete.");
       } else {
@@ -199,8 +280,10 @@ export default function App() {
   };
 
   const handleNextTask = () => {
-    // Find next incomplete task in the backlog list
-    const incompleteTasks = tasks.filter(t => !t.completed && t.id !== activeTaskId);
+    if (!selectedSite) return;
+    
+    // Find next incomplete task in the backlog list for the current website
+    const incompleteTasks = selectedSite.tasks.filter(t => !t.completed && t.id !== selectedTaskId);
     
     if (incompleteTasks.length > 0) {
       // Prioritize High -> Medium -> Low
@@ -208,34 +291,28 @@ export default function App() {
       incompleteTasks.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
       
       const nextTask = incompleteTasks[0];
-      setActiveTaskId(nextTask.id);
+      setSelectedTaskId(nextTask.id);
       setEditingContent(nextTask.currentVersion);
       setVerificationStatus("idle");
       setVerificationError("");
-      setCurrentView("FOCUS");
+      setCurrentView("TASK_FOCUS");
     } else {
-      // Check if all tasks are complete
-      const allDone = tasks.every(t => t.completed);
-      if (allDone) {
-        setCurrentView("ALL_CAUGHT_UP");
-      } else {
-        setCurrentView("BACKLOG");
-      }
+      // All tasks complete for this site
+      showNotification(`All tasks completed for ${selectedSite.name}!`);
+      setCurrentView("SITE_TASKS");
     }
   };
 
-  // Helper metrics
-  const pendingTasks = tasks.filter(t => !t.completed);
-
   // Stepper state mapping
   const getStepperStep = () => {
-    if (currentView === "BACKLOG" || currentView === "FOCUS") return "select";
+    if (currentView === "WEBSITES") return "website";
+    if (currentView === "SITE_TASKS") return "tasks";
+    if (currentView === "TASK_FOCUS") return "fix";
     if (currentView === "EDIT") {
-      if (verificationStatus === "loading") return "verify";
-      if (verificationStatus === "success") return "complete";
-      return "change";
+      if (verificationStatus === "success") return "verify";
+      return "fix";
     }
-    return "complete";
+    return "website";
   };
 
   return (
@@ -255,7 +332,7 @@ export default function App() {
 
       {/* Fixed top header */}
       <header className="hub-header">
-        <div className="hub-brand" onClick={() => { setCurrentView("BACKLOG"); setActiveTaskId(null); }}>
+        <div className="hub-brand" onClick={() => { setCurrentView("WEBSITES"); setSelectedSiteId(null); setSelectedTaskId(null); }}>
           <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
           <span>TSE Worker Portal</span>
         </div>
@@ -265,159 +342,171 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content Area (With header margin spacing) */}
+      {/* Main Content Area */}
       <main className="hub-main">
         <div className="hub-content">
           
           {/* Stepper Indicator */}
-          {currentView !== "ALL_CAUGHT_UP" && (
-            <Stepper currentStep={getStepperStep()} />
-          )}
+          <Stepper currentStep={getStepperStep()} />
 
-          {/* VIEW: WORKER BACKLOG (MY WORK TODAY) */}
-          {currentView === "BACKLOG" && (
+          {/* SCREEN 1: WEBSITE DASHBOARD */}
+          {currentView === "WEBSITES" && (
             <div>
-              <div className="work-summary-card">
-                <div className="summary-left">
-                  <div className="summary-title-row">
-                    <h3>My Work Today</h3>
-                  </div>
-                  <div className="summary-metrics">
-                    <div className="metric-large">
-                      <span className="metric-number">{pendingTasks.length}</span>
-                      <span className="metric-label">Tasks Remaining</span>
-                    </div>
-                    <div className="metric-pills">
-                      <span className="metric-pill prio-high">
-                        {pendingTasks.filter(t => t.priority === "high").length} High
-                      </span>
-                      <span className="metric-pill prio-medium">
-                        {pendingTasks.filter(t => t.priority === "medium").length} Medium
-                      </span>
-                      <span className="metric-pill prio-low">
-                        {pendingTasks.filter(t => t.priority === "low").length} Low
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="summary-right">
-                  <button 
-                    className="btn-primary start-working-btn" 
-                    disabled={pendingTasks.length === 0}
-                    onClick={() => {
-                      const firstIncomplete = tasks.find(t => !t.completed);
-                      if (firstIncomplete) handleStartWork(firstIncomplete.id);
-                    }}
-                  >
-                    <Play size={16} /> Begin Fixes
-                  </button>
-                </div>
+              <div style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.25rem' }}>My Work Today</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Which websites are available to work on?</p>
               </div>
 
-              <div style={{ marginTop: '2.5rem' }}>
-                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.25rem' }}>My Tasks</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Select a task card below to get started.</p>
-              </div>
-
-              {/* High Priority Tasks */}
-              <div className="backlog-section-container">
-                <div className="backlog-section-header">
-                  <h3 className="section-title-custom">High Priority</h3>
-                  <span className="header-pbadge badge-high">Immediate Attention</span>
-                </div>
-                <div className="task-cards-list">
-                  {tasks.filter(t => t.priority === "high").map(task => (
-                    <div key={task.id} className="task-card-item">
+              <div className="task-cards-list">
+                {sites.map(site => {
+                  const openTasksCount = site.tasks.filter(t => !t.completed).length;
+                  return (
+                    <div key={site.id} className="task-card-item">
                       <div className="card-item-body">
-                        <span className="card-website-tag">{task.website}</span>
-                        <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                          {task.taskTitle}
-                        </h4>
+                        <span className="card-website-tag" style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          Connected ✓
+                        </span>
+                        <h3 className="card-task-title" style={{ fontSize: '1.25rem', marginTop: '0.25rem' }}>{site.name}</h3>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Last Audit: {site.lastAudit}</span>
                       </div>
-                      <div className="card-item-action">
-                        {task.completed ? (
-                          <span className="score-change-badge change-positive">✓ Complete</span>
-                        ) : (
-                          <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
-                            Start Work <ChevronRight size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Medium Priority Tasks */}
-              <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
-                <div className="backlog-section-header">
-                  <h3 className="section-title-custom">Medium Priority</h3>
-                  <span className="header-pbadge badge-medium">Standard Backlog</span>
-                </div>
-                <div className="task-cards-list">
-                  {tasks.filter(t => t.priority === "medium").map(task => (
-                    <div key={task.id} className="task-card-item">
-                      <div className="card-item-body">
-                        <span className="card-website-tag">{task.website}</span>
-                        <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                          {task.taskTitle}
-                        </h4>
-                      </div>
-                      <div className="card-item-action">
-                        {task.completed ? (
-                          <span className="score-change-badge change-positive">✓ Complete</span>
-                        ) : (
-                          <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
-                            Start Work <ChevronRight size={14} />
-                          </button>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '1.5rem', fontWeight: '800', display: 'block', lineHeight: 1, color: openTasksCount > 0 ? '#fbbf24' : '#10b981' }}>
+                            {openTasksCount}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Open Tasks</span>
+                        </div>
+                        <button className="btn-primary" onClick={() => handleOpenSite(site.id)}>
+                          Open Website
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Low Priority Tasks */}
-              <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
-                <div className="backlog-section-header">
-                  <h3 className="section-title-custom">Low Priority</h3>
-                  <span className="header-pbadge badge-low">Optional Optimisations</span>
-                </div>
-                <div className="task-cards-list">
-                  {tasks.filter(t => t.priority === "low").map(task => (
-                    <div key={task.id} className="task-card-item">
-                      <div className="card-item-body">
-                        <span className="card-website-tag">{task.website}</span>
-                        <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                          {task.taskTitle}
-                        </h4>
-                      </div>
-                      <div className="card-item-action">
-                        {task.completed ? (
-                          <span className="score-change-badge change-positive">✓ Complete</span>
-                        ) : (
-                          <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
-                            Start Work <ChevronRight size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* VIEW: WORKER TASK FOCUS SCREEN */}
-          {currentView === "FOCUS" && activeTask && (
+          {/* SCREEN 2: WEBSITE TASK LIST */}
+          {currentView === "SITE_TASKS" && selectedSite && (
             <div>
               <div className="mb-4">
                 <span 
                   className="flex align-center gap-2 text-secondary cursor-pointer"
-                  onClick={() => setCurrentView("BACKLOG")}
+                  onClick={() => { setCurrentView("WEBSITES"); setSelectedSiteId(null); }}
                   style={{ fontSize: '0.9rem' }}
                 >
-                  <ArrowLeft size={16} /> Back to Backlog
+                  <ArrowLeft size={16} /> Back to Websites
+                </span>
+              </div>
+
+              <div style={{ marginBottom: '2rem' }}>
+                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.25rem' }}>{selectedSite.name} Tasks</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Select an optimization task below to begin.</p>
+              </div>
+
+              {/* High Priority Tasks */}
+              {selectedSite.tasks.filter(t => t.priority === "high").length > 0 && (
+                <div className="backlog-section-container">
+                  <div className="backlog-section-header">
+                    <h3 className="section-title-custom">High Priority</h3>
+                    <span className="header-pbadge badge-high">Immediate</span>
+                  </div>
+                  <div className="task-cards-list">
+                    {selectedSite.tasks.filter(t => t.priority === "high").map(task => (
+                      <div key={task.id} className="task-card-item">
+                        <div className="card-item-body">
+                          <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                            {task.completed ? '✓ ' : '□ '}{task.taskTitle}
+                          </h4>
+                        </div>
+                        <div className="card-item-action">
+                          {task.completed ? (
+                            <span className="score-change-badge change-positive">✓ Complete</span>
+                          ) : (
+                            <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
+                              Start Work <ChevronRight size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Medium Priority Tasks */}
+              {selectedSite.tasks.filter(t => t.priority === "medium").length > 0 && (
+                <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
+                  <div className="backlog-section-header">
+                    <h3 className="section-title-custom">Medium Priority</h3>
+                    <span className="header-pbadge badge-medium">Standard</span>
+                  </div>
+                  <div className="task-cards-list">
+                    {selectedSite.tasks.filter(t => t.priority === "medium").map(task => (
+                      <div key={task.id} className="task-card-item">
+                        <div className="card-item-body">
+                          <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                            {task.completed ? '✓ ' : '□ '}{task.taskTitle}
+                          </h4>
+                        </div>
+                        <div className="card-item-action">
+                          {task.completed ? (
+                            <span className="score-change-badge change-positive">✓ Complete</span>
+                          ) : (
+                            <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
+                              Start Work <ChevronRight size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Low Priority Tasks */}
+              {selectedSite.tasks.filter(t => t.priority === "low").length > 0 && (
+                <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
+                  <div className="backlog-section-header">
+                    <h3 className="section-title-custom">Low Priority</h3>
+                    <span className="header-pbadge badge-low">Optional</span>
+                  </div>
+                  <div className="task-cards-list">
+                    {selectedSite.tasks.filter(t => t.priority === "low").map(task => (
+                      <div key={task.id} className="task-card-item">
+                        <div className="card-item-body">
+                          <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                            {task.completed ? '✓ ' : '□ '}{task.taskTitle}
+                          </h4>
+                        </div>
+                        <div className="card-item-action">
+                          {task.completed ? (
+                            <span className="score-change-badge change-positive">✓ Complete</span>
+                          ) : (
+                            <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
+                              Start Work <ChevronRight size={14} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SCREEN 3: TASK DETAIL */}
+          {currentView === "TASK_FOCUS" && activeTask && selectedSite && (
+            <div>
+              <div className="mb-4">
+                <span 
+                  className="flex align-center gap-2 text-secondary cursor-pointer"
+                  onClick={() => setCurrentView("SITE_TASKS")}
+                  style={{ fontSize: '0.9rem' }}
+                >
+                  <ArrowLeft size={16} /> Back to Task List
                 </span>
               </div>
 
@@ -426,7 +515,7 @@ export default function App() {
                   <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
                     {activeTask.priority} Priority
                   </span>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Active Task on {activeTask.website}</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Website: {selectedSite.name}</span>
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)' }}>
                     {activeTask.taskTitle}
                   </h2>
@@ -434,24 +523,32 @@ export default function App() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>What am I fixing?</label>
-                    <div style={{ fontSize: '1.1rem', color: 'var(--text-primary)', marginTop: '0.25rem', fontWeight: 700 }}>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Page URL</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.15rem', color: '#60a5fa', marginTop: '0.25rem', fontWeight: 700 }}>
+                      <Globe size={18} />
+                      <span style={{ wordBreak: 'break-all' }}>{activeTask.pageUrl}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Task</label>
+                    <div style={{ fontSize: '1.05rem', color: 'var(--text-primary)', marginTop: '0.25rem', fontWeight: 600 }}>
                       {activeTask.taskTitle}
                     </div>
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>What do I change?</label>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>What to change</label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
                       <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '1.25rem', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#f87171', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>Current Version</span>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#f87171', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>Current Version</span>
                         <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#e2e8f0', margin: 0 }}>
                           {activeTask.currentVersion}
                         </pre>
                       </div>
 
                       <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.03)', border: '1px solid rgba(16, 185, 129, 0.1)', padding: '1.25rem', borderRadius: '8px' }}>
-                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>Required Version</span>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>Required Version</span>
                         <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#e2e8f0', margin: 0 }}>
                           {activeTask.requiredVersion}
                         </pre>
@@ -467,7 +564,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>How do I verify it?</label>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Success Check</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', fontSize: '0.95rem', marginTop: '0.25rem', fontWeight: 600 }}>
                       <CheckCircle size={16} />
                       <span>{activeTask.successCheck}</span>
@@ -485,8 +582,8 @@ export default function App() {
                         </button>
                       </div>
                     ) : (
-                      <button className="btn-primary start-working-btn" style={{ padding: '0.85rem 2.25rem' }} onClick={handleBeginFix}>
-                        Begin Fix
+                      <button className="btn-primary start-working-btn" style={{ padding: '0.85rem 2.25rem' }} onClick={handleOpenWordPressEditor}>
+                        Open WordPress Editor
                       </button>
                     )}
                   </div>
@@ -495,14 +592,14 @@ export default function App() {
             </div>
           )}
 
-          {/* VIEW: FULL SCREEN EDIT & VERIFY WORKSPACE */}
-          {currentView === "EDIT" && activeTask && (
+          {/* SCREEN 4: CMS EDITOR & RE-AUDIT WORKSPACE */}
+          {currentView === "EDIT" && activeTask && selectedSite && (
             <div>
               <div className="mb-4">
                 <button 
                   className="flex align-center gap-2 text-secondary cursor-pointer"
                   disabled={verificationStatus === "loading" || verificationStatus === "success"}
-                  onClick={() => setCurrentView("FOCUS")}
+                  onClick={() => setCurrentView("TASK_FOCUS")}
                   style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-secondary)' }}
                 >
                   <ArrowLeft size={16} /> Back to Task Details
@@ -511,17 +608,17 @@ export default function App() {
 
               <div className="report-section" style={{ padding: '2.5rem' }}>
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>WordPress Editor Synchronization</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>WordPress CMS Sync Editor</span>
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
-                    Editing Content on {activeTask.website}
+                    Editing: {activeTask.pageUrl}
                   </h2>
                 </div>
 
-                <div className="editing-workspace-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+                <div className="editing-workspace-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2.5rem' }}>
                   
                   {/* Left Column: Context Briefing */}
                   <div>
-                    <h3 className="section-title-custom mb-3" style={{ fontSize: '1.05rem' }}>Task Instructions</h3>
+                    <h3 className="section-title-custom mb-3" style={{ fontSize: '1.05rem' }}>Task Context</h3>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                       <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
@@ -530,7 +627,7 @@ export default function App() {
                       </div>
 
                       <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
-                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>Suggested Content</span>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>Required Version</span>
                         <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#cbd5e1', margin: 0 }}>
                           {activeTask.requiredVersion}
                         </pre>
@@ -601,7 +698,7 @@ export default function App() {
                         <div>
                           <strong style={{ fontSize: '1rem' }}>Task Successfully Completed!</strong>
                           <p style={{ fontSize: '0.85rem', color: '#cbd5e1', marginTop: '0.25rem' }}>
-                            Page Auditor has verified your changes match the required keywords.
+                            WordPress updated successfully and verification passed.
                           </p>
                         </div>
                       </div>
@@ -627,26 +724,6 @@ export default function App() {
 
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* VIEW: ALL CAUGHT UP SCREEN */}
-          {currentView === "ALL_CAUGHT_UP" && (
-            <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
-              <div style={{ 
-                width: '90px', height: '90px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.08)', 
-                display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 1.75rem',
-                border: '1px solid rgba(16, 185, 129, 0.2)'
-              }}>
-                <Award size={48} style={{ color: '#10b981' }} />
-              </div>
-              <h2 style={{ fontFamily: 'Outfit', fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>All Caught Up!</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '2.5rem' }}>
-                You have resolved all pre-assigned optimization tasks for today. Outstanding work!
-              </p>
-              <button className="btn-primary" onClick={() => { setCurrentView("BACKLOG"); setActiveTaskId(null); }}>
-                Back to Backlog
-              </button>
             </div>
           )}
 
