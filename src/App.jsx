@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
   ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, Globe
@@ -195,8 +195,8 @@ const Stepper = ({ currentStep }) => {
 
 export default function App() {
   const [sites, setSites] = useState(INITIAL_SITES);
-  const [currentView, setCurrentView] = useState("WEBSITES"); // WEBSITES, SITE_TASKS, TASK_FOCUS, EDIT
-  const [selectedSiteId, setSelectedSiteId] = useState(null);
+  const [currentView, setCurrentView] = useState("WEBSITES"); // WEBSITES (Split-screen Dashboard), TASK_FOCUS (Briefing), EDIT (CMS)
+  const [selectedSiteId, setSelectedSiteId] = useState(INITIAL_SITES[0].id); // Default to first site for split screen
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   
   // Page Auditor Edit State
@@ -212,11 +212,6 @@ export default function App() {
 
   const selectedSite = sites.find(s => s.id === selectedSiteId) || null;
   const activeTask = selectedSite ? selectedSite.tasks.find(t => t.id === selectedTaskId) : null;
-
-  const handleOpenSite = (siteId) => {
-    setSelectedSiteId(siteId);
-    setCurrentView("SITE_TASKS");
-  };
 
   const handleStartTask = (taskId) => {
     const task = selectedSite.tasks.find(t => t.id === taskId);
@@ -315,7 +310,7 @@ export default function App() {
     } else {
       // All tasks complete for this site
       showNotification(`All tasks completed for ${selectedSite.name}!`);
-      setCurrentView("SITE_TASKS");
+      setCurrentView("WEBSITES");
     }
   };
 
@@ -324,12 +319,12 @@ export default function App() {
     return site.tasks.filter(t => t.state !== "completed").length;
   };
 
-  const totalOpenTasks = sites.reduce((acc, s) => acc + getOpenTasksCount(s), 0);
-
   // Stepper state mapping
   const getStepperStep = () => {
-    if (currentView === "WEBSITES") return "website";
-    if (currentView === "SITE_TASKS") return "tasks";
+    if (currentView === "WEBSITES") {
+      // If a site is selected, we have already chosen a website, so stepper advances to tasks
+      return selectedSiteId ? "tasks" : "website";
+    }
     if (currentView === "TASK_FOCUS") return "fix";
     if (currentView === "EDIT") {
       if (verificationStatus === "success") return "verify";
@@ -355,7 +350,7 @@ export default function App() {
 
       {/* Fixed top header */}
       <header className="hub-header">
-        <div className="hub-brand" onClick={() => { setCurrentView("WEBSITES"); setSelectedSiteId(null); setSelectedTaskId(null); }}>
+        <div className="hub-brand" onClick={() => { setCurrentView("WEBSITES"); setSelectedTaskId(null); }}>
           <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
           <span>TSE Worker Portal</span>
         </div>
@@ -372,214 +367,216 @@ export default function App() {
           {/* Stepper Indicator */}
           <Stepper currentStep={getStepperStep()} />
 
-          {/* SCREEN 1: WEBSITE DASHBOARD */}
+          {/* SCREEN 1 & 2: WEBSITE DASHBOARD & TASK LIST (COMBINED SPLIT PANEL) */}
           {currentView === "WEBSITES" && (
             <div>
               {/* Admin Onboarding Sync Banner */}
-              <div style={{
-                backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                border: '1px solid rgba(59, 130, 246, 0.15)',
-                borderRadius: '8px',
-                padding: '1rem 1.25rem',
-                marginBottom: '2rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <Server size={18} style={{ color: '#60a5fa', flexShrink: 0 }} />
-                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                  <strong style={{ color: '#e2e8f0' }}>Admin Setup Mode:</strong> Connected websites are pre-configured through the TSE Exporter Plugin. Worker profiles are read-only for onboarding setup.
+              <div className="admin-onboarding-banner">
+                <Server size={18} className="banner-icon" />
+                <div style={{ fontSize: '0.85rem' }}>
+                  <strong>Admin Setup Mode:</strong> Connected websites are pre-configured through the TSE Exporter Plugin. Worker profiles are read-only for onboarding setup.
                 </div>
               </div>
 
-              <div style={{ marginBottom: '2rem' }}>
-                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.25rem' }}>My Work Today</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Which websites are available to work on?</p>
-              </div>
+              {/* Combined Split-Screen Work Area */}
+              <div className="portal-split-layout">
+                
+                {/* Left Column: Websites List */}
+                <div className="left-column">
+                  <div className="column-header-row">
+                    <h3>My Work Today</h3>
+                    <span className="subtitle">Available Websites</span>
+                  </div>
 
-              <div className="task-cards-list">
-                {sites.map(site => {
-                  const openTasksCount = getOpenTasksCount(site);
-                  return (
-                    <div key={site.id} className="task-card-item">
-                      <div className="card-item-body">
-                        <span className="card-website-tag" style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          Connected ✓
-                        </span>
-                        <h3 className="card-task-title" style={{ fontSize: '1.25rem', marginTop: '0.25rem' }}>{site.name}</h3>
-                        <a 
-                          href={site.url} 
-                          target="_blank" 
-                          rel="noreferrer" 
-                          style={{ 
-                            fontSize: '0.8rem', 
-                            color: '#60a5fa', 
-                            textDecoration: 'none', 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '4px',
-                            marginTop: '0.15rem'
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {site.url} <ExternalLink size={10} />
-                        </a>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.5rem' }}>Last Audit: {site.lastAudit}</span>
-                      </div>
+                  <div className="websites-sidebar-list">
+                    {sites.map(site => {
+                      const openTasksCount = getOpenTasksCount(site);
+                      const isSelected = site.id === selectedSiteId;
                       
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '1.5rem', fontWeight: '800', display: 'block', lineHeight: 1, color: openTasksCount > 0 ? '#fbbf24' : '#10b981' }}>
-                            {openTasksCount}
-                          </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Open Tasks</span>
-                        </div>
-                        
-                        <div className="flex flex-col gap-2">
-                          <button className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => handleOpenSite(site.id)}>
-                            Open Tasks
-                          </button>
+                      return (
+                        <div 
+                          key={site.id} 
+                          className={`sidebar-site-card ${isSelected ? 'active' : ''}`}
+                          onClick={() => setSelectedSiteId(site.id)}
+                        >
+                          <div className="site-card-top">
+                            <span className="status-indicator">Connected ✓</span>
+                            {openTasksCount > 0 ? (
+                              <span className="task-count-pill alert-pill">{openTasksCount} Tasks</span>
+                            ) : (
+                              <span className="task-count-pill success-pill">0 Tasks</span>
+                            )}
+                          </div>
+                          <h4 className="site-title">{site.name}</h4>
+                          
                           <a 
                             href={site.url} 
                             target="_blank" 
                             rel="noreferrer" 
-                            className="btn-secondary" 
-                            style={{ 
-                              padding: '0.5rem 1rem', 
-                              fontSize: '0.8rem', 
-                              textDecoration: 'none', 
-                              justifyContent: 'center',
-                              boxSizing: 'border-box' 
-                            }}
+                            className="site-url-link"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            View Website ↗
+                            {site.url} <ExternalLink size={10} />
                           </a>
+
+                          <div className="site-card-meta">
+                            <span>Last Audit: {site.lastAudit}</span>
+                          </div>
+
+                          <div className="site-card-actions">
+                            <a 
+                              href={site.url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="btn-secondary site-btn-sm"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              View Website ↗
+                            </a>
+                            <button 
+                              className="btn-primary site-btn-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSiteId(site.id);
+                              }}
+                            >
+                              Open Tasks
+                            </button>
+                          </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Right Column: Active Task Workspace */}
+                <div className="right-column">
+                  {selectedSite ? (
+                    <div className="task-workspace-container">
+                      <div className="workspace-header">
+                        <div className="header-meta">
+                          <span className="site-badge">Active Backlog</span>
+                          <h2>{selectedSite.name}</h2>
+                        </div>
+                        <a 
+                          href={selectedSite.url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="workspace-link"
+                        >
+                          {selectedSite.url} <ExternalLink size={12} />
+                        </a>
                       </div>
+
+                      {/* High Priority Tasks */}
+                      {selectedSite.tasks.filter(t => t.priority === "high").length > 0 && (
+                        <div className="backlog-section-container">
+                          <div className="backlog-section-header">
+                            <h3 className="section-title-custom">High Priority</h3>
+                            <span className="header-pbadge badge-high">Immediate</span>
+                          </div>
+                          <div className="task-cards-list">
+                            {selectedSite.tasks.filter(t => t.priority === "high").map(task => (
+                              <div key={task.id} className="task-card-item">
+                                <div className="card-item-body">
+                                  <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                                    {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
+                                  </h4>
+                                  {task.state === "progress" && (
+                                    <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>In Progress</span>
+                                  )}
+                                </div>
+                                <div className="card-item-action">
+                                  {task.state === "completed" ? (
+                                    <span className="score-change-badge change-positive">✓ Complete</span>
+                                  ) : (
+                                    <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
+                                      Start Work <ChevronRight size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Medium Priority Tasks */}
+                      {selectedSite.tasks.filter(t => t.priority === "medium").length > 0 && (
+                        <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
+                          <div className="backlog-section-header">
+                            <h3 className="section-title-custom">Medium Priority</h3>
+                            <span className="header-pbadge badge-medium">Standard</span>
+                          </div>
+                          <div className="task-cards-list">
+                            {selectedSite.tasks.filter(t => t.priority === "medium").map(task => (
+                              <div key={task.id} className="task-card-item">
+                                <div className="card-item-body">
+                                  <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                                    {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
+                                  </h4>
+                                  {task.state === "progress" && (
+                                    <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>In Progress</span>
+                                  )}
+                                </div>
+                                <div className="card-item-action">
+                                  {task.state === "completed" ? (
+                                    <span className="score-change-badge change-positive">✓ Complete</span>
+                                  ) : (
+                                    <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
+                                      Start Work <ChevronRight size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Low Priority Tasks */}
+                      {selectedSite.tasks.filter(t => t.priority === "low").length > 0 && (
+                        <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
+                          <div className="backlog-section-header">
+                            <h3 className="section-title-custom">Low Priority</h3>
+                            <span className="header-pbadge badge-low">Optional</span>
+                          </div>
+                          <div className="task-cards-list">
+                            {selectedSite.tasks.filter(t => t.priority === "low").map(task => (
+                              <div key={task.id} className="task-card-item">
+                                <div className="card-item-body">
+                                  <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                                    {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
+                                  </h4>
+                                  {task.state === "progress" && (
+                                    <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 600 }}>In Progress</span>
+                                  )}
+                                </div>
+                                <div className="card-item-action">
+                                  {task.state === "completed" ? (
+                                    <span className="score-change-badge change-positive">✓ Complete</span>
+                                  ) : (
+                                    <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
+                                      Start Work <ChevronRight size={14} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* SCREEN 2: WEBSITE TASK LIST */}
-          {currentView === "SITE_TASKS" && selectedSite && (
-            <div>
-              <div className="mb-4">
-                <span 
-                  className="flex align-center gap-2 text-secondary cursor-pointer"
-                  onClick={() => { setCurrentView("WEBSITES"); setSelectedSiteId(null); }}
-                  style={{ fontSize: '0.9rem' }}
-                >
-                  <ArrowLeft size={16} /> Back to Websites
-                </span>
-              </div>
-
-              <div style={{ marginBottom: '2rem' }}>
-                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.25rem' }}>{selectedSite.name} Tasks</h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Select an optimization task below to begin.</p>
-              </div>
-
-              {/* High Priority Tasks */}
-              {selectedSite.tasks.filter(t => t.priority === "high").length > 0 && (
-                <div className="backlog-section-container">
-                  <div className="backlog-section-header">
-                    <h3 className="section-title-custom">High Priority</h3>
-                    <span className="header-pbadge badge-high">Immediate</span>
-                  </div>
-                  <div className="task-cards-list">
-                    {selectedSite.tasks.filter(t => t.priority === "high").map(task => (
-                      <div key={task.id} className="task-card-item">
-                        <div className="card-item-body">
-                          <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
-                          </h4>
-                          {task.state === "progress" && (
-                            <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 500 }}>In Progress</span>
-                          )}
-                        </div>
-                        <div className="card-item-action">
-                          {task.state === "completed" ? (
-                            <span className="score-change-badge change-positive">✓ Complete</span>
-                          ) : (
-                            <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
-                              Start Work <ChevronRight size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ) : (
+                    <div className="workspace-empty-state-card">
+                      <Globe size={40} className="empty-globe-icon" />
+                      <h4>Select a Website</h4>
+                      <p>Choose a connected site from the left-hand column to load its active task backlog.</p>
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* Medium Priority Tasks */}
-              {selectedSite.tasks.filter(t => t.priority === "medium").length > 0 && (
-                <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
-                  <div className="backlog-section-header">
-                    <h3 className="section-title-custom">Medium Priority</h3>
-                    <span className="header-pbadge badge-medium">Standard</span>
-                  </div>
-                  <div className="task-cards-list">
-                    {selectedSite.tasks.filter(t => t.priority === "medium").map(task => (
-                      <div key={task.id} className="task-card-item">
-                        <div className="card-item-body">
-                          <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
-                          </h4>
-                          {task.state === "progress" && (
-                            <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 500 }}>In Progress</span>
-                          )}
-                        </div>
-                        <div className="card-item-action">
-                          {task.state === "completed" ? (
-                            <span className="score-change-badge change-positive">✓ Complete</span>
-                          ) : (
-                            <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
-                              Start Work <ChevronRight size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Low Priority Tasks */}
-              {selectedSite.tasks.filter(t => t.priority === "low").length > 0 && (
-                <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
-                  <div className="backlog-section-header">
-                    <h3 className="section-title-custom">Low Priority</h3>
-                    <span className="header-pbadge badge-low">Optional</span>
-                  </div>
-                  <div className="task-cards-list">
-                    {selectedSite.tasks.filter(t => t.priority === "low").map(task => (
-                      <div key={task.id} className="task-card-item">
-                        <div className="card-item-body">
-                          <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
-                          </h4>
-                          {task.state === "progress" && (
-                            <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 500 }}>In Progress</span>
-                          )}
-                        </div>
-                        <div className="card-item-action">
-                          {task.state === "completed" ? (
-                            <span className="score-change-badge change-positive">✓ Complete</span>
-                          ) : (
-                            <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
-                              Start Work <ChevronRight size={14} />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
@@ -589,10 +586,10 @@ export default function App() {
               <div className="mb-4">
                 <span 
                   className="flex align-center gap-2 text-secondary cursor-pointer"
-                  onClick={() => setCurrentView("SITE_TASKS")}
+                  onClick={() => setCurrentView("WEBSITES")}
                   style={{ fontSize: '0.9rem' }}
                 >
-                  <ArrowLeft size={16} /> Back to Task List
+                  <ArrowLeft size={16} /> Back to Backlog
                 </span>
               </div>
 
@@ -756,7 +753,7 @@ export default function App() {
 
                   {/* Right Column: Simulated WordPress Text Editor */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignCenter: 'center' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h3 className="section-title-custom" style={{ fontSize: '1.05rem' }}>Simulated WordPress Field</h3>
                       {verificationStatus !== "success" && verificationStatus !== "loading" && (
                         <button className="btn-secondary btn-sm" onClick={handleApplySuggestion}>
