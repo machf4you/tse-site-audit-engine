@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
-  ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight
+  ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, Globe
 } from 'lucide-react';
 
 const INITIAL_SITES = [
@@ -22,7 +22,7 @@ const INITIAL_SITES = [
         whyItMatters: "The target phrase is missing from the main H1 heading.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "Bathroom Renovations",
-        completed: false
+        state: "backlog" // backlog, progress, completed
       },
       {
         id: "t2",
@@ -34,7 +34,7 @@ const INITIAL_SITES = [
         whyItMatters: "FAQ markup is missing. Structured schema is needed for rich snippet placement.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "FAQPage",
-        completed: false
+        state: "backlog"
       },
       {
         id: "t3",
@@ -46,7 +46,7 @@ const INITIAL_SITES = [
         whyItMatters: "The internal link anchor text and target URL need optimization.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "cheap-bathroom-suites",
-        completed: false
+        state: "backlog"
       },
       {
         id: "t4",
@@ -58,7 +58,7 @@ const INITIAL_SITES = [
         whyItMatters: "The search description needs to be more compelling and descriptive.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "renovations",
-        completed: false
+        state: "backlog"
       },
       {
         id: "t5",
@@ -70,7 +70,7 @@ const INITIAL_SITES = [
         whyItMatters: "Image description keyword is missing.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "Renovation",
-        completed: false
+        state: "backlog"
       },
       {
         id: "t6",
@@ -82,7 +82,7 @@ const INITIAL_SITES = [
         whyItMatters: "On-page content is too thin to rank properly.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "Bathroom Suites",
-        completed: false
+        state: "backlog"
       }
     ]
   },
@@ -103,7 +103,7 @@ const INITIAL_SITES = [
         whyItMatters: "Incoming internal link is missing.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "nie-number-application",
-        completed: false
+        state: "backlog"
       },
       {
         id: "t8",
@@ -115,7 +115,7 @@ const INITIAL_SITES = [
         whyItMatters: "H1 heading is missing keywords.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "TIE Card Application",
-        completed: false
+        state: "backlog"
       },
       {
         id: "t9",
@@ -127,7 +127,7 @@ const INITIAL_SITES = [
         whyItMatters: "The title lacks key branding and structure.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "Spanish Residency Services",
-        completed: false
+        state: "backlog"
       }
     ]
   },
@@ -148,7 +148,7 @@ const INITIAL_SITES = [
         whyItMatters: "The main page heading lacks the primary target keyword.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "Divan Beds",
-        completed: false
+        state: "backlog"
       },
       {
         id: "t11",
@@ -160,7 +160,7 @@ const INITIAL_SITES = [
         whyItMatters: "Only one primary H1 should represent the page title.",
         successCheck: "Page Auditor will verify automatically.",
         keyword: "Double Mattresses",
-        completed: false
+        state: "backlog"
       }
     ]
   }
@@ -238,6 +238,22 @@ export default function App() {
     }
   };
 
+  const handleMarkInProgress = (taskId) => {
+    setSites(prevSites => prevSites.map(s => {
+      if (s.id === selectedSiteId) {
+        const updatedTasks = s.tasks.map(t => {
+          if (t.id === taskId) {
+            return { ...t, state: "progress" };
+          }
+          return t;
+        });
+        return { ...s, tasks: updatedTasks };
+      }
+      return s;
+    }));
+    showNotification("Task marked as In Progress.");
+  };
+
   // Auto-paste suggestion for workers
   const handleApplySuggestion = () => {
     if (activeTask) {
@@ -263,7 +279,7 @@ export default function App() {
           if (s.id === selectedSite.id) {
             const updatedTasks = s.tasks.map(t => {
               if (t.id === activeTask.id) {
-                return { ...t, completed: true, currentVersion: editingContent };
+                return { ...t, state: "completed", currentVersion: editingContent };
               }
               return t;
             });
@@ -283,7 +299,7 @@ export default function App() {
     if (!selectedSite) return;
     
     // Find next incomplete task in the backlog list for the current website
-    const incompleteTasks = selectedSite.tasks.filter(t => !t.completed && t.id !== selectedTaskId);
+    const incompleteTasks = selectedSite.tasks.filter(t => t.state !== "completed" && t.id !== selectedTaskId);
     
     if (incompleteTasks.length > 0) {
       // Prioritize High -> Medium -> Low
@@ -302,6 +318,13 @@ export default function App() {
       setCurrentView("SITE_TASKS");
     }
   };
+
+  // Helper metrics
+  const getOpenTasksCount = (site) => {
+    return site.tasks.filter(t => t.state !== "completed").length;
+  };
+
+  const totalOpenTasks = sites.reduce((acc, s) => acc + getOpenTasksCount(s), 0);
 
   // Stepper state mapping
   const getStepperStep = () => {
@@ -352,6 +375,23 @@ export default function App() {
           {/* SCREEN 1: WEBSITE DASHBOARD */}
           {currentView === "WEBSITES" && (
             <div>
+              {/* Admin Onboarding Sync Banner */}
+              <div style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                border: '1px solid rgba(59, 130, 246, 0.15)',
+                borderRadius: '8px',
+                padding: '1rem 1.25rem',
+                marginBottom: '2rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <Server size={18} style={{ color: '#60a5fa', flexShrink: 0 }} />
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                  <strong style={{ color: '#e2e8f0' }}>Admin Setup Mode:</strong> Connected websites are pre-configured through the TSE Exporter Plugin. Worker profiles are read-only for onboarding setup.
+                </div>
+              </div>
+
               <div style={{ marginBottom: '2rem' }}>
                 <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.25rem' }}>My Work Today</h2>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Which websites are available to work on?</p>
@@ -359,7 +399,7 @@ export default function App() {
 
               <div className="task-cards-list">
                 {sites.map(site => {
-                  const openTasksCount = site.tasks.filter(t => !t.completed).length;
+                  const openTasksCount = getOpenTasksCount(site);
                   return (
                     <div key={site.id} className="task-card-item">
                       <div className="card-item-body">
@@ -367,8 +407,26 @@ export default function App() {
                           Connected ✓
                         </span>
                         <h3 className="card-task-title" style={{ fontSize: '1.25rem', marginTop: '0.25rem' }}>{site.name}</h3>
-                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Last Audit: {site.lastAudit}</span>
+                        <a 
+                          href={site.url} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          style={{ 
+                            fontSize: '0.8rem', 
+                            color: '#60a5fa', 
+                            textDecoration: 'none', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: '4px',
+                            marginTop: '0.15rem'
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {site.url} <ExternalLink size={10} />
+                        </a>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginTop: '0.5rem' }}>Last Audit: {site.lastAudit}</span>
                       </div>
+                      
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                         <div style={{ textAlign: 'right' }}>
                           <span style={{ fontSize: '1.5rem', fontWeight: '800', display: 'block', lineHeight: 1, color: openTasksCount > 0 ? '#fbbf24' : '#10b981' }}>
@@ -376,9 +434,28 @@ export default function App() {
                           </span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Open Tasks</span>
                         </div>
-                        <button className="btn-primary" onClick={() => handleOpenSite(site.id)}>
-                          Open Website
-                        </button>
+                        
+                        <div className="flex flex-col gap-2">
+                          <button className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }} onClick={() => handleOpenSite(site.id)}>
+                            Open Tasks
+                          </button>
+                          <a 
+                            href={site.url} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="btn-secondary" 
+                            style={{ 
+                              padding: '0.5rem 1rem', 
+                              fontSize: '0.8rem', 
+                              textDecoration: 'none', 
+                              justifyContent: 'center',
+                              boxSizing: 'border-box' 
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View Website ↗
+                          </a>
+                        </div>
                       </div>
                     </div>
                   );
@@ -416,12 +493,15 @@ export default function App() {
                     {selectedSite.tasks.filter(t => t.priority === "high").map(task => (
                       <div key={task.id} className="task-card-item">
                         <div className="card-item-body">
-                          <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.completed ? '✓ ' : '□ '}{task.taskTitle}
+                          <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                            {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
                           </h4>
+                          {task.state === "progress" && (
+                            <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 500 }}>In Progress</span>
+                          )}
                         </div>
                         <div className="card-item-action">
-                          {task.completed ? (
+                          {task.state === "completed" ? (
                             <span className="score-change-badge change-positive">✓ Complete</span>
                           ) : (
                             <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
@@ -446,12 +526,15 @@ export default function App() {
                     {selectedSite.tasks.filter(t => t.priority === "medium").map(task => (
                       <div key={task.id} className="task-card-item">
                         <div className="card-item-body">
-                          <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.completed ? '✓ ' : '□ '}{task.taskTitle}
+                          <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                            {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
                           </h4>
+                          {task.state === "progress" && (
+                            <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 500 }}>In Progress</span>
+                          )}
                         </div>
                         <div className="card-item-action">
-                          {task.completed ? (
+                          {task.state === "completed" ? (
                             <span className="score-change-badge change-positive">✓ Complete</span>
                           ) : (
                             <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
@@ -476,12 +559,15 @@ export default function App() {
                     {selectedSite.tasks.filter(t => t.priority === "low").map(task => (
                       <div key={task.id} className="task-card-item">
                         <div className="card-item-body">
-                          <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.completed ? '✓ ' : '□ '}{task.taskTitle}
+                          <h4 className="card-task-title" style={{ textDecoration: task.state === "completed" ? 'line-through' : 'none', color: task.state === "completed" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                            {task.state === "completed" ? '✓ ' : task.state === "progress" ? '⌛ ' : '□ '}{task.taskTitle}
                           </h4>
+                          {task.state === "progress" && (
+                            <span style={{ fontSize: '0.75rem', color: '#fbbf24', fontWeight: 500 }}>In Progress</span>
+                          )}
                         </div>
                         <div className="card-item-action">
-                          {task.completed ? (
+                          {task.state === "completed" ? (
                             <span className="score-change-badge change-positive">✓ Complete</span>
                           ) : (
                             <button className="btn-primary btn-sm" onClick={() => handleStartTask(task.id)}>
@@ -497,7 +583,7 @@ export default function App() {
             </div>
           )}
 
-          {/* SCREEN 3: TASK DETAIL */}
+          {/* SCREEN 3: TASK DETAIL (TASK BRIEFING) */}
           {currentView === "TASK_FOCUS" && activeTask && selectedSite && (
             <div>
               <div className="mb-4">
@@ -531,7 +617,7 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Task</label>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Task Title</label>
                     <div style={{ fontSize: '1.05rem', color: 'var(--text-primary)', marginTop: '0.25rem', fontWeight: 600 }}>
                       {activeTask.taskTitle}
                     </div>
@@ -572,7 +658,18 @@ export default function App() {
                   </div>
 
                   <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.75rem', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                    {activeTask.completed ? (
+                    {/* View Live Page Button */}
+                    <a 
+                      href={activeTask.pageUrl} 
+                      target="_blank" 
+                      rel="noreferrer" 
+                      className="btn-secondary"
+                      style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                    >
+                      View Live Page ↗
+                    </a>
+
+                    {activeTask.state === "completed" ? (
                       <div className="flex align-center gap-4">
                         <span style={{ color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <CheckCircle size={18} /> ✓ Task Complete
@@ -582,9 +679,24 @@ export default function App() {
                         </button>
                       </div>
                     ) : (
-                      <button className="btn-primary start-working-btn" style={{ padding: '0.85rem 2.25rem' }} onClick={handleOpenWordPressEditor}>
-                        Open WordPress Editor
-                      </button>
+                      <>
+                        {activeTask.state !== "progress" && (
+                          <button 
+                            className="btn-secondary"
+                            onClick={() => handleMarkInProgress(activeTask.id)}
+                            style={{ color: '#fbbf24', borderColor: '#fbbf24' }}
+                          >
+                            Mark As In Progress
+                          </button>
+                        )}
+                        
+                        <button 
+                          className="btn-primary" 
+                          onClick={handleOpenWordPressEditor}
+                        >
+                          Open WordPress Editor ↗
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
