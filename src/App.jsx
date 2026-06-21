@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
-  ExternalLink, User, Check, Server, AlertCircle, Award
+  ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight
 } from 'lucide-react';
 
 const INITIAL_TASKS = [
@@ -98,13 +98,39 @@ const INITIAL_TASKS = [
   }
 ];
 
+// Workflow indicator stepper
+const Stepper = ({ currentStep }) => {
+  const steps = [
+    { id: "select", label: "Select Task" },
+    { id: "change", label: "Make Change" },
+    { id: "verify", label: "Verify" },
+    { id: "complete", label: "Complete" }
+  ];
+
+  return (
+    <div className="workflow-stepper">
+      {steps.map((step, index) => {
+        const isActive = step.id === currentStep;
+        return (
+          <React.Fragment key={step.id}>
+            <div className={`stepper-item ${isActive ? 'active' : ''}`}>
+              <div className="stepper-bubble">{index + 1}</div>
+              <span className="stepper-label">{step.label}</span>
+            </div>
+            {index < steps.length - 1 && <div className="stepper-connector" />}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
 export default function App() {
   const [tasks, setTasks] = useState(INITIAL_TASKS);
-  const [currentView, setCurrentView] = useState("BACKLOG"); // BACKLOG, FOCUS, ALL_CAUGHT_UP
+  const [currentView, setCurrentView] = useState("BACKLOG"); // BACKLOG, FOCUS, EDIT, ALL_CAUGHT_UP
   const [activeTaskId, setActiveTaskId] = useState(null);
   
-  // Page Auditor Drawer State
-  const [pageAuditorOpen, setPageAuditorOpen] = useState(false);
+  // Page Auditor Edit State
   const [editingContent, setEditingContent] = useState("");
   const [verificationStatus, setVerificationStatus] = useState("idle"); // idle, loading, success, fail
   const [verificationError, setVerificationError] = useState("");
@@ -128,12 +154,12 @@ export default function App() {
     }
   };
 
-  const handleLaunchPageAuditor = () => {
+  const handleBeginFix = () => {
     if (activeTask) {
       setEditingContent(activeTask.currentVersion);
       setVerificationStatus("idle");
       setVerificationError("");
-      setPageAuditorOpen(true);
+      setCurrentView("EDIT");
     }
   };
 
@@ -141,11 +167,11 @@ export default function App() {
   const handleApplySuggestion = () => {
     if (activeTask) {
       setEditingContent(activeTask.requiredVersion);
-      showNotification("Suggested fix copied into editor!");
+      showNotification("Suggested text copied into editor!");
     }
   };
 
-  const handleReAudit = () => {
+  const handleVerifyChange = () => {
     if (!activeTask) return;
     
     setVerificationStatus("loading");
@@ -164,7 +190,7 @@ export default function App() {
           }
           return t;
         }));
-        showNotification("Verification passed! Task completed.");
+        showNotification("Verification passed! Task complete.");
       } else {
         setVerificationStatus("fail");
         setVerificationError(`Verification Failed. The page content is missing the required target phrase "${activeTask.keyword}".`);
@@ -173,8 +199,6 @@ export default function App() {
   };
 
   const handleNextTask = () => {
-    setPageAuditorOpen(false);
-    
     // Find next incomplete task in the backlog list
     const incompleteTasks = tasks.filter(t => !t.completed && t.id !== activeTaskId);
     
@@ -200,8 +224,19 @@ export default function App() {
     }
   };
 
-  // Helper counts
-  const totalCompleted = tasks.filter(t => t.completed).length;
+  // Helper metrics
+  const pendingTasks = tasks.filter(t => !t.completed);
+
+  // Stepper state mapping
+  const getStepperStep = () => {
+    if (currentView === "BACKLOG" || currentView === "FOCUS") return "select";
+    if (currentView === "EDIT") {
+      if (verificationStatus === "loading") return "verify";
+      if (verificationStatus === "success") return "complete";
+      return "change";
+    }
+    return "complete";
+  };
 
   return (
     <div className="hub-container">
@@ -218,107 +253,10 @@ export default function App() {
         </div>
       )}
 
-      {/* Backdrop overlay */}
-      <div className={`backdrop-overlay ${pageAuditorOpen ? 'show' : ''}`} onClick={() => setPageAuditorOpen(false)}></div>
-
-      {/* Slide-out Page Auditor Mockup Drawer */}
-      <div className={`page-auditor-panel ${pageAuditorOpen ? 'open' : ''}`}>
-        <div className="panel-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Server style={{ color: "#10b981" }} size={20} />
-            <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Page Editor & Auditor</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Live WordPress Sync</p>
-            </div>
-          </div>
-          <button className="panel-close-btn" onClick={() => setPageAuditorOpen(false)}>×</button>
-        </div>
-        
-        {activeTask && (
-          <div className="panel-content">
-            <div className="mb-4">
-              <label style={{ fontSize: "0.75rem", textTransform: "uppercase", color: "var(--text-secondary)" }}>Website Link</label>
-              <div style={{ backgroundColor: 'var(--bg-color)', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem' }}>
-                <span className="text-bold" style={{ color: '#60a5fa' }}>{activeTask.website}</span>
-                <span style={{ color: 'var(--text-secondary)', marginLeft: '8px', fontSize: '0.75rem' }}>({activeTask.websiteUrl})</span>
-              </div>
-            </div>
-
-            <div className="report-section" style={{ backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)' }}>
-              <div className="flex justify-between align-center mb-2">
-                <h4 style={{ fontSize: '0.85rem', fontWeight: 700 }}>WordPress Text Editor</h4>
-                <button className="btn-secondary btn-sm" onClick={handleApplySuggestion}>
-                  Copy Suggested Fix
-                </button>
-              </div>
-              
-              <div className="mb-4">
-                <textarea 
-                  value={editingContent}
-                  onChange={(e) => setEditingContent(e.target.value)}
-                  disabled={verificationStatus === "loading" || verificationStatus === "success"}
-                  rows={4}
-                  style={{ 
-                    width: '100%',
-                    backgroundColor: '#07090b', padding: '0.75rem', borderRadius: '6px', 
-                    fontFamily: 'monospace', fontSize: '0.85rem', color: '#f3f4f6',
-                    border: '1px solid var(--border-color)', resize: 'vertical'
-                  }}
-                />
-              </div>
-
-              {verificationStatus === "loading" && (
-                <div className="text-center mt-4">
-                  <RefreshCw className="inline animate-spin mr-2" style={{ color: "#3b82f6" }} size={20} />
-                  <span style={{ fontSize: '0.9rem', color: '#60a5fa' }}>Running automated success checks...</span>
-                </div>
-              )}
-
-              {verificationStatus === "fail" && (
-                <div className="verification-alert mt-4" style={{ 
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
-                  borderRadius: '6px', padding: '0.75rem', display: 'flex', alignItems: 'flex-start', gap: '8px',
-                  color: '#f87171', fontSize: '0.8rem'
-                }}>
-                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong>Verification Failed</strong>
-                    <p style={{ marginTop: '0.15rem' }}>{verificationError}</p>
-                  </div>
-                </div>
-              )}
-
-              {verificationStatus === "success" && (
-                <div className="text-center mt-4" style={{ color: "#34d399", fontWeight: "600", fontSize: '0.95rem' }}>
-                  <CheckCircle className="inline mr-2" size={18} /> ✓ Task Complete!
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        <div className="panel-footer flex gap-2">
-          {verificationStatus === "success" ? (
-            <button className="btn-primary w-full" onClick={handleNextTask} style={{ justifyContent: 'center' }}>
-              Next Task
-            </button>
-          ) : (
-            <button 
-              className="btn-primary w-full" 
-              disabled={verificationStatus === "loading"}
-              onClick={handleReAudit}
-              style={{ justifyContent: 'center' }}
-            >
-              <Check size={16} /> Re-Audit Page
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Header Panel */}
+      {/* Fixed top header */}
       <header className="hub-header">
         <div className="hub-brand" onClick={() => { setCurrentView("BACKLOG"); setActiveTaskId(null); }}>
-          <CheckSquare size={24} style={{ color: "var(--accent-color)" }} />
+          <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
           <span>TSE Worker Portal</span>
         </div>
         <div className="user-profile">
@@ -327,32 +265,37 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area (With header margin spacing) */}
       <main className="hub-main">
         <div className="hub-content">
           
+          {/* Stepper Indicator */}
+          {currentView !== "ALL_CAUGHT_UP" && (
+            <Stepper currentStep={getStepperStep()} />
+          )}
+
           {/* VIEW: WORKER BACKLOG (MY WORK TODAY) */}
           {currentView === "BACKLOG" && (
             <div>
-              <div className="work-summary-card" style={{ marginBottom: '2.5rem' }}>
+              <div className="work-summary-card">
                 <div className="summary-left">
                   <div className="summary-title-row">
                     <h3>My Work Today</h3>
                   </div>
                   <div className="summary-metrics">
                     <div className="metric-large">
-                      <span className="metric-number">{tasks.filter(t => !t.completed).length}</span>
+                      <span className="metric-number">{pendingTasks.length}</span>
                       <span className="metric-label">Tasks Remaining</span>
                     </div>
                     <div className="metric-pills">
                       <span className="metric-pill prio-high">
-                        {tasks.filter(t => !t.completed && t.priority === "high").length} High
+                        {pendingTasks.filter(t => t.priority === "high").length} High
                       </span>
                       <span className="metric-pill prio-medium">
-                        {tasks.filter(t => !t.completed && t.priority === "medium").length} Medium
+                        {pendingTasks.filter(t => t.priority === "medium").length} Medium
                       </span>
                       <span className="metric-pill prio-low">
-                        {tasks.filter(t => !t.completed && t.priority === "low").length} Low
+                        {pendingTasks.filter(t => t.priority === "low").length} Low
                       </span>
                     </div>
                   </div>
@@ -360,100 +303,104 @@ export default function App() {
                 <div className="summary-right">
                   <button 
                     className="btn-primary start-working-btn" 
-                    disabled={tasks.every(t => t.completed)}
+                    disabled={pendingTasks.length === 0}
                     onClick={() => {
-                      // Find first incomplete task
                       const firstIncomplete = tasks.find(t => !t.completed);
                       if (firstIncomplete) handleStartWork(firstIncomplete.id);
                     }}
                   >
-                    <Play size={16} /> Start Work
+                    <Play size={16} /> Begin Fixes
                   </button>
                 </div>
               </div>
 
+              <div style={{ marginTop: '2.5rem' }}>
+                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.25rem' }}>My Tasks</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>Select a task card below to get started.</p>
+              </div>
+
               {/* High Priority Tasks */}
-              <div className="report-section" style={{ borderTop: '4px solid #ef4444' }}>
-                <h3 className="section-title-custom mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>High Priority</span>
-                  <span className="header-pbadge badge-high">Immediate</span>
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="backlog-section-container">
+                <div className="backlog-section-header">
+                  <h3 className="section-title-custom">High Priority</h3>
+                  <span className="header-pbadge badge-high">Immediate Attention</span>
+                </div>
+                <div className="task-cards-list">
                   {tasks.filter(t => t.priority === "high").map(task => (
-                    <div key={task.id} className="workspace-task-item">
-                      <div className="task-item-left">
-                        <div className="task-item-content">
-                          <span className="task-item-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.taskTitle}
-                          </span>
-                          <span className="task-item-site">on {task.website}</span>
-                        </div>
+                    <div key={task.id} className="task-card-item">
+                      <div className="card-item-body">
+                        <span className="card-website-tag">{task.website}</span>
+                        <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                          {task.taskTitle}
+                        </h4>
                       </div>
-                      {task.completed ? (
-                        <span className="score-change-badge change-positive">✓ Done</span>
-                      ) : (
-                        <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
-                          Start Work
-                        </button>
-                      )}
+                      <div className="card-item-action">
+                        {task.completed ? (
+                          <span className="score-change-badge change-positive">✓ Complete</span>
+                        ) : (
+                          <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
+                            Start Work <ChevronRight size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Medium Priority Tasks */}
-              <div className="report-section" style={{ borderTop: '4px solid #f59e0b', marginTop: '2rem' }}>
-                <h3 className="section-title-custom mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Medium Priority</span>
-                  <span className="header-pbadge badge-medium">Standard</span>
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
+                <div className="backlog-section-header">
+                  <h3 className="section-title-custom">Medium Priority</h3>
+                  <span className="header-pbadge badge-medium">Standard Backlog</span>
+                </div>
+                <div className="task-cards-list">
                   {tasks.filter(t => t.priority === "medium").map(task => (
-                    <div key={task.id} className="workspace-task-item">
-                      <div className="task-item-left">
-                        <div className="task-item-content">
-                          <span className="task-item-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.taskTitle}
-                          </span>
-                          <span className="task-item-site">on {task.website}</span>
-                        </div>
+                    <div key={task.id} className="task-card-item">
+                      <div className="card-item-body">
+                        <span className="card-website-tag">{task.website}</span>
+                        <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                          {task.taskTitle}
+                        </h4>
                       </div>
-                      {task.completed ? (
-                        <span className="score-change-badge change-positive">✓ Done</span>
-                      ) : (
-                        <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
-                          Start Work
-                        </button>
-                      )}
+                      <div className="card-item-action">
+                        {task.completed ? (
+                          <span className="score-change-badge change-positive">✓ Complete</span>
+                        ) : (
+                          <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
+                            Start Work <ChevronRight size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Low Priority Tasks */}
-              <div className="report-section" style={{ borderTop: '4px solid #94a3b8', marginTop: '2rem' }}>
-                <h3 className="section-title-custom mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Low Priority</span>
-                  <span className="header-pbadge badge-low">Optional</span>
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="backlog-section-container" style={{ marginTop: '2rem' }}>
+                <div className="backlog-section-header">
+                  <h3 className="section-title-custom">Low Priority</h3>
+                  <span className="header-pbadge badge-low">Optional Optimisations</span>
+                </div>
+                <div className="task-cards-list">
                   {tasks.filter(t => t.priority === "low").map(task => (
-                    <div key={task.id} className="workspace-task-item">
-                      <div className="task-item-left">
-                        <div className="task-item-content">
-                          <span className="task-item-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
-                            {task.taskTitle}
-                          </span>
-                          <span className="task-item-site">on {task.website}</span>
-                        </div>
+                    <div key={task.id} className="task-card-item">
+                      <div className="card-item-body">
+                        <span className="card-website-tag">{task.website}</span>
+                        <h4 className="card-task-title" style={{ textDecoration: task.completed ? 'line-through' : 'none', color: task.completed ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
+                          {task.taskTitle}
+                        </h4>
                       </div>
-                      {task.completed ? (
-                        <span className="score-change-badge change-positive">✓ Done</span>
-                      ) : (
-                        <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
-                          Start Work
-                        </button>
-                      )}
+                      <div className="card-item-action">
+                        {task.completed ? (
+                          <span className="score-change-badge change-positive">✓ Complete</span>
+                        ) : (
+                          <button className="btn-primary btn-sm" onClick={() => handleStartWork(task.id)}>
+                            Start Work <ChevronRight size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -474,8 +421,8 @@ export default function App() {
                 </span>
               </div>
 
-              <div className="report-section" style={{ padding: '2rem' }}>
-                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '1.5rem' }}>
+              <div className="report-section" style={{ padding: '2.5rem' }}>
+                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
                   <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
                     {activeTask.priority} Priority
                   </span>
@@ -485,46 +432,49 @@ export default function App() {
                   </h2>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>What needs fixing</label>
-                    <div style={{ fontSize: '1.05rem', color: 'var(--text-primary)', marginTop: '0.25rem', fontWeight: 500 }}>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>What am I fixing?</label>
+                    <div style={{ fontSize: '1.1rem', color: 'var(--text-primary)', marginTop: '0.25rem', fontWeight: 700 }}>
                       {activeTask.taskTitle}
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                    <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '8px' }}>
-                      <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#f87171', fontWeight: 600 }}>Current Version</label>
-                      <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', marginTop: '0.5rem', whiteSpace: 'pre-wrap', color: '#cbd5e1' }}>
-                        {activeTask.currentVersion}
-                      </pre>
-                    </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>What do I change?</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                      <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', padding: '1.25rem', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#f87171', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>Current Version</span>
+                        <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#e2e8f0', margin: 0 }}>
+                          {activeTask.currentVersion}
+                        </pre>
+                      </div>
 
-                    <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.03)', border: '1px solid rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '8px' }}>
-                      <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 600 }}>Required Version</label>
-                      <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', marginTop: '0.5rem', whiteSpace: 'pre-wrap', color: '#cbd5e1' }}>
-                        {activeTask.requiredVersion}
-                      </pre>
+                      <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.03)', border: '1px solid rgba(16, 185, 129, 0.1)', padding: '1.25rem', borderRadius: '8px' }}>
+                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>Required Version</span>
+                        <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#e2e8f0', margin: 0 }}>
+                          {activeTask.requiredVersion}
+                        </pre>
+                      </div>
                     </div>
                   </div>
 
                   <div>
                     <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>Why this matters</label>
-                    <p style={{ fontSize: '0.9rem', color: '#d1d5db', marginTop: '0.25rem' }}>
+                    <p style={{ fontSize: '0.95rem', color: '#d1d5db', marginTop: '0.25rem', lineHeight: 1.5 }}>
                       {activeTask.whyItMatters}
                     </p>
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>How success is measured</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', fontSize: '0.9rem', marginTop: '0.25rem', fontWeight: 500 }}>
+                    <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 600 }}>How do I verify it?</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', fontSize: '0.95rem', marginTop: '0.25rem', fontWeight: 600 }}>
                       <CheckCircle size={16} />
                       <span>{activeTask.successCheck}</span>
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.75rem', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                     {activeTask.completed ? (
                       <div className="flex align-center gap-4">
                         <span style={{ color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -535,8 +485,8 @@ export default function App() {
                         </button>
                       </div>
                     ) : (
-                      <button className="btn-primary start-working-btn" style={{ padding: '0.75rem 2rem' }} onClick={handleLaunchPageAuditor}>
-                        Launch Page Auditor
+                      <button className="btn-primary start-working-btn" style={{ padding: '0.85rem 2.25rem' }} onClick={handleBeginFix}>
+                        Begin Fix
                       </button>
                     )}
                   </div>
@@ -545,17 +495,153 @@ export default function App() {
             </div>
           )}
 
+          {/* VIEW: FULL SCREEN EDIT & VERIFY WORKSPACE */}
+          {currentView === "EDIT" && activeTask && (
+            <div>
+              <div className="mb-4">
+                <button 
+                  className="flex align-center gap-2 text-secondary cursor-pointer"
+                  disabled={verificationStatus === "loading" || verificationStatus === "success"}
+                  onClick={() => setCurrentView("FOCUS")}
+                  style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-secondary)' }}
+                >
+                  <ArrowLeft size={16} /> Back to Task Details
+                </button>
+              </div>
+
+              <div className="report-section" style={{ padding: '2.5rem' }}>
+                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>WordPress Editor Synchronization</span>
+                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                    Editing Content on {activeTask.website}
+                  </h2>
+                </div>
+
+                <div className="editing-workspace-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem' }}>
+                  
+                  {/* Left Column: Context Briefing */}
+                  <div>
+                    <h3 className="section-title-custom mb-3" style={{ fontSize: '1.05rem' }}>Task Instructions</h3>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                      <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>Instruction</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{activeTask.taskTitle}</span>
+                      </div>
+
+                      <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>Suggested Content</span>
+                        <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#cbd5e1', margin: 0 }}>
+                          {activeTask.requiredVersion}
+                        </pre>
+                      </div>
+
+                      <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>Why it matters</span>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                          {activeTask.whyItMatters}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Simulated WordPress Text Editor */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignCenter: 'center' }}>
+                      <h3 className="section-title-custom" style={{ fontSize: '1.05rem' }}>Simulated WordPress Field</h3>
+                      {verificationStatus !== "success" && verificationStatus !== "loading" && (
+                        <button className="btn-secondary btn-sm" onClick={handleApplySuggestion}>
+                          Paste Required Text
+                        </button>
+                      )}
+                    </div>
+
+                    <textarea 
+                      value={editingContent}
+                      onChange={(e) => setEditingContent(e.target.value)}
+                      disabled={verificationStatus === "loading" || verificationStatus === "success"}
+                      rows={6}
+                      style={{ 
+                        width: '100%',
+                        backgroundColor: '#07090b', padding: '1rem', borderRadius: '8px', 
+                        fontFamily: 'monospace', fontSize: '0.9rem', color: '#f3f4f6',
+                        border: '1px solid var(--border-color)', resize: 'vertical',
+                        lineHeight: 1.4
+                      }}
+                    />
+
+                    {verificationStatus === "loading" && (
+                      <div className="text-center mt-4">
+                        <RefreshCw className="inline animate-spin mr-2" style={{ color: "#3b82f6" }} size={20} />
+                        <span style={{ fontSize: '0.9rem', color: '#60a5fa' }}>Verifying changes with Page Auditor...</span>
+                      </div>
+                    )}
+
+                    {verificationStatus === "fail" && (
+                      <div className="verification-alert" style={{ 
+                        backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)',
+                        borderRadius: '8px', padding: '1rem', display: 'flex', alignItems: 'flex-start', gap: '10px',
+                        color: '#f87171', fontSize: '0.85rem'
+                      }}>
+                        <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <strong>Verification Failed</strong>
+                          <p style={{ marginTop: '0.15rem', color: '#cbd5e1' }}>{verificationError}</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {verificationStatus === "success" && (
+                      <div className="verification-success-panel" style={{ 
+                        backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.15)',
+                        borderRadius: '8px', padding: '1.25rem', display: 'flex', flexDirection: 'column', alignItems: 'center',
+                        gap: '12px', color: '#34d399', textAlign: 'center'
+                      }}>
+                        <CheckCircle size={32} />
+                        <div>
+                          <strong style={{ fontSize: '1rem' }}>Task Successfully Completed!</strong>
+                          <p style={{ fontSize: '0.85rem', color: '#cbd5e1', marginTop: '0.25rem' }}>
+                            Page Auditor has verified your changes match the required keywords.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                      {verificationStatus === "success" ? (
+                        <button className="btn-primary start-working-btn" onClick={handleNextTask} style={{ width: '100%', justifyContent: 'center' }}>
+                          Next Task
+                        </button>
+                      ) : (
+                        <button 
+                          className="btn-primary" 
+                          disabled={verificationStatus === "loading"}
+                          onClick={handleVerifyChange}
+                          style={{ width: '100%', justifyContent: 'center', padding: '0.85rem' }}
+                        >
+                          {verificationStatus === "loading" ? "Auditing Page..." : "Verify Change"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* VIEW: ALL CAUGHT UP SCREEN */}
           {currentView === "ALL_CAUGHT_UP" && (
-            <div style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+            <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
               <div style={{ 
-                width: '80px', height: '80px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.1)', 
-                display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 1.5rem'
+                width: '90px', height: '90px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.08)', 
+                display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 1.75rem',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
               }}>
                 <Award size={48} style={{ color: '#10b981' }} />
               </div>
               <h2 style={{ fontFamily: 'Outfit', fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>All Caught Up!</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '2rem' }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', marginTop: '0.5rem', marginBottom: '2.5rem' }}>
                 You have resolved all pre-assigned optimization tasks for today. Outstanding work!
               </p>
               <button className="btn-primary" onClick={() => { setCurrentView("BACKLOG"); setActiveTaskId(null); }}>
