@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
-  ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, Globe
+  ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, ChevronDown, Globe, FileText,
+  Lock, AlertTriangle
 } from 'lucide-react';
 import './App.css';
 import exporterData from './exporter-data.json';
@@ -478,6 +479,11 @@ const getFindingsAndTasksForSite = (siteId, pages, siteUrl, siteName) => {
   return { findings: generatedFindings, tasks: generatedTasks };
 };
 
+const getPageType = (page) => {
+  if (!page) return "Unconfigured";
+  return page.assignedType || "Unconfigured";
+};
+
 const paramsTemp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
 const viewParamTemp = paramsTemp ? paramsTemp.get('view') : null;
 const isAutomationViewTemp = ['results', 'detail', 'edit', 'tasklist'].includes(viewParamTemp);
@@ -563,6 +569,13 @@ const WorkflowStepper = ({ currentView }) => {
 };
 
 
+
+
+const isPageExcluded = (page) => {
+  if (!page) return false;
+  return page.assignedType === "Excluded";
+};
+
 export default function App() {
   const [sites, setSites] = useState(() => {
     if (isAutomationViewTemp) {
@@ -618,7 +631,7 @@ export default function App() {
                       (viewParam === 'config') ? 'AUDIT_CONFIG' :
                       (viewParam === 'running') ? 'AUDIT_RUNNING' :
                       (viewParam === 'results') ? 'AUDIT_RESULTS' :
-                      (viewParam === 'architecture') ? 'ARCHITECTURE' :
+                      (viewParam === 'settings' || viewParam === 'architecture') ? 'SETTINGS' :
                       'CONNECTED_SITES';
   const initialSiteId = (viewParam === 'dashboard') ? null : 
                         (viewParam === 'config' || viewParam === 'running' || viewParam === 'results' || viewParam === 'config_manage') ? 'bathroom-upgrades' : 
@@ -627,7 +640,24 @@ export default function App() {
 
   const [currentView, setCurrentView] = useState(initialView);
   const [selectedSiteId, setSelectedSiteId] = useState(initialSiteId);
+  const [selectedAnalysisSiteId, setSelectedAnalysisSiteId] = useState(null);
+  const [activeModule, setActiveModule] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    Homepage: true,
+    HubPages: true,
+    LandingPages: true,
+    SupportingPages: true,
+    TopicalPages: true,
+    UnassignedPages: true
+  });
   const [selectedTaskId, setSelectedTaskId] = useState(initialTaskId);
+  
+  const toggleSection = (sectionName) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionName]: !prev[sectionName]
+    }));
+  };
   
   // Page Auditor Edit State
   const defaultTask = INITIAL_SITES[0]?.tasks?.[0] || { id: "t-default", currentVersion: "", keyword: "" };
@@ -856,6 +886,23 @@ export default function App() {
               setAuditFindings(findings);
               setSelectedFindingId(findings.length > 0 ? findings[0].findingId : null);
               
+              const auditResultsForPage = runPageAudit(targetPage.pageUrl, targetPage.targetPhrase, targetPage.pageTitle, selectedSiteId);
+              setPagesData(prev => ({
+                ...prev,
+                [selectedSiteId]: (prev[selectedSiteId] || []).map(p => {
+                  if (p.pageUrl === singleAuditPageUrl) {
+                    return {
+                      ...p,
+                      latestAudit: {
+                        timestamp: new Date().toISOString(),
+                        results: auditResultsForPage
+                      }
+                    };
+                  }
+                  return p;
+                })
+              }));
+
               setSites(prevSites => prevSites.map(s => {
                 if (s.id === selectedSiteId) {
                   // Merge: remove previous tasks for this page path, and append new ones
@@ -875,6 +922,24 @@ export default function App() {
 
               setAuditFindings(findings);
               setSelectedFindingId(findings.length > 0 ? findings[0].findingId : null);
+
+              setPagesData(prev => ({
+                ...prev,
+                [selectedSiteId]: (prev[selectedSiteId] || []).map(p => {
+                  if (p.status === "Configured") {
+                    const auditResultsForPage = runPageAudit(p.pageUrl, p.targetPhrase, p.pageTitle, selectedSiteId);
+                    return {
+                      ...p,
+                      latestAudit: {
+                        timestamp: new Date().toISOString(),
+                        results: auditResultsForPage
+                      }
+                    };
+                  }
+                  return p;
+                })
+              }));
+
               setSites(prevSites => prevSites.map(s => {
                 if (s.id === selectedSiteId) {
                   return {
@@ -1091,6 +1156,22 @@ export default function App() {
     showNotification("Task marked as In Progress.");
   };
 
+  const handleAssignToMe = (taskId) => {
+    setSites(prevSites => prevSites.map(s => {
+      if (s.id === selectedSiteId) {
+        const updatedTasks = s.tasks.map(t => {
+          if (t.id === taskId) {
+            return { ...t, state: "progress", assignee: "Sarah" };
+          }
+          return t;
+        });
+        return { ...s, tasks: updatedTasks };
+      }
+      return s;
+    }));
+    showNotification("Task assigned to Sarah and status changed to In Progress.");
+  };
+
   // Auto-paste suggestion for staff
   const handleApplySuggestion = () => {
     if (activeTask) {
@@ -1265,155 +1346,612 @@ export default function App() {
         </div>
       )}
 
-      {/* Fixed top header */}
       <header className="hub-header">
-        <div className="hub-brand" onClick={() => { setCurrentView("CONNECTED_SITES"); setSelectedTaskId(null); }}>
+        <div className="hub-brand" onClick={() => { setCurrentView("CONNECTED_SITES"); setSelectedTaskId(null); }} style={{ cursor: 'pointer' }}>
           <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
-          <span>TSE Work Portal</span>
+          <span>TSE Website Management</span>
         </div>
 
-         <div className="hub-navigation" style={{ display: 'flex', gap: '24px' }}>
+        <div className="hub-navigation" style={{ display: 'flex', gap: '24px', marginLeft: '80px', marginRight: 'auto' }}>
           <button 
             onClick={() => {
-              if (currentView === "ARCHITECTURE" || currentView === "SITE_ANALYSIS") {
+              if (currentView === "SETTINGS" || currentView === "SITE_ANALYSIS") {
                 setCurrentView("CONNECTED_SITES");
               }
             }} 
             style={{
               background: 'none', border: 'none', 
-              color: (currentView !== "ARCHITECTURE" && currentView !== "SITE_ANALYSIS") ? 'var(--text-primary)' : 'var(--text-secondary)',
+              color: (currentView !== "SETTINGS" && currentView !== "SITE_ANALYSIS") ? '#10b981' : 'var(--text-secondary)',
               fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-              borderBottom: (currentView !== "ARCHITECTURE" && currentView !== "SITE_ANALYSIS") ? '2px solid var(--accent-color)' : '2px solid transparent',
+              borderBottom: (currentView !== "SETTINGS" && currentView !== "SITE_ANALYSIS") ? '2px solid #10b981' : '2px solid transparent',
               padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
             }}
           >
-            Work Portal
+            Websites
           </button>
           <button 
-            onClick={() => setCurrentView("SITE_ANALYSIS")} 
+            onClick={() => {
+              setSelectedAnalysisSiteId(null);
+              setActiveModule(null);
+              setCurrentView("SITE_ANALYSIS");
+            }} 
             style={{
               background: 'none', border: 'none', 
-              color: currentView === "SITE_ANALYSIS" ? 'var(--text-primary)' : 'var(--text-secondary)',
+              color: currentView === "SITE_ANALYSIS" ? '#10b981' : '#94a3b8',
               fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-              borderBottom: currentView === "SITE_ANALYSIS" ? '2px solid var(--accent-color)' : '2px solid transparent',
+              borderBottom: currentView === "SITE_ANALYSIS" ? '2px solid #10b981' : '2px solid transparent',
               padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
             }}
           >
             Site Analysis
           </button>
           <button 
-            onClick={() => setCurrentView("ARCHITECTURE")} 
+            onClick={() => setCurrentView("SETTINGS")} 
             style={{
               background: 'none', border: 'none', 
-              color: currentView === "ARCHITECTURE" ? 'var(--text-primary)' : 'var(--text-secondary)',
+              color: currentView === "SETTINGS" ? '#10b981' : '#94a3b8',
               fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-              borderBottom: currentView === "ARCHITECTURE" ? '2px solid var(--accent-color)' : '2px solid transparent',
+              borderBottom: currentView === "SETTINGS" ? '2px solid #10b981' : '2px solid transparent',
               padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
             }}
           >
-            Task Engine Architecture
+            Settings
           </button>
         </div>
-
-        <div className="user-profile">
-          <User size={14} />
-          <span>Sarah (SEO Assistant)</span>
-        </div>
+        {/* User profile removed */}
       </header>
 
       {/* Main Content Area */}
       <main className="hub-main">
         <div className="hub-content">
           
-          {/* Stepper Indicator */}
-          {currentView !== "ARCHITECTURE" && currentView !== "SITE_ANALYSIS" && <WorkflowStepper currentView={currentView} />}
 
-          {/* SITE ANALYSIS PLACEHOLDER */}
+
+          {/* SITE ANALYSIS SECTION */}
           {currentView === "SITE_ANALYSIS" && (
-            <div className="report-section" style={{ maxWidth: '1100px', margin: '0 auto', padding: '2.5rem', textAlign: 'left' }}>
-              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
-                <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)' }}>
-                  <Globe size={14} /> Site Analysis Entry Point
-                </span>
-                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
-                  Site Analysis Dashboard
-                </h2>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                  Explore mapping configurations, structures, internal links, and general settings for your connected sites.
-                </p>
-              </div>
+            <div className="report-section" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2.5rem', textAlign: 'left' }}>
+              
+              {selectedAnalysisSiteId === null ? (
+                <>
+                  {/* Overview Page */}
+                  <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+                    <h2 style={{ fontFamily: 'Outfit', fontSize: '2.2rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                      Site Analysis
+                    </h2>
+                    <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: 500 }}>
+                      Analyze SEO configurations, crawl results, and audit histories across all connected sites.
+                    </p>
+                  </div>
 
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                gap: '1.5rem',
-                marginTop: '1.5rem'
-              }}>
-                {/* Card 1: Page Configuration */}
-                <div style={{
-                  backgroundColor: 'var(--surface-color)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Page Configuration</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Configure targeting phrases and titles for configured pages.</p>
-                </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
+                    gap: '2rem',
+                    marginTop: '1.5rem'
+                  }}>
+                    {sites.map(site => {
+                      const sitePages = pagesData[site.id] || [];
+                      const pagesFound = sitePages.length || (site.id === 'bathroom-upgrades' ? 33 : 113);
+                      const configuredPages = sitePages.filter(p => p.status === "Configured").length;
+                      const hasAudit = !!site.lastAudit;
+                      const auditStatusText = hasAudit ? `Audited (${site.lastAudit})` : "Pending Audit";
 
-                {/* Card 2: Site Structure */}
-                <div style={{
-                  backgroundColor: 'var(--surface-color)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Site Structure</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Analyze directories, layouts, and page relationships.</p>
-                </div>
+                      return (
+                        <div 
+                          key={site.id}
+                          style={{
+                            backgroundColor: '#0c101b',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '16px',
+                            padding: '2rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1.25rem',
+                            transition: 'all 0.25s ease',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                            position: 'relative'
+                          }}
+                        >
+                          <div>
+                            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
+                              {site.name}
+                            </h3>
+                            <a 
+                              href={site.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ 
+                                fontSize: '0.9rem', 
+                                color: '#10b981', 
+                                textDecoration: 'none', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '4px',
+                                fontWeight: 500
+                              }}
+                            >
+                              {site.url} <ExternalLink size={12} />
+                            </a>
+                          </div>
 
-                {/* Card 3: Internal Linking */}
-                <div style={{
-                  backgroundColor: 'var(--surface-color)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Internal Linking</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Review anchor distributions, missing link warnings, and stats.</p>
-                </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '0.25rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+                              <span>Pages Found</span>
+                              <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{pagesFound}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
+                              <span>Configured Pages</span>
+                              <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{configuredPages}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
+                              <span>Last Audit Status</span>
+                              <span style={{
+                                fontWeight: 700,
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '0.8rem',
+                                backgroundColor: hasAudit ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                color: hasAudit ? '#34d399' : '#fbbf24',
+                                border: hasAudit ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)'
+                              }}>
+                                {auditStatusText}
+                              </span>
+                            </div>
+                          </div>
 
-                {/* Card 4: Settings */}
-                <div style={{
-                  backgroundColor: 'var(--surface-color)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Settings</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Manage crawlers, connection keys, and sync behaviors.</p>
-                </div>
-              </div>
+                          <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '1rem' }}>
+                            <button
+                              onClick={() => {
+                                setSelectedAnalysisSiteId(site.id);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#10b981',
+                                fontWeight: 700,
+                                fontSize: '0.95rem',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                padding: 0,
+                                transition: 'all 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#34d399';
+                                e.currentTarget.style.transform = 'translateX(4px)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = '#10b981';
+                                e.currentTarget.style.transform = 'none';
+                              }}
+                            >
+                              Open Site Analysis &rarr;
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Detailed Site Page */}
+                  {(() => {
+                    const site = sites.find(s => s.id === selectedAnalysisSiteId);
+                    if (!site) return null;
+
+                    const sitePages = pagesData[site.id] || [];
+                    const pagesFound = sitePages.length || (site.id === 'bathroom-upgrades' ? 33 : 113);
+                    const configuredPages = sitePages.filter(p => p.status === "Configured").length;
+                    const hasAudit = !!site.lastAudit;
+                    const auditStatusText = hasAudit ? `Audited (${site.lastAudit})` : "Pending Audit";
+
+                    if (activeModule === 'site-structure') {
+                      const sortedPages = sortPagesForSEO(pagesData[site.id] || []);
+
+                      const getGroupedPageType = (page) => {
+                        if (page.assignedType) {
+                          if (page.assignedType === "Homepage") return "Homepage";
+                          if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages") return "Hub Pages";
+                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages") return "Landing Pages";
+                          if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages") return "Supporting Pages";
+                          if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages") return "Topical Pages";
+                          return "Unassigned Pages";
+                        }
+                        const url = page.pageUrl;
+                        if (url === "/") return "Homepage";
+                        const score = getPageSEOScore(page);
+                        switch (score) {
+                          case 0: return "Homepage";
+                          case 1:
+                          case 2: return "Landing Pages";
+                          case 3: return "Supporting Pages";
+                          case 4: return "Topical Pages";
+                          default: return "Unassigned Pages";
+                        }
+                      };
+
+                      const sections = [
+                        { name: "Homepage", key: "Homepage", pages: sortedPages.filter(p => getGroupedPageType(p) === "Homepage") },
+                        { name: "Hub Pages", key: "HubPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Hub Pages") },
+                        { name: "Landing Pages", key: "LandingPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Landing Pages") },
+                        { name: "Supporting Pages", key: "SupportingPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Supporting Pages") },
+                        { name: "Topical Pages", key: "TopicalPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Topical Pages") },
+                        { name: "Unassigned Pages", key: "UnassignedPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Unassigned Pages") }
+                      ];
+
+                      return (
+                        <div>
+                          {/* Back navigation to Site Analysis Detail Overview */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                            <button 
+                              onClick={() => setActiveModule(null)}
+                              style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                fontSize: '0.9rem', 
+                                cursor: 'pointer', 
+                                color: 'var(--text-secondary)', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '8px',
+                                padding: 0
+                              }}
+                            >
+                              <ArrowLeft size={16} /> Back to Overview
+                            </button>
+                          </div>
+
+                          {/* Banner card */}
+                          <div style={{
+                            backgroundColor: '#0c101b',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            padding: '1.5rem',
+                            textAlign: 'left',
+                            marginBottom: '2rem'
+                          }}>
+                            <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
+                              {site.name} - Site Structure
+                            </h2>
+                            <a 
+                              href={site.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ 
+                                fontSize: '0.9rem', 
+                                color: '#10b981', 
+                                textDecoration: 'none', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '4px',
+                                fontWeight: 500
+                              }}
+                            >
+                              {site.url} <ExternalLink size={12} />
+                            </a>
+
+                            <hr style={{ borderColor: 'rgba(255,255,255,0.06)', margin: '1.25rem 0', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
+
+                            <div style={{ display: 'flex', gap: '3.5rem', flexWrap: 'wrap' }}>
+                              <div>
+                                <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                  Pages Found
+                                </span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                  {pagesFound}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                  Configured Pages
+                                </span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                  {configuredPages}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                  Last Audit Status
+                                </span>
+                                <div style={{ marginTop: '0.35rem' }}>
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.8rem',
+                                    backgroundColor: hasAudit ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                    color: hasAudit ? '#34d399' : '#fbbf24',
+                                    border: hasAudit ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
+                                    display: 'inline-block'
+                                  }}>
+                                    {auditStatusText}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Accordion groups */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            {sections.map(sec => {
+                              const isSectionExpanded = !!expandedSections[sec.key];
+
+                              return (
+                                <div key={sec.key}>
+                                  <div 
+                                    onClick={() => toggleSection(sec.key)}
+                                    style={{
+                                      backgroundColor: '#0c101b',
+                                      border: '1px solid var(--border-color)',
+                                      borderRadius: '12px',
+                                      padding: '1.25rem 1.5rem',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      cursor: 'pointer',
+                                      fontWeight: 700,
+                                      fontSize: '1.15rem',
+                                      color: 'var(--text-primary)',
+                                      fontFamily: 'Outfit, sans-serif'
+                                    }}
+                                  >
+                                    <span>{sec.name} ({sec.pages.length})</span>
+                                    {isSectionExpanded ? <ChevronDown size={18} style={{ color: 'var(--text-secondary)' }} /> : <ChevronRight size={18} style={{ color: 'var(--text-secondary)' }} />}
+                                  </div>
+
+                                  {isSectionExpanded && (
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      flexDirection: 'column', 
+                                      gap: '0.75rem', 
+                                      padding: '1rem 0.5rem 1.5rem 0.5rem',
+                                      marginTop: '0.25rem'
+                                    }}>
+                                      {sec.pages.length === 0 ? (
+                                        <div style={{ 
+                                          padding: '1.25rem', 
+                                          color: 'var(--text-secondary)', 
+                                          fontSize: '0.9rem', 
+                                          fontStyle: 'italic', 
+                                          backgroundColor: 'rgba(255,255,255,0.01)', 
+                                          border: '1px dashed rgba(255,255,255,0.06)', 
+                                          borderRadius: '8px', 
+                                          textAlign: 'left' 
+                                        }}>
+                                          No pages in this category.
+                                        </div>
+                                      ) : (
+                                        sec.pages.map(page => {
+                                          const isPageConfigured = page.status === "Configured";
+                                          return (
+                                            <div 
+                                              key={page.pageUrl}
+                                              style={{ 
+                                                display: 'flex', 
+                                                justifyContent: 'space-between', 
+                                                alignItems: 'center', 
+                                                padding: '1rem 1.25rem', 
+                                                backgroundColor: 'rgba(255,255,255,0.02)', 
+                                                border: '1px solid rgba(255,255,255,0.04)', 
+                                                borderRadius: '8px'
+                                              }}
+                                            >
+                                              <div style={{ textAlign: 'left' }}>
+                                                <span style={{ fontSize: '0.95rem', color: '#cbd5e1', fontWeight: 600 }}>
+                                                  {page.pageTitle || "Untitled Page"}
+                                                </span>
+                                                <span style={{ fontSize: '0.85rem', color: '#94a3b8', marginLeft: '8px', fontFamily: 'monospace' }}>
+                                                  ({page.pageUrl})
+                                                </span>
+                                              </div>
+                                              <div>
+                                                <span style={{
+                                                  fontWeight: 700,
+                                                  padding: '4px 10px',
+                                                  borderRadius: '6px',
+                                                  fontSize: '0.8rem',
+                                                  backgroundColor: isPageConfigured ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.05)',
+                                                  color: isPageConfigured ? '#34d399' : '#94a3b8',
+                                                  border: isPageConfigured ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(255,255,255,0.08)'
+                                                }}>
+                                                  {isPageConfigured ? "Configured" : "Unconfigured"}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          );
+                                        })
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div>
+                        {/* Back navigation */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                          <button 
+                            onClick={() => setSelectedAnalysisSiteId(null)}
+                            style={{ 
+                              background: 'none', 
+                              border: 'none', 
+                              fontSize: '0.9rem', 
+                              cursor: 'pointer', 
+                              color: 'var(--text-secondary)', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '8px',
+                              padding: 0
+                            }}
+                          >
+                            <ArrowLeft size={16} /> Back to Site Analysis Overview
+                          </button>
+                        </div>
+
+                        {/* Top banner card */}
+                        <div style={{
+                          backgroundColor: '#0c101b',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '12px',
+                          padding: '1.5rem',
+                          textAlign: 'left',
+                          marginBottom: '2rem'
+                        }}>
+                          <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
+                            {site.name}
+                          </h2>
+                          <a 
+                            href={site.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ 
+                              fontSize: '0.9rem', 
+                              color: '#10b981', 
+                              textDecoration: 'none', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '4px',
+                              fontWeight: 500
+                            }}
+                          >
+                            {site.url} <ExternalLink size={12} />
+                          </a>
+
+                          <hr style={{ borderColor: 'rgba(255,255,255,0.06)', margin: '1.25rem 0', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
+
+                          <div style={{ display: 'flex', gap: '3.5rem', flexWrap: 'wrap' }}>
+                            <div>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                Pages Found
+                              </span>
+                              <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                {pagesFound}
+                              </span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                Configured Pages
+                              </span>
+                              <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                {configuredPages}
+                              </span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                Last Audit Status
+                              </span>
+                              <div style={{ marginTop: '0.35rem' }}>
+                                <span style={{
+                                  fontWeight: 700,
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.8rem',
+                                  backgroundColor: hasAudit ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                  color: hasAudit ? '#34d399' : '#fbbf24',
+                                  border: hasAudit ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
+                                  display: 'inline-block'
+                                }}>
+                                  {auditStatusText}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Four module cards */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                          gap: '1.25rem',
+                          marginTop: '1.5rem'
+                        }}>
+                          {['Site Structure', 'Internal Linking', 'Content Coverage', 'Opportunities'].map(module => {
+                            const isSiteStructure = module === 'Site Structure';
+                            return (
+                              <div 
+                                key={module}
+                                onClick={() => {
+                                  if (isSiteStructure) {
+                                    setActiveModule('site-structure');
+                                  }
+                                }}
+                                style={{
+                                  backgroundColor: 'var(--surface-color)',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '12px',
+                                  padding: '1.5rem',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '8px',
+                                  textAlign: 'left',
+                                  minHeight: '120px',
+                                  cursor: isSiteStructure ? 'pointer' : 'default',
+                                  transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (isSiteStructure) {
+                                    e.currentTarget.style.borderColor = '#10b981';
+                                    e.currentTarget.style.transform = 'translateY(-2px)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  if (isSiteStructure) {
+                                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                                    e.currentTarget.style.transform = 'none';
+                                  }
+                                }}
+                              >
+                                <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
+                                  {module}
+                                </h4>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                  {isSiteStructure ? "View organized hierarchy" : "Coming Soon"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              )}
             </div>
           )}
 
           {/* STAGE 1: CONNECTED WEBSITES LIST */}
           {currentView === "CONNECTED_SITES" && (
             <div>
-              <div className="column-header-row mb-4">
-                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)' }}>Connected Websites</h2>
-                <span className="subtitle" style={{ fontSize: '0.95rem' }}>Select a connected site to view its generated tasks, or run a new audit.</span>
+              <div className="column-header-row mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <div style={{ textAlign: 'left' }}>
+                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Connected Websites</h2>
+                  <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Select a connected site to view its generated tasks, or run a new audit.</span>
+                </div>
+                <button 
+                  className="btn-primary" 
+                  style={{ 
+                    borderRadius: '20px', 
+                    padding: '8px 16px', 
+                    backgroundColor: '#10b981', 
+                    color: '#ffffff', 
+                    fontWeight: 600, 
+                    fontSize: '0.85rem',
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: 'none'
+                  }}
+                >
+                  <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>+</span> Add Website
+                </button>
               </div>
 
               <div className="websites-grid">
@@ -1423,64 +1961,151 @@ export default function App() {
                   const totalPages = sitePages.length;
                   const configuredPages = sitePages.filter(p => p.status === "Configured").length;
                   const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
+                  const displayTitle = site.id === "bathroom-upgrades" ? "bathroomupgrades.co.uk" : site.name;
                   
                   return (
-                    <div key={site.id} className="sidebar-site-card">
-                      <div className="site-card-top">
-                        <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#34d399', display: 'inline-block' }}></span>
-                          Connected
+                    <div 
+                      key={site.id} 
+                      className="sidebar-site-card"
+                      style={{ cursor: isAudited ? 'pointer' : 'default', display: 'flex', flexDirection: 'column' }}
+                      onClick={() => {
+                        if (isAudited) {
+                          setSelectedSiteId(site.id);
+                          setCurrentView("WEBSITES");
+                        }
+                      }}
+                    >
+                      <div className="site-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }}></span>
+                          CONNECTED
                         </span>
-                        {isAudited ? (
-                          <span className="task-count-pill success-pill">{site.tasks.length} Tasks</span>
+                        {site.status === "Connected" ? (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', backgroundColor: 'rgba(52, 211, 153, 0.08)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.15)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {site.tasks.length} TASKS
+                          </span>
                         ) : (
-                          <span className="task-count-pill" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>No audit available</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', backgroundColor: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.15)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            UNCONFIGURED
+                          </span>
                         )}
                       </div>
-                      <h3 className="site-title" style={{ fontSize: '1.35rem', margin: '0.5rem 0' }}>{site.name}</h3>
+                      <h3 className="site-title" style={{ fontSize: '1.45rem', fontWeight: 800, margin: '0.5rem 0 0.25rem 0', textAlign: 'left', color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
+                        {displayTitle}
+                      </h3>
                       
                       <a 
                         href={site.url} 
                         target="_blank" 
                         rel="noreferrer" 
                         className="site-url-link"
-                        style={{ fontSize: '0.85rem' }}
+                        style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', width: 'fit-content' }}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         {site.url} <ExternalLink size={12} />
                       </a>
 
                       {/* Website Health Status (Operational Readiness) */}
-                      <div className="site-health-status" style={{ marginTop: '1.25rem', border: '1px solid rgba(255,255,255,0.04)', padding: '1rem', borderRadius: '8px', backgroundColor: 'rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '6px', marginBottom: '2px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>Website Health Status</span>
-                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#60a5fa', textTransform: 'none' }}>Operational Readiness</span>
+                      <div className="site-health-status" style={{ marginTop: '1.25rem', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '12px', backgroundColor: 'rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>STATUS</span>
                         </div>
                         
                         {/* Connected */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>Connected</span>
-                          <span style={{ color: '#34d399', fontWeight: 700 }}>Connected ✓</span>
+                          <span style={{
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                            color: '#34d399',
+                            border: '1px solid rgba(16, 185, 129, 0.15)'
+                          }}>
+                            Connected
+                          </span>
+                        </div>
+
+                        {/* WordPress API */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>WordPress API</span>
+                          {site.status === "Connected" ? (
+                            <span style={{
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                              color: '#34d399',
+                              border: '1px solid rgba(16, 185, 129, 0.15)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              <Lock size={12} style={{ color: '#fbbf24' }} /> Securely Connected
+                            </span>
+                          ) : (
+                            <span style={{
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                              color: '#fbbf24',
+                              border: '1px solid rgba(245, 158, 11, 0.15)',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              <AlertTriangle size={12} /> Setup Required
+                            </span>
+                          )}
                         </div>
 
                         {/* Configured */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>Configured</span>
-                          {unconfiguredPages === 0 ? (
-                            <span style={{ color: '#34d399', fontWeight: 700 }}>Configured ✓</span>
-                          ) : (
-                            <span style={{ color: '#fbbf24', fontWeight: 700 }}>
-                              Configured ⚠ ({configuredPages}/{totalPages})
-                            </span>
-                          )}
+                          <span style={{
+                            fontWeight: 700,
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                            color: '#fbbf24',
+                            border: '1px solid rgba(245, 158, 11, 0.15)'
+                          }}>
+                            Configured ({configuredPages}/{totalPages})
+                          </span>
                         </div>
 
                         {/* Audited */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>Audited</span>
                           {isAudited ? (
-                            <span style={{ color: '#34d399', fontWeight: 700 }}>Audited ✓ ({site.lastAudit})</span>
+                            <span style={{
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                              color: '#34d399',
+                              border: '1px solid rgba(16, 185, 129, 0.15)'
+                            }}>
+                              Audited ({site.lastAudit || '28 Jun 2026'})
+                            </span>
                           ) : (
-                            <span style={{ color: '#f87171', fontWeight: 700 }}>Pending Audit ⚠</span>
+                            <span style={{
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                              color: '#f87171',
+                              border: '1px solid rgba(239, 68, 68, 0.15)'
+                            }}>
+                              Pending Audit
+                            </span>
                           )}
                         </div>
 
@@ -1488,39 +2113,58 @@ export default function App() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                           <span style={{ color: 'var(--text-secondary)' }}>Tasks Outstanding</span>
                           {isAudited ? (
-                            <span style={{ color: site.tasks.filter(t => t.state !== "completed").length > 0 ? '#fbbf24' : '#34d399', fontWeight: 700 }}>
+                            <span style={{
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                              color: '#fbbf24',
+                              border: '1px solid rgba(245, 158, 11, 0.15)'
+                            }}>
                               {site.tasks.filter(t => t.state !== "completed").length} Outstanding
                             </span>
                           ) : (
-                            <span style={{ color: '#f87171', fontWeight: 700 }}>Pending Audit ⚠</span>
+                            <span style={{
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                              color: '#f87171',
+                              border: '1px solid rgba(239, 68, 68, 0.15)'
+                            }}>
+                              Pending Audit
+                            </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="site-card-actions" style={{ marginTop: '1.5rem', display: 'flex', gap: '12px' }}>
-                        <button 
-                          className="btn-secondary" 
-                          style={{ flex: 1, justifyContent: 'center' }}
-                          onClick={() => {
-                            setSelectedSiteId(site.id);
-                            setCurrentView("WEBSITES_CONFIG");
-                          }}
-                        >
-                          Manage Config
-                        </button>
-                        
-                        <button 
-                          className="btn-primary" 
-                          style={{ flex: 1, justifyContent: 'center', opacity: isAudited ? 1 : 0.5, cursor: isAudited ? 'pointer' : 'not-allowed' }}
-                          disabled={!isAudited}
-                          onClick={() => {
-                            setSelectedSiteId(site.id);
-                            setCurrentView("WEBSITES");
-                          }}
-                        >
-                          View Tasks
-                        </button>
-                      </div>
+                      <button 
+                        className="btn-primary" 
+                        style={{ 
+                          width: '100%', 
+                          justifyContent: 'center', 
+                          backgroundColor: '#10b981', 
+                          color: '#ffffff', 
+                          fontWeight: 600, 
+                          padding: '10px 16px', 
+                          borderRadius: '6px', 
+                          border: 'none', 
+                          marginTop: '1.25rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          boxShadow: 'none'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSiteId(site.id);
+                          setCurrentView("WEBSITES_CONFIG");
+                        }}
+                      >
+                        Manage Configuration
+                      </button>
                     </div>
                   );
                 })}
@@ -1529,16 +2173,16 @@ export default function App() {
           )}
 
           {/* STAGE 2: WEBSITE CONFIGURATION MANAGEMENT */}
-          {currentView === "WEBSITES_CONFIG" && selectedSiteId && (
+          {(currentView === "WEBSITES_CONFIG" || currentView === "SITE_ANALYSIS_CONFIG") && selectedSiteId && (
             <div>
-              {/* Back to websites */}
+              {/* Back to websites or Site Analysis */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                 <button 
                   className="flex align-center gap-2 text-secondary"
-                  onClick={() => setCurrentView("CONNECTED_SITES")}
+                  onClick={() => setCurrentView(currentView === "SITE_ANALYSIS_CONFIG" ? "SITE_ANALYSIS" : "CONNECTED_SITES")}
                   style={{ background: 'none', border: 'none', fontSize: '0.9rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
                 >
-                  <ArrowLeft size={16} /> Back to Websites
+                  <ArrowLeft size={16} /> Back to {currentView === "SITE_ANALYSIS_CONFIG" ? "Site Analysis" : "Websites"}
                 </button>
               </div>
 
@@ -1593,20 +2237,47 @@ export default function App() {
                     >
                       Edit Configuration
                     </button>
+
                     <button 
-                      className="btn-secondary" 
-                      onClick={handleOpenAddModal}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      onClick={() => {
+                        const sitePages = pagesData[selectedSiteId] || [];
+                        const auditedPages = sitePages.filter(p => p.latestAudit && p.latestAudit.timestamp);
+                        if (auditedPages.length > 0) {
+                          const sorted = [...auditedPages].sort((a, b) => new Date(b.latestAudit.timestamp).getTime() - new Date(a.latestAudit.timestamp).getTime());
+                          setReviewPageUrl(sorted[0].pageUrl);
+                        } else {
+                          const configured = sitePages.filter(p => p.status === "Configured");
+                          if (configured.length > 0) {
+                            setReviewPageUrl(configured[0].pageUrl);
+                          }
+                        }
+                        setCurrentView("AUDIT_RESULTS");
+                      }}
+                      style={{ 
+                        backgroundColor: '#f97316', 
+                        color: '#ffffff', 
+                        border: 'none', 
+                        padding: '0.625rem 1.25rem', 
+                        borderRadius: 'var(--radius-md)', 
+                        fontWeight: 600, 
+                        fontSize: '0.875rem',
+                        cursor: 'pointer', 
+                        transition: 'all 0.2s ease',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        boxShadow: '0 4px 12px rgba(249, 115, 22, 0.15)'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = '#ea580c';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f97316';
+                        e.currentTarget.style.transform = 'none';
+                      }}
                     >
-                      Add Page
-                    </button>
-                    <button 
-                      className="btn-secondary" 
-                      onClick={() => handleImportPages(selectedSiteId)}
-                      disabled={isImporting}
-                    >
-                      {isImporting ? <RefreshCw className="animate-spin mr-1 spinner" size={14} /> : null}
-                      Import Pages
+                      Latest Audit Results
                     </button>
                     <button 
                       className="btn-primary"
@@ -1626,22 +2297,17 @@ export default function App() {
                 const sitePages = pagesData[selectedSiteId] || [];
                 const totalPages = sitePages.length;
                 const configuredPages = sitePages.filter(p => p.status === "Configured").length;
-                const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
-                const plannedPages = sitePages.filter(p => p.status === "Planned").length;
+                const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured" && !isPageExcluded(p)).length;
+                const excludedPages = sitePages.filter(p => isPageExcluded(p)).length;
+                const actionRequiredPages = sitePages.filter(p => (p.status === "Configured" || p.status === "Unconfigured") && !isPageExcluded(p)).length;
+                const isConnected = selectedSite && selectedSite.status === "Connected";
 
                 return (
                   <div className="stats-cards-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
                     <div className="stat-card" style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px' }}>
-                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Connection Status</span>
-                      <span style={{ display: 'block', fontSize: '1.35rem', fontWeight: 800, fontFamily: 'Outfit', color: '#34d399', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#34d399', display: 'inline-block' }}></span>
-                        Connected
-                      </span>
-                    </div>
-                    <div className="stat-card" style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px' }}>
-                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Config Status</span>
-                      <span style={{ display: 'block', fontSize: '1.35rem', fontWeight: 800, fontFamily: 'Outfit', color: getConfigStatusColor(selectedSiteId), marginTop: '0.5rem' }}>
-                        {getConfigStatusText(selectedSiteId)}
+                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Configuration Status</span>
+                      <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: isConnected ? '#34d399' : '#f87171', marginTop: '0.5rem' }}>
+                        {isConnected ? "Connected" : "Requires Setup"}
                       </span>
                     </div>
                     <div className="stat-card" style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px' }}>
@@ -1657,8 +2323,12 @@ export default function App() {
                       <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: unconfiguredPages > 0 ? '#f87171' : 'var(--text-secondary)', marginTop: '0.5rem' }}>{unconfiguredPages}</span>
                     </div>
                     <div className="stat-card" style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px' }}>
-                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Planned Pages</span>
-                      <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: '#60a5fa', marginTop: '0.5rem' }}>{plannedPages}</span>
+                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Action Required</span>
+                      <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: '#fbbf24', marginTop: '0.5rem' }}>{actionRequiredPages}</span>
+                    </div>
+                    <div className="stat-card" style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px' }}>
+                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Excluded Pages</span>
+                      <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: '#94a3b8', marginTop: '0.5rem' }}>{excludedPages}</span>
                     </div>
                   </div>
                 );
@@ -1666,91 +2336,31 @@ export default function App() {
 
               {/* Table section */}
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.15rem' }}>
-                  <h3 className="section-title-custom" style={{ fontSize: '1.15rem' }}>Page Configuration Registry</h3>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                    Data supplied by the <strong>TSE Exporter</strong> connector
-                  </span>
-                </div>
 
-                {/* Filters Row */}
-                {(() => {
-                  const sitePages = pagesData[selectedSiteId] || [];
-                  const totalPages = sitePages.length;
-                  const configuredPages = sitePages.filter(p => p.status === "Configured").length;
-                  const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
-                  const plannedPages = sitePages.filter(p => p.status === "Planned").length;
-
-                  return (
-                    <div className="filter-tabs-container" style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border-color)', marginBottom: '1.25rem', paddingBottom: '2px' }}>
-                      <button 
-                        className={`filter-tab ${currentFilter === 'all' ? 'active' : ''}`}
-                        onClick={() => setCurrentFilter('all')}
-                        style={{ 
-                          background: 'none', border: 'none', padding: '8px 16px', color: currentFilter === 'all' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                          fontWeight: 700, fontSize: '0.85rem', borderBottom: currentFilter === 'all' ? '2px solid var(--accent-color)' : '2px solid transparent',
-                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
-                        }}
-                      >
-                        All Pages <span style={{ backgroundColor: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{totalPages}</span>
-                      </button>
-                      <button 
-                        className={`filter-tab ${currentFilter === 'configured' ? 'active' : ''}`}
-                        onClick={() => setCurrentFilter('configured')}
-                        style={{ 
-                          background: 'none', border: 'none', padding: '8px 16px', color: currentFilter === 'configured' ? '#34d399' : 'var(--text-secondary)',
-                          fontWeight: 700, fontSize: '0.85rem', borderBottom: currentFilter === 'configured' ? '2px solid #34d399' : '2px solid transparent',
-                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
-                        }}
-                      >
-                        Configured <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', color: '#34d399' }}>{configuredPages}</span>
-                      </button>
-                      <button 
-                        className={`filter-tab ${currentFilter === 'unconfigured' ? 'active' : ''}`}
-                        onClick={() => setCurrentFilter('unconfigured')}
-                        style={{ 
-                          background: 'none', border: 'none', padding: '8px 16px', color: currentFilter === 'unconfigured' ? '#f87171' : 'var(--text-secondary)',
-                          fontWeight: 700, fontSize: '0.85rem', borderBottom: currentFilter === 'unconfigured' ? '2px solid #f87171' : '2px solid transparent',
-                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
-                        }}
-                      >
-                        Unconfigured <span style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', color: '#f87171' }}>{unconfiguredPages}</span>
-                      </button>
-                      <button 
-                        className={`filter-tab ${currentFilter === 'planned' ? 'active' : ''}`}
-                        onClick={() => setCurrentFilter('planned')}
-                        style={{ 
-                          background: 'none', border: 'none', padding: '8px 16px', color: currentFilter === 'planned' ? '#60a5fa' : 'var(--text-secondary)',
-                          fontWeight: 700, fontSize: '0.85rem', borderBottom: currentFilter === 'planned' ? '2px solid #60a5fa' : '2px solid transparent',
-                          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', transition: 'all 0.2s ease'
-                        }}
-                      >
-                        Planned <span style={{ backgroundColor: 'rgba(96, 165, 250, 0.1)', padding: '2px 8px', borderRadius: '10px', fontSize: '0.75rem', color: '#60a5fa' }}>{plannedPages}</span>
-                      </button>
-                    </div>
-                  );
-                })()}
 
                 <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--surface-color)', backdropFilter: 'blur(12px)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)' }}>
                   <table className="audit-config-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '30%', minWidth: '400px' }}>Page URL</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '30%', minWidth: '300px' }}>Page Title</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '25%', minWidth: '300px' }}>Page Title</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '130px' }}>Page Type</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '200px' }}>Target Phrase</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}>Last Modified</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '130px' }}>Status</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '5%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(() => {
                         const sortedPages = sortPagesForSEO(pagesData[selectedSiteId] || []);
                         const filteredPages = sortedPages.filter(page => {
-                          if (currentFilter === "configured") return page.status === "Configured";
-                          if (currentFilter === "unconfigured") return page.status === "Unconfigured";
-                          if (currentFilter === "planned") return page.status === "Planned";
-                          return true;
+                          const isExcluded = isPageExcluded(page);
+                          if (currentFilter === "all") return !isExcluded;
+                          if (currentFilter === "configured") return page.status === "Configured" && !isExcluded;
+                          if (currentFilter === "unconfigured") return page.status === "Unconfigured" && !isExcluded;
+                          if (currentFilter === "action_required") return (page.status === "Configured" || page.status === "Unconfigured") && !isExcluded;
+                          if (currentFilter === "excluded") return isExcluded;
+                          return !isExcluded;
                         });
 
                         if (filteredPages.length === 0) {
@@ -1764,8 +2374,8 @@ export default function App() {
                         }
 
                         return filteredPages.map((page, idx) => {
-                          const isConfigured = page.status === "Configured";
-                          const isPlanned = page.status === "Planned";
+                          const isExcluded = isPageExcluded(page);
+                          const isConfigured = page.status === "Configured" && !isExcluded;
                           const isSelected = selectedPageUrl === page.pageUrl;
                           
                           return (
@@ -1782,43 +2392,55 @@ export default function App() {
                             >
                               <td style={{ padding: '16px 20px', fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600, whiteSpace: 'nowrap' }}>{page.pageUrl}</td>
                               <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '350px' }}>{page.pageTitle}</td>
-                              <td style={{ padding: '16px 20px', fontStyle: (isConfigured || isPlanned) && page.targetPhrase ? 'normal' : 'italic', color: (isConfigured || isPlanned) && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: (isConfigured || isPlanned) && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
-                                {page.targetPhrase || "Not Configured"}
+                              <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+                                {getPageType(page)}
                               </td>
-                              <td style={{ padding: '16px 20px', fontFamily: 'monospace', color: '#cbd5e1', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                                {page.lastModifiedDate || "N/A"}
+                              <td style={{ padding: '16px 20px', fontStyle: isConfigured && page.targetPhrase ? 'normal' : 'italic', color: isConfigured && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isConfigured && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
+                                {isExcluded ? "Excluded" : page.targetPhrase || "Not Configured"}
                               </td>
                               <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                                {isConfigured ? (
-                                  <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#34d399', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
-                                    <span style={{ color: '#34d399', fontWeight: 'bold' }}>✓</span> Configured
+                                {isExcluded ? (
+                                  <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
+                                    <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>⊘</span> Excluded
                                   </span>
-                                ) : isPlanned ? (
-                                  <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#60a5fa', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(96, 165, 250, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
-                                    <span style={{ color: '#60a5fa', fontWeight: 'bold' }}>⏳</span> Planned
+                                ) : isConfigured ? (
+                                  <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#34d399', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
+                                    Configured
                                   </span>
                                 ) : (
                                   <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
-                                    <span style={{ color: '#f87171', fontWeight: 'bold' }}>✗</span> Unconfigured
+                                    Unconfigured
                                   </span>
                                 )}
                               </td>
                               <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
                                 {isConfigured && (
-                                  <button
-                                    className="btn-primary site-btn-sm"
-                                    style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important', boxShadow: 'none' }}
-                                    onClick={() => handleAuditSinglePage(page.pageUrl)}
-                                  >
-                                    Audit Page
-                                  </button>
+                                  <>
+                                    <button
+                                      className="btn-primary site-btn-sm"
+                                      style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important', boxShadow: 'none', backgroundColor: '#f97316' }}
+                                      onClick={() => {
+                                        setReviewPageUrl(page.pageUrl);
+                                        setCurrentView("AUDIT_RESULTS");
+                                      }}
+                                    >
+                                      Last Audit
+                                    </button>
+                                    <button
+                                      className="btn-primary site-btn-sm"
+                                      style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important', boxShadow: 'none' }}
+                                      onClick={() => handleAuditSinglePage(page.pageUrl)}
+                                    >
+                                      Audit Page
+                                    </button>
+                                  </>
                                 )}
                                 <button 
                                   className="btn-secondary site-btn-sm" 
                                   style={{ display: 'inline-flex', width: 'auto', padding: '6px 12px !important' }}
                                   onClick={() => handleOpenConfigModal(page)}
                                 >
-                                  {isConfigured || isPlanned ? "Edit" : "Configure"}
+                                  {isConfigured ? "Edit" : "Configure"}
                                 </button>
                               </td>
                             </tr>
@@ -1830,57 +2452,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Future Opportunities Container */}
-              {(() => {
-                const sitePages = pagesData[selectedSiteId] || [];
-                const plannedPages = sitePages.filter(p => p.status === "Planned");
-
-                return (
-                  <div className="future-opportunities-card" style={{ marginTop: '2.5rem', backgroundColor: 'var(--surface-color)', border: '1px dashed rgba(96, 165, 250, 0.3)', padding: '1.5rem', borderRadius: 'var(--radius-lg)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.75rem' }}>
-                      <Award size={18} style={{ color: '#60a5fa' }} />
-                      <h3 style={{ fontFamily: 'Outfit', fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                        Future Opportunities (Planned Pages)
-                      </h3>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, backgroundColor: 'rgba(96, 165, 250, 0.1)', color: '#60a5fa', padding: '2px 8px', borderRadius: '10px' }}>
-                        {plannedPages.length} Planned
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
-                      These planned pages represent future content targeting high-intent phrases. They are excluded from active audits until published but are tracked here for SEO roadmap planning.
-                    </p>
-
-                    {plannedPages.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.9rem' }}>
-                        No planned pages defined. Click "Add Page" to create one.
-                      </div>
-                    ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '1rem' }}>
-                        {plannedPages.map((page, idx) => (
-                          <div key={idx} className="opportunity-item" style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '1rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                              <span style={{ fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600, fontSize: '0.85rem' }}>
-                                {page.pageUrl}
-                              </span>
-                              <span style={{ fontSize: '0.7rem', color: '#60a5fa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Planned
-                              </span>
-                            </div>
-                            <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>
-                              {page.pageTitle}
-                            </h4>
-                            {page.targetPhrase && (
-                              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                Target: <strong style={{ color: 'var(--text-primary)' }}>{page.targetPhrase}</strong>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
             </div>
           )}
 
@@ -2051,358 +2622,259 @@ export default function App() {
           )}
 
           {/* STAGE 4: AUDIT RESULTS */}
-          {currentView === "AUDIT_RESULTS" && selectedSiteId && (
-            <div className="report-section" style={{ maxWidth: '1400px', margin: '0 auto', padding: '2.5rem' }}>
-              
-              {/* Header Title & Success Badge */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
-                <div style={{ textAlign: 'left' }}>
-                  <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#10b981' }}>
-                    <CheckCircle size={12} /> Page Review Screen
-                  </span>
-                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
-                    SEO Page Review
-                  </h2>
-                </div>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button 
-                    className="btn-secondary"
-                    onClick={() => {
-                      setCurrentView("WEBSITES_CONFIG");
-                      setSingleAuditPageUrl(null);
-                    }}
-                    style={{ padding: '8px 16px' }}
-                  >
-                    Back To Configuration
-                  </button>
-                  <button 
-                    className="btn-primary"
-                    onClick={() => {
-                      setCurrentView("WEBSITES");
-                    }}
-                    style={{ padding: '8px 16px' }}
-                  >
-                    View Tasks <ChevronRight size={14} />
-                  </button>
-                </div>
-              </div>
+          {currentView === "AUDIT_RESULTS" && selectedSiteId && (() => {
+            const site = sites.find(s => s.id === selectedSiteId);
+            const sitePages = pagesData[selectedSiteId] || [];
+            const auditedPages = sitePages.filter(p => p.status === "Configured" || p.latestAudit);
+            const currentReviewUrl = reviewPageUrl || (auditedPages[0]?.pageUrl || "");
+            const targetPageObj = sitePages.find(p => p.pageUrl === currentReviewUrl);
+            const currentTargetPhrase = targetPageObj?.targetPhrase || "";
+            const pageTitle = targetPageObj?.pageTitle || "";
+            const pageType = getPageType(targetPageObj);
+            
+            const auditResults = targetPageObj?.latestAudit?.results || runPageAudit(currentReviewUrl, currentTargetPhrase, pageTitle, selectedSiteId);
+            const passedCount = auditResults.filter(r => r.status === "Pass").length;
+            const failedCount = auditResults.filter(r => r.status === "Fail").length;
+            const scoreColor = passedCount === 8 ? "#10b981" : passedCount >= 5 ? "#fbbf24" : "#f87171";
 
-              {/* Selector / Metadata Panel */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            return (
+              <div className="report-section" style={{ maxWidth: '1680px', margin: '0 auto', padding: '2.5rem' }}>
+                
+                {/* Header Title & Success Badge */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#f97316' }}>
+                      <CheckCircle size={12} /> Latest Audit Results Page
+                    </span>
+                    <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                      Latest Audit Results
+                    </h2>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button 
+                      className="btn-secondary"
+                      onClick={() => {
+                        setCurrentView("WEBSITES_CONFIG");
+                        setSingleAuditPageUrl(null);
+                      }}
+                      style={{ padding: '8px 16px' }}
+                    >
+                      Back To Configuration
+                    </button>
+                  </div>
+                </div>
+
+                {/* Selector / Metadata Panel */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  
+                  {/* Top Selection & Score Bar */}
+                  <div style={{ display: 'flex', gap: '1.5rem', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ flex: 1, minWidth: '250px', textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Select Page to Review</label>
+                      <select
+                        value={currentReviewUrl}
+                        onChange={(e) => setReviewPageUrl(e.target.value)}
+                        style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.95rem', fontWeight: 600, marginTop: '4px' }}
+                      >
+                        {auditedPages.map(p => (
+                          <option key={p.pageUrl} value={p.pageUrl}>{p.pageUrl} ({p.pageTitle})</option>
+                        ))}
+                      </select>
+                    </div>
                     
-                    {/* Top Selection Bar */}
-                    <div style={{ display: 'flex', gap: '1.5rem', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <div style={{ flex: 1, minWidth: '250px', textAlign: 'left' }}>
-                        <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Select Page to Review</label>
-                        <select
-                          value={currentReviewUrl}
-                          onChange={(e) => setReviewPageUrl(e.target.value)}
-                          style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.95rem', fontWeight: 600, marginTop: '4px' }}
-                        >
-                          {auditedPages.map(p => (
-                            <option key={p.pageUrl} value={p.pageUrl}>{p.pageUrl} ({p.pageTitle})</option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      <div style={{ minWidth: '200px', textAlign: 'left' }}>
-                        <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Configured Target Phrase</label>
-                        <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontFamily: 'monospace', backgroundColor: '#07090b', padding: '6px 12px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.03)' }}>
-                          {currentTargetPhrase || "Not Configured"}
-                        </div>
-                      </div>
-
-                      <div style={{ textAlign: 'left' }}>
-                        <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Audit Score</label>
-                        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: scoreColor, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '1.35rem' }}>{passedCount}</span> / 8 Passed
-                          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                            ({failedCount} Issue{failedCount === 1 ? '' : 's'} to fix)
-                          </span>
+                    <div style={{ textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Audit Score</label>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 800, color: scoreColor, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '1.35rem' }}>{passedCount}</span> / 8 Passed
+                        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          ({failedCount} Issue{failedCount === 1 ? '' : 's'} to fix)
+                        </span>
                       </div>
                     </div>
                   </div>
 
-                    {/* Visual Previews Section */}
-                    {(() => {
-                      const pageObj = sitePages.find(p => p.pageUrl === currentReviewUrl);
-                      const crawl = pageObj?.crawlData || {};
-                      const displayTitle = crawl.title || currentTitle || "Page Title";
-                      const displayDesc = crawl.description || "No description available. Please configure one.";
-                      const displayH1 = crawl.h1 || currentTitle || "Page Title";
-                      
-                      return (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '1.5rem' }}>
-                          {/* Google Search Snippet Preview */}
-                          <div style={{ 
-                            backgroundColor: 'var(--surface-color)', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: '12px', 
-                            padding: '1.5rem', 
-                            textAlign: 'left',
-                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '12px'
-                          }}>
-                            <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Globe size={14} style={{ color: '#3b82f6' }} /> Google Search Snippet Preview
-                            </h3>
-                            <div style={{ 
-                              backgroundColor: '#070b13', 
-                              border: '1px solid rgba(255,255,255,0.03)', 
-                              padding: '1.25rem', 
-                              borderRadius: '8px',
-                              fontFamily: 'Arial, sans-serif'
-                            }}>
-                              {/* URL */}
-                              <div style={{ fontSize: '12px', color: '#bdc1c6', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                <span style={{ color: '#ffffff', fontWeight: 600 }}>{site?.name || "Website"}</span>
-                                <span style={{ color: '#94a3b8', margin: '0 4px' }}>›</span>
-                                <span style={{ color: '#94a3b8' }}>{(site?.url || "https://www.website.com") + currentReviewUrl}</span>
-                              </div>
-                              {/* Title */}
-                              <div style={{ 
-                                fontSize: '20px', 
-                                lineHeight: '1.3', 
-                                color: '#8ab4f8', 
-                                textDecoration: 'none', 
-                                fontWeight: 'normal',
-                                marginBottom: '6px',
-                                display: 'inline-block',
-                                fontFamily: 'Arial, sans-serif',
-                                wordBreak: 'break-word'
-                              }}>
-                                {displayTitle}
-                              </div>
-                              {/* Description */}
-                              <div style={{ 
-                                fontSize: '14px', 
-                                lineHeight: '1.58', 
-                                color: '#bdc1c6',
-                                wordBreak: 'break-word',
-                                fontFamily: 'Arial, sans-serif'
-                              }}>
-                                {displayDesc}
-                              </div>
-                            </div>
-                          </div>
+                  {/* Top Page Details Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+                    {/* Page Title Card */}
+                    <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Page Title</label>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={pageTitle}>
+                        {pageTitle || "Untitled Page"}
+                      </div>
+                    </div>
 
-                          {/* On-Page Heading Preview */}
-                          <div style={{ 
-                            backgroundColor: 'var(--surface-color)', 
-                            border: '1px solid var(--border-color)', 
-                            borderRadius: '12px', 
-                            padding: '1.5rem', 
-                            textAlign: 'left',
-                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '12px'
-                          }}>
-                            <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0, borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <Server size={14} style={{ color: '#10b981' }} /> On-Page Heading (H1) Preview
-                            </h3>
-                            <div style={{ 
-                              backgroundColor: '#070b13', 
-                              border: '1px solid rgba(255,255,255,0.03)', 
-                              borderRadius: '8px',
-                              overflow: 'hidden',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              height: '100%'
-                            }}>
-                              {/* Mock Browser Header */}
-                              <div style={{ 
-                                padding: '6px 12px', 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '8px',
-                                borderBottom: '1px solid rgba(255,255,255,0.05)',
-                                backgroundColor: 'rgba(255,255,255,0.02)'
-                              }}>
-                                <div style={{ display: 'flex', gap: '4px' }}>
-                                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }}></div>
-                                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
-                                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-                                </div>
-                                <div style={{ 
-                                  backgroundColor: 'rgba(0,0,0,0.3)', 
-                                  fontSize: '11px', 
-                                  color: '#94a3b8', 
-                                  padding: '2px 10px', 
-                                  borderRadius: '4px', 
-                                  flex: 1, 
-                                  textAlign: 'center',
-                                  fontFamily: 'monospace',
-                                  maxWidth: '300px',
-                                  margin: '0 auto',
-                                  textOverflow: 'ellipsis',
-                                  overflow: 'hidden',
-                                  whiteSpace: 'nowrap'
+                    {/* Page URL Card */}
+                    <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Page URL</label>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={currentReviewUrl}>
+                        {currentReviewUrl}
+                      </div>
+                    </div>
+
+                    {/* Target Phrase Card */}
+                    <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Target Phrase</label>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontStyle: currentTargetPhrase ? 'normal' : 'italic' }}>
+                        {currentTargetPhrase || "Not Configured"}
+                      </div>
+                    </div>
+
+                    {/* Page Type Card */}
+                    <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', textAlign: 'left' }}>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Page Type</label>
+                      <div style={{ marginTop: '6px' }}>
+                        <span style={{
+                          fontWeight: 700,
+                          padding: '4px 10px',
+                          borderRadius: '6px',
+                          fontSize: '0.85rem',
+                          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                          color: '#60a5fa',
+                          display: 'inline-block'
+                        }}>
+                          {pageType}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+
+
+                  {/* 8-Item Audit Results Table */}
+                  <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', backgroundColor: 'var(--surface-color)', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '18%' }}>SEO Element</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '42%' }}>Current Value</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '12%', textAlign: 'center' }}>Target Phrase</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', textAlign: 'center' }}>Status</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '18%' }}>Recommended Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {auditResults.map((row, idx) => {
+                          const isPass = row.status === "Pass";
+                          const hasRec = !!row.recommendation;
+                          const presentText = row.present;
+                          
+                          return (
+                            <tr 
+                              key={row.item} 
+                              style={{ 
+                                borderBottom: idx < auditResults.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                backgroundColor: isPass ? 'transparent' : 'rgba(239, 68, 68, 0.01)',
+                                transition: 'all 0.2s ease'
+                              }}
+                            >
+                              <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {row.item}
+                              </td>
+                              <td style={{ padding: '16px 20px', color: '#cbd5e1', wordBreak: 'break-word', fontFamily: (row.item === 'H1' || row.item === 'Title Tag') ? 'monospace' : 'inherit' }}>
+                                {row.current}
+                              </td>
+                              <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                <span style={{
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.9rem',
+                                  backgroundColor: presentText === "Yes" ? 'rgba(16, 185, 129, 0.1)' : presentText === "No" ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.05)',
+                                  color: presentText === "Yes" ? '#34d399' : presentText === "No" ? '#f87171' : 'var(--text-secondary)'
                                 }}>
-                                  {currentReviewUrl}
-                                </div>
-                              </div>
-                              {/* Mock Browser Page Content */}
-                              <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center', flex: 1 }}>
-                                <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
-                                  &lt;h1&gt; Tag Content
+                                  {presentText}
                                 </span>
-                                <h1 style={{ 
-                                  fontFamily: 'Outfit, sans-serif', 
-                                  fontSize: '1.5rem', 
-                                  fontWeight: 800, 
-                                  color: 'var(--text-primary)', 
-                                  marginTop: '0.25rem',
-                                  borderLeft: '3px solid #3b82f6',
-                                  paddingLeft: '0.75rem',
-                                  margin: '0.25rem 0 0 0'
+                              </td>
+                              <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                <span style={{
+                                  fontWeight: 800,
+                                  padding: '4px 10px',
+                                  borderRadius: '9999px',
+                                  fontSize: '0.9rem',
+                                  backgroundColor: isPass ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                                  color: isPass ? '#34d399' : '#f87171',
+                                  border: isPass ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(239, 68, 68, 0.15)'
                                 }}>
-                                  {displayH1.replace(/\n/g, " ")}
-                                </h1>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* 8-Item Audit Results Table */}
-                    <div style={{ border: '1px solid var(--border-color)', borderRadius: '12px', backgroundColor: 'var(--surface-color)', overflow: 'hidden' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                            <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '18%' }}>SEO Element</th>
-                            <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '42%' }}>Current Value</th>
-                            <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '12%', textAlign: 'center' }}>Target Phrase Present</th>
-                            <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', textAlign: 'center' }}>Status</th>
-                            <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '18%' }}>Recommended Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {auditResults.map((row, idx) => {
-                            const isPass = row.status === "Pass";
-                            const hasRec = !!row.recommendation;
-                            const presentText = row.present;
-                            
-                            return (
-                              <tr 
-                                key={row.item} 
-                                style={{ 
-                                  borderBottom: idx < auditResults.length - 1 ? '1px solid var(--border-color)' : 'none',
-                                  backgroundColor: isPass ? 'transparent' : 'rgba(239, 68, 68, 0.01)',
-                                  transition: 'all 0.2s ease'
-                                }}
-                              >
-                                <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                  {row.item}
-                                </td>
-                                <td style={{ padding: '16px 20px', color: '#cbd5e1', wordBreak: 'break-word', fontFamily: (row.item === 'H1' || row.item === 'Title Tag') ? 'monospace' : 'inherit' }}>
-                                  {row.current}
-                                </td>
-                                <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                                  <span style={{
-                                    fontWeight: 700,
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '0.75rem',
-                                    backgroundColor: presentText === "Yes" ? 'rgba(16, 185, 129, 0.1)' : presentText === "No" ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255,255,255,0.05)',
-                                    color: presentText === "Yes" ? '#34d399' : presentText === "No" ? '#f87171' : 'var(--text-secondary)'
-                                  }}>
-                                    {presentText}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                                  <span style={{
-                                    fontWeight: 800,
-                                    padding: '4px 10px',
-                                    borderRadius: '9999px',
-                                    fontSize: '0.75rem',
-                                    backgroundColor: isPass ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
-                                    color: isPass ? '#34d399' : '#f87171',
-                                    border: isPass ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(239, 68, 68, 0.15)'
-                                  }}>
-                                    {row.status}
-                                  </span>
-                                </td>
-                                <td style={{ 
-                                  padding: '16px 20px', 
-                                  color: isPass ? (hasRec ? '#fbbf24' : 'var(--text-secondary)') : '#f87171', 
-                                  fontSize: '0.85rem', 
-                                  fontWeight: isPass ? (hasRec ? 500 : 400) : 500 
-                                }}>
-                                  {isPass ? (hasRec ? row.recommendation : "—") : row.action}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Staff Action checklist */}
-                    <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
-                      <h3 className="section-title-custom" style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AlertCircle size={18} style={{ color: '#fbbf24' }} /> Action Checklist: What to Fix
-                      </h3>
-                      
-                      {auditResults.filter(r => r.status === "Fail").length === 0 ? (
-                        <div style={{ color: '#34d399', fontWeight: 600, padding: '1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <CheckCircle size={18} /> Genuinely optimized! This page passes all SEO checks for the target phrase.
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                            Staff Action Required: Fix the following issues in the WordPress editor to optimize the page.
-                          </p>
-                          {auditResults.filter(r => r.status === "Fail").map((failItem, idx) => {
-                            const matchingTask = site?.tasks.find(t => 
-                              t.pageUrl.includes(currentReviewUrl) && t.taskTitle.toLowerCase().includes(failItem.item.toLowerCase().replace(" count", "").replace(" tag", ""))
-                            );
-                            
-                            return (
-                              <div 
-                                key={idx} 
-                                style={{ 
-                                  display: 'flex', 
-                                  justifyContent: 'space-between', 
-                                  alignItems: 'center', 
-                                  backgroundColor: 'rgba(255, 255, 255, 0.01)', 
-                                  border: '1px solid var(--border-color)', 
-                                  padding: '1rem 1.25rem', 
-                                  borderRadius: '8px' 
-                                }}
-                              >
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
-                                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                    Issue {idx + 1}: {failItem.item}
-                                  </span>
-                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
-                                    {failItem.action}
-                                  </span>
-                                </div>
-                                {matchingTask && (
-                                  <button 
-                                    className="btn-primary btn-sm"
-                                    onClick={() => handleStartTask(matchingTask.id)}
-                                    style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'auto' }}
-                                  >
-                                    Fix Issue <ChevronRight size={14} />
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
+                                  {row.status}
+                                </span>
+                              </td>
+                              <td style={{ 
+                                padding: '16px 20px', 
+                                color: isPass ? (hasRec ? '#fbbf24' : 'var(--text-secondary)') : '#f87171', 
+                                fontSize: '0.85rem', 
+                                fontWeight: isPass ? (hasRec ? 500 : 400) : 500 
+                              }}>
+                                {isPass ? (hasRec ? row.recommendation : "—") : row.action}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
 
+                  {/* Staff Action checklist */}
+                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
+                    <h3 className="section-title-custom" style={{ fontSize: '1.1rem', marginBottom: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <AlertCircle size={18} style={{ color: '#fbbf24' }} /> Action Checklist: What to Fix
+                    </h3>
+                    
+                    {auditResults.filter(r => r.status === "Fail").length === 0 ? (
+                      <div style={{ color: '#34d399', fontWeight: 600, padding: '1rem 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CheckCircle size={18} /> Genuinely optimized! This page passes all SEO checks for the target phrase.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                          Staff Action Required: Fix the following issues in the WordPress editor to optimize the page.
+                        </p>
+                        {auditResults.filter(r => r.status === "Fail").map((failItem, idx) => {
+                          const matchingTask = site?.tasks.find(t => 
+                            t.pageUrl.includes(currentReviewUrl) && t.taskTitle.toLowerCase().includes(failItem.item.toLowerCase().replace(" count", "").replace(" tag", ""))
+                          );
+                          
+                          return (
+                            <div 
+                              key={idx} 
+                              style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center', 
+                                backgroundColor: 'rgba(255, 255, 255, 0.01)', 
+                                border: '1px solid var(--border-color)', 
+                                padding: '1rem 1.25rem', 
+                                borderRadius: '8px' 
+                              }}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
+                                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                                  Issue {idx + 1}: {failItem.item}
+                                </span>
+                                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                                  {failItem.action}
+                                </span>
+                              </div>
+                              {matchingTask && (
+                                <button 
+                                  className="btn-primary btn-sm"
+                                  onClick={() => handleStartTask(matchingTask.id)}
+                                  style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'auto' }}
+                                >
+                                  Fix Issue <ChevronRight size={14} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
-            </div>
-          )}
+                </div>
+
+              </div>
+            );
+          })()}
 
           {/* SCREEN 1 & 2: WEBSITE DASHBOARD & TASK LIST (COMBINED SPLIT PANEL) */}
           {currentView === "WEBSITES" && (
@@ -2696,59 +3168,7 @@ export default function App() {
               </div>
 
               <div className="report-section" style={{ padding: '2.5rem' }}>
-                {/* Visual Task Closure Stepper Timeline */}
-                {(() => {
-                  const isCompleted = activeTask.state === "completed";
-                  const isInProgress = activeTask.state === "progress";
-                  const isAssigned = activeTask.assignee !== null;
 
-                  const stepStatus = [
-                    { label: "Audit", status: "completed", desc: "Site scan found warning" },
-                    { label: "Task Created", status: "completed", desc: "SEO task generated" },
-                    {
-                      label: "Work Fixes",
-                      status: isCompleted ? "completed" : (isInProgress || isAssigned) ? "active" : "pending",
-                      desc: isCompleted ? `Fixed by ${activeTask.assignee}` : isAssigned ? `Assigned to ${activeTask.assignee}` : "Awaiting assignment"
-                    },
-                    {
-                      label: "Page Auditor Verifies",
-                      status: isCompleted ? "completed" : (isInProgress && verificationStatus !== "idle") ? "active" : "pending",
-                      desc: isCompleted ? "Verified pass outcome" : "Checks content automatically"
-                    },
-                    { label: "Task Closed", status: isCompleted ? "completed" : "pending", desc: isCompleted ? "Archived in queue" : "Awaiting fix completion" }
-                  ];
-
-                  return (
-                    <div className="task-timeline-stepper" style={{ display: 'flex', justifyContent: 'space-between', padding: '1.5rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                      {stepStatus.map((step, idx) => {
-                        const statusColor = step.status === "completed" ? "#34d399" : step.status === "active" ? "#fbbf24" : "var(--text-secondary)";
-                        const bubbleBg = step.status === "completed" ? "rgba(16, 185, 129, 0.15)" : step.status === "active" ? "rgba(251, 191, 36, 0.15)" : "rgba(255,255,255,0.03)";
-                        const bubbleBorder = step.status === "completed" ? "1px solid #34d399" : step.status === "active" ? "1px solid #fbbf24" : "1px solid var(--border-color)";
-
-                        return (
-                          <React.Fragment key={idx}>
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: '120px', textAlign: 'center' }}>
-                              <div style={{
-                                width: '36px', height: '36px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center',
-                                backgroundColor: bubbleBg, border: bubbleBorder, color: statusColor, fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.5rem'
-                              }}>
-                                {step.status === "completed" ? "✓" : idx + 1}
-                              </div>
-                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: step.status === "pending" ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{step.label}</span>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px', maxWidth: '140px' }}>{step.desc}</span>
-                            </div>
-                            {idx < stepStatus.length - 1 && (
-                              <div style={{
-                                height: '2px', flex: 1, backgroundColor: stepStatus[idx+1].status === "completed" ? '#34d399' : stepStatus[idx+1].status === "active" ? '#fbbf24' : 'var(--border-color)',
-                                marginTop: '18px', minWidth: '20px', alignSelf: 'flex-start'
-                              }} />
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
 
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
                   <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
@@ -2898,13 +3318,13 @@ export default function App() {
                       </div>
                     ) : (
                       <>
-                        {activeTask.state !== "progress" && (
+                        {activeTask.assignee !== "Sarah" && (
                           <button 
                             className="btn-secondary"
-                            onClick={() => handleMarkInProgress(activeTask.id)}
+                            onClick={() => handleAssignToMe(activeTask.id)}
                             style={{ color: '#fbbf24', borderColor: '#fbbf24' }}
                           >
-                            Mark As In Progress
+                            Assign To Me
                           </button>
                         )}
                         
@@ -3064,15 +3484,43 @@ export default function App() {
             </div>
           )}
 
-          {currentView === "ARCHITECTURE" && (
+          {currentView === "SETTINGS" && (
             <div className="report-section" style={{ maxWidth: '1100px', margin: '0 auto', padding: '2.5rem' }}>
-              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem', textAlign: 'left' }}>
+                <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)' }}>
+                  Settings Page
+                </span>
+                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                  Settings
+                </h2>
+              </div>
+
+              {/* Placeholder settings elements */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '3rem', textAlign: 'left' }}>
+                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Crawler API Token</label>
+                  <input type="password" value="••••••••••••••••••••••••" readOnly style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px', borderRadius: '6px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>WordPress Connection Status</label>
+                  <input type="text" value="All Connected Sites Synchronized" readOnly style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: '#34d399', padding: '10px', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Sync Interval</label>
+                  <select disabled style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px', borderRadius: '6px', fontSize: '0.9rem', outline: 'none' }}>
+                    <option>Every 24 Hours (Default)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Task Engine Architecture header */}
+              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem', textAlign: 'left' }}>
                 <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)' }}>
                   <Server size={14} /> Master Data Architecture View
                 </span>
-                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
-                  Task Schema & State Auditor
-                </h2>
+                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)', margin: '0.25rem 0 0 0' }}>
+                  Task Engine Architecture
+                </h3>
               </div>
 
               {(() => {
@@ -3386,6 +3834,8 @@ export default function App() {
               </div>
             </div>
           )}
+
+
 
           {/* Dynamic Page Configuration Modal */}
           {isConfigModalOpen && (modalMode === "add" || editingPage) && (
