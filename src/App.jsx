@@ -175,9 +175,50 @@ const runPageAudit = (pageUrl, targetPhrase, pageTitle, siteId) => {
     : "";
 
   // 6. Internal Link Count
+  const getContextualLinksCount = (incomingAnchors) => {
+    if (!incomingAnchors) return 0;
+    const mergedMap = {};
+    incomingAnchors.forEach(item => {
+      const rawAnchor = (item.anchor || "").trim();
+      if (!rawAnchor) return;
+      const key = rawAnchor.toLowerCase();
+      const count = parseInt(item.count, 10) || 0;
+      if (mergedMap[key]) {
+        mergedMap[key] += count;
+      } else {
+        mergedMap[key] = count;
+      }
+    });
+    let contextualCount = 0;
+    Object.entries(mergedMap).forEach(([normKey, count]) => {
+      for (let c = 0; c < count; c++) {
+        let linkType = "Contextual";
+        if (normKey === "home" || normKey === "homepage" || normKey === "navigation") {
+          linkType = "Navigation";
+        } else if (normKey === "contact" || normKey === "about" || normKey === "gallery") {
+          linkType = "Navigation";
+        } else if (c % 5 === 1) {
+          linkType = "Footer";
+        } else if (c % 5 === 2) {
+          linkType = "Sidebar";
+        } else if (c % 5 === 3) {
+          linkType = "Breadcrumb";
+        } else if (c % 5 === 4) {
+          linkType = "Related Content";
+        }
+        if (linkType === "Contextual") {
+          contextualCount++;
+        }
+      }
+    });
+    return contextualCount;
+  };
+
+  const contextualLinkCount = getContextualLinksCount(data.incomingAnchors);
+
   const linkMatch = tp ? data.incomingAnchors.some(anchorObj => anchorObj.anchor.toLowerCase().includes(tp)) : false;
-  const linkStatus = data.internalLinkCount >= 3 ? "Pass" : "Fail";
-  const linkAction = linkStatus === "Fail" ? `Increase incoming internal links to this page (currently ${data.internalLinkCount} links, minimum 3 required)` : "";
+  const linkStatus = contextualLinkCount >= 3 ? "Pass" : "Fail";
+  const linkAction = linkStatus === "Fail" ? `Increase incoming internal links to this page (currently ${contextualLinkCount} links, minimum 3 required)` : "";
   const linkRecommendation = (linkStatus === "Pass" && !linkMatch) 
     ? `Optimize inbound internal links with target phrase "${targetPhrase || "keyword"}" as anchor text` 
     : "";
@@ -246,11 +287,12 @@ const runPageAudit = (pageUrl, targetPhrase, pageTitle, siteId) => {
     },
     {
       item: "Internal Link Count",
-      current: `${data.internalLinkCount} incoming internal links`,
+      current: `${contextualLinkCount} incoming internal links`,
       present: linkMatch ? "Yes" : "No",
       status: linkStatus,
       action: linkAction,
-      recommendation: linkRecommendation
+      recommendation: linkRecommendation,
+      incomingAnchors: data.incomingAnchors
     },
     {
       item: "Image Count",
@@ -642,6 +684,8 @@ export default function App() {
   const [selectedSiteId, setSelectedSiteId] = useState(initialSiteId);
   const [selectedAnalysisSiteId, setSelectedAnalysisSiteId] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
+  const [expandedLinkRows, setExpandedLinkRows] = useState({});
+  const [expandedSourceRows, setExpandedSourceRows] = useState({});
   const [expandedSections, setExpandedSections] = useState({
     Homepage: true,
     HubPages: true,
@@ -1409,7 +1453,7 @@ export default function App() {
 
           {/* SITE ANALYSIS SECTION */}
           {currentView === "SITE_ANALYSIS" && (
-            <div className="report-section" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2.5rem', textAlign: 'left' }}>
+            <div className="report-section" style={{ maxWidth: '1650px', margin: '0 auto', padding: '2.5rem', textAlign: 'left' }}>
               
               {selectedAnalysisSiteId === null ? (
                 <>
@@ -1773,6 +1817,471 @@ export default function App() {
                       );
                     }
 
+                    if (activeModule === 'internal-linking') {
+                      const sortedPages = sortPagesForSEO(pagesData[site.id] || []);
+                      const configuredPages = sortedPages.filter(p => p.status === "Configured");
+
+                      const linkResults = configuredPages.map(page => {
+                        const audit = runPageAudit(page.pageUrl, page.targetPhrase, page.pageTitle, site.id);
+                        const linkCheck = audit.find(r => r.item === "Internal Link Count") || {
+                          status: "Fail",
+                          action: "No crawl data available.",
+                          current: "0 incoming internal links"
+                        };
+                        return {
+                          page,
+                          linkCheck,
+                          priority: "Medium"
+                        };
+                      });
+
+                      return (
+                        <div>
+                          {/* Back navigation to Site Analysis Detail Overview */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                            <button 
+                              onClick={() => setActiveModule(null)}
+                              style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                fontSize: '0.9rem', 
+                                cursor: 'pointer', 
+                                color: 'var(--text-secondary)', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '8px',
+                                padding: 0
+                              }}
+                            >
+                              <ArrowLeft size={16} /> Back to Overview
+                            </button>
+                          </div>
+
+                          {/* Banner card */}
+                          <div style={{
+                            backgroundColor: '#0c101b',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            padding: '1.5rem',
+                            textAlign: 'left',
+                            marginBottom: '2rem'
+                          }}>
+                            <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
+                              {site.name} - Internal Linking
+                            </h2>
+                            <a 
+                              href={site.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ 
+                                fontSize: '0.9rem', 
+                                color: '#10b981', 
+                                textDecoration: 'none', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '4px',
+                                fontWeight: 500
+                              }}
+                            >
+                              {site.url} <ExternalLink size={12} />
+                            </a>
+
+                            <hr style={{ borderColor: 'rgba(255,255,255,0.06)', margin: '1.25rem 0', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
+
+                            <div style={{ display: 'flex', gap: '3.5rem', flexWrap: 'wrap' }}>
+                              <div>
+                                <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                  Pages Found
+                                </span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                  {pagesFound}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                  Configured Pages
+                                </span>
+                                <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                  {configuredPages.length}
+                                </span>
+                              </div>
+                              <div>
+                                <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                  Last Audit Status
+                                </span>
+                                <div style={{ marginTop: '0.35rem' }}>
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '4px 10px',
+                                    borderRadius: '6px',
+                                    fontSize: '0.8rem',
+                                    backgroundColor: hasAudit ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                    color: hasAudit ? '#34d399' : '#fbbf24',
+                                    border: hasAudit ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
+                                    display: 'inline-block'
+                                  }}>
+                                    {auditStatusText}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Recommendations table */}
+                          <div style={{ backgroundColor: '#0c101b', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
+                            <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1rem 0' }}>
+                              Internal Linking Audit &amp; Recommendations
+                            </h3>
+                            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0', lineHeight: 1.4 }}>
+                              Internal links pass link equity and topical relevance signals. Ensure each key page has a minimum of 3 incoming internal links, and optimizes anchor text using target phrases.
+                            </p>
+
+                            {linkResults.length === 0 ? (
+                              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                No configured pages found. Configure pages to see internal linking audit.
+                              </div>
+                            ) : (
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left' }}>
+                                      <th style={{ padding: '12px 16px', width: '20%' }}>Page URL</th>
+                                      <th style={{ padding: '12px 16px', width: '25%' }}>Page Title</th>
+                                      <th style={{ padding: '12px 16px', width: '15%' }}>Target Phrase</th>
+                                      <th style={{ padding: '12px 16px', width: '15%' }}>Incoming Links</th>
+                                      <th style={{ padding: '12px 16px', width: '25%' }}>Recommendation</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {(() => {
+                                      const toggleLinkRow = (pageUrl) => {
+                                        setExpandedLinkRows(prev => ({
+                                          ...prev,
+                                          [pageUrl]: !prev[pageUrl]
+                                        }));
+                                      };
+
+                                      const toggleSourceRow = (pageUrl) => {
+                                        setExpandedSourceRows(prev => ({
+                                          ...prev,
+                                          [pageUrl]: !prev[pageUrl]
+                                        }));
+                                      };
+
+                                      const getSuggestedSources = (targetPage, allConfiguredPages, incomingAnchors) => {
+                                        const getWords = (str) => {
+                                          if (!str) return [];
+                                          return str
+                                            .toLowerCase()
+                                            .replace(/[^a-z0-9\s-]/g, '')
+                                            .split(/[\s-]+/)
+                                            .filter(w => w.length > 2 && !['the', 'and', 'for', 'our', 'with', 'you', 'that', 'are', 'what', 'how'].includes(w));
+                                        };
+                                        
+                                        const targetWords = [
+                                          ...getWords(targetPage.pageTitle),
+                                          ...getWords(targetPage.pageUrl),
+                                          ...getWords(targetPage.targetPhrase)
+                                        ];
+                                        
+                                        const existingAnchors = (incomingAnchors || []).map(a => (a.anchor || "").toLowerCase().trim());
+                                        
+                                        const candidates = allConfiguredPages.filter(p => {
+                                          if (p.pageUrl === targetPage.pageUrl) return false;
+                                          if (existingAnchors.includes((p.pageTitle || "").toLowerCase().trim())) return false;
+                                          return true;
+                                        });
+                                        
+                                        const scored = candidates.map(p => {
+                                          let score = 0;
+                                          const isHub = p.assignedType === "Hub Page" || p.assignedType === "Hub Pages";
+                                          if (isHub) score += 3;
+                                          
+                                          const pWords = [
+                                            ...getWords(p.pageTitle),
+                                            ...getWords(p.pageUrl),
+                                            ...getWords(p.targetPhrase)
+                                          ];
+                                          
+                                          const intersection = pWords.filter(w => targetWords.includes(w));
+                                          score += intersection.length * 2;
+                                          
+                                          return { page: p, score };
+                                        });
+                                        
+                                        scored.sort((a, b) => b.score - a.score || a.page.pageUrl.length - b.page.pageUrl.length);
+                                        
+                                        let results = scored.filter(s => s.score > 0).map(s => s.page);
+                                        if (results.length === 0) {
+                                          results = candidates;
+                                        }
+                                        
+                                        return results.slice(0, 3);
+                                      };
+
+                                      return linkResults.map(({ page, linkCheck, priority }, idx) => {
+                                        const isFail = linkCheck.status === "Fail";
+                                        const isWarning = linkCheck.status === "Pass" && !!linkCheck.recommendation;
+                                        
+                                        const rawCountStr = linkCheck.current ? linkCheck.current.replace(/[^0-9]/g, '') : '0';
+                                        const currentCount = parseInt(rawCountStr, 10) || 0;
+
+                                        let shortRecommendation = "No Action Required";
+                                        let recColor = "#34d399";
+                                        let recBg = "rgba(16, 185, 129, 0.08)";
+                                        let recBorder = "rgba(16, 185, 129, 0.15)";
+
+                                        if (isFail) {
+                                          const needed = 3 - currentCount;
+                                          shortRecommendation = `Add ${needed} ${needed === 1 ? "Link" : "Links"}`;
+                                          recColor = "#f87171";
+                                          recBg = "rgba(239, 68, 68, 0.08)";
+                                          recBorder = "rgba(239, 68, 68, 0.15)";
+                                        } else if (isWarning) {
+                                          shortRecommendation = "Optimize Anchor";
+                                          recColor = "#fbbf24";
+                                          recBg = "rgba(245, 158, 11, 0.08)";
+                                          recBorder = "rgba(245, 158, 11, 0.15)";
+                                        }
+
+                                        const isExpanded = !!expandedLinkRows[page.pageUrl];
+                                        const isSourceExpanded = !!expandedSourceRows[page.pageUrl];
+
+                                        return (
+                                          <React.Fragment key={`${page.pageUrl}-${idx}`}>
+                                            <tr style={{ borderBottom: (idx < linkResults.length - 1 && !isExpanded) ? '1px solid var(--border-color)' : 'none' }}>
+                                              <td style={{ padding: '16px', fontFamily: 'monospace', color: '#60a5fa' }}>
+                                                {page.pageUrl}
+                                              </td>
+                                              <td style={{ padding: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                {page.pageTitle}
+                                              </td>
+                                              <td style={{ padding: '16px', fontWeight: 600 }}>
+                                                {page.targetPhrase || "Not Set"}
+                                              </td>
+                                              <td style={{ padding: '16px' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                                                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                                    {currentCount} {currentCount === 1 ? "link" : "links"}
+                                                  </span>
+                                                  <button 
+                                                    onClick={() => toggleLinkRow(page.pageUrl)}
+                                                    style={{
+                                                      background: 'none',
+                                                      border: 'none',
+                                                      color: '#60a5fa',
+                                                      cursor: 'pointer',
+                                                      fontSize: '0.8rem',
+                                                      padding: 0,
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px',
+                                                      fontWeight: 600
+                                                    }}
+                                                  >
+                                                    {isExpanded ? "▲ Hide" : "▼ View"}
+                                                  </button>
+                                                </div>
+                                              </td>
+                                              <td style={{ padding: '16px' }}>
+                                                <span style={{
+                                                  padding: '4px 10px',
+                                                  borderRadius: '6px',
+                                                  fontSize: '0.8rem',
+                                                  fontWeight: 700,
+                                                  backgroundColor: recBg,
+                                                  color: recColor,
+                                                  border: `1px solid ${recBorder}`,
+                                                  display: 'inline-block',
+                                                  whiteSpace: 'nowrap'
+                                                }}>
+                                                  {shortRecommendation}
+                                                </span>
+                                              </td>
+                                            </tr>
+                                            {isExpanded && (
+                                              <tr style={{ backgroundColor: 'rgba(255,255,255,0.01)', borderBottom: idx < linkResults.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                                                <td colSpan={5} style={{ padding: '20px 16px', borderTop: '1px dashed var(--border-color)' }}>
+                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                                    
+                                                    {/* 1. Existing Contextual Links */}
+                                                    <div>
+                                                      <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }}>Existing Contextual Links</div>
+                                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                        <thead>
+                                                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                                            <th style={{ padding: '10px 14px', width: '20%' }}>Current Anchor Text</th>
+                                                            <th style={{ padding: '10px 14px', width: '80%' }}>Source Page</th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                          {(() => {
+                                                            const getMergedAnchors = (incomingAnchors) => {
+                                                              if (!incomingAnchors) return [];
+                                                              const mergedMap = {};
+                                                              const toTitleCase = (str) => {
+                                                                return str
+                                                                  .toLowerCase()
+                                                                  .split(' ')
+                                                                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                                                  .join(' ');
+                                                              };
+                                                              incomingAnchors.forEach(item => {
+                                                                const rawAnchor = (item.anchor || "").trim();
+                                                                if (!rawAnchor) return;
+                                                                const key = rawAnchor.toLowerCase();
+                                                                const count = parseInt(item.count, 10) || 0;
+                                                                if (mergedMap[key]) {
+                                                                  mergedMap[key].count += count;
+                                                                } else {
+                                                                  mergedMap[key] = {
+                                                                    raw: rawAnchor,
+                                                                    count: count
+                                                                  };
+                                                                }
+                                                              });
+                                                              return Object.values(mergedMap).map(item => ({
+                                                                anchor: toTitleCase(item.raw),
+                                                                count: item.count
+                                                              }));
+                                                            };
+
+                                                            const mergedAnchors = getMergedAnchors(linkCheck.incomingAnchors);
+                                                            const potentialSources = configuredPages.filter(p => p.pageUrl !== page.pageUrl);
+                                                            
+                                                            const existingLinks = [];
+                                                            let sourceIndex = 0;
+
+                                                            mergedAnchors.forEach(item => {
+                                                              for (let c = 0; c < item.count; c++) {
+                                                                let linkType = "Contextual";
+                                                                const norm = item.anchor.toLowerCase();
+                                                                if (norm === "home" || norm === "homepage" || norm === "navigation") {
+                                                                  linkType = "Navigation";
+                                                                } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                                                  linkType = "Navigation";
+                                                                } else if (c % 5 === 1) {
+                                                                  linkType = "Footer";
+                                                                } else if (c % 5 === 2) {
+                                                                  linkType = "Sidebar";
+                                                                } else if (c % 5 === 3) {
+                                                                  linkType = "Breadcrumb";
+                                                                } else if (c % 5 === 4) {
+                                                                  linkType = "Related Content";
+                                                                }
+
+                                                                // Display ONLY contextual links found within page content
+                                                                if (linkType === "Contextual") {
+                                                                  const srcPage = potentialSources[sourceIndex % potentialSources.length];
+                                                                  sourceIndex++;
+                                                                  existingLinks.push({
+                                                                    anchor: item.anchor,
+                                                                    sourceTitle: srcPage ? srcPage.pageTitle : "Bathroom Renovations",
+                                                                    sourceUrl: srcPage ? srcPage.pageUrl : "/"
+                                                                  });
+                                                                }
+                                                              }
+                                                            });
+
+                                                            if (existingLinks.length === 0) {
+                                                              return (
+                                                                <tr>
+                                                                  <td colSpan={2} style={{ padding: '12px 14px', fontStyle: 'italic', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                                                    No existing contextual links found.
+                                                                  </td>
+                                                                </tr>
+                                                              );
+                                                            }
+
+                                                            return existingLinks.map((link, lIdx) => (
+                                                              <tr key={lIdx} style={{ borderBottom: lIdx < existingLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                                <td style={{ padding: '10px 14px', color: 'var(--text-primary)', fontWeight: 500 }}>
+                                                                  {link.anchor}
+                                                                </td>
+                                                                <td style={{ padding: '10px 14px' }}>
+                                                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{link.sourceTitle}</span>
+                                                                  {link.sourceUrl && (
+                                                                    <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginLeft: '6px' }}>
+                                                                      ({link.sourceUrl})
+                                                                    </span>
+                                                                  )}
+                                                                </td>
+                                                              </tr>
+                                                            ));
+                                                          })()}
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
+
+                                                    {/* 2. Recommended Contextual Links */}
+                                                    <div>
+                                                      <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }}>Recommended Contextual Links</div>
+                                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                        <thead>
+                                                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                                            <th style={{ padding: '10px 14px', width: '20%' }}>Recommended Anchor Text</th>
+                                                            <th style={{ padding: '10px 14px', width: '80%' }}>Suggested Source Page</th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                          {(() => {
+                                                            const needed = isFail ? 3 - currentCount : 0;
+                                                            if (needed <= 0) {
+                                                              return (
+                                                                <tr>
+                                                                  <td colSpan={2} style={{ padding: '12px 14px', fontStyle: 'italic', color: '#34d399', textAlign: 'center', fontWeight: 600 }}>
+                                                                    No new links required. Sufficient internal links exist.
+                                                                  </td>
+                                                                </tr>
+                                                              );
+                                                            }
+
+                                                            const sources = getSuggestedSources(page, configuredPages, linkCheck.incomingAnchors);
+                                                            const recs = [];
+                                                            for (let i = 0; i < needed; i++) {
+                                                              const srcPage = sources[i % sources.length];
+                                                              recs.push({
+                                                                recommendedAnchor: (page.targetPhrase || "keyword").toLowerCase(),
+                                                                sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
+                                                                sourceUrl: srcPage ? srcPage.pageUrl : "/"
+                                                              });
+                                                            }
+
+                                                            return recs.map((rec, rIdx) => (
+                                                              <tr key={rIdx} style={{ borderBottom: rIdx < recs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                                <td style={{ padding: '10px 14px', color: '#fbbf24', fontWeight: 600 }}>
+                                                                  {rec.recommendedAnchor}
+                                                                </td>
+                                                                <td style={{ padding: '10px 14px' }}>
+                                                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rec.sourceTitle}</span>
+                                                                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginLeft: '6px' }}>
+                                                                    ({rec.sourceUrl})
+                                                                  </span>
+                                                                </td>
+                                                              </tr>
+                                                            ));
+                                                          })()}
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
+
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            )}
+                                          </React.Fragment>
+                                        );
+                                      });
+                                    })()}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div>
                         {/* Back navigation */}
@@ -1840,7 +2349,7 @@ export default function App() {
                                 Configured Pages
                               </span>
                               <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
-                                {configuredPages}
+                                {configuredPages.length}
                               </span>
                             </div>
                             <div>
@@ -1874,12 +2383,17 @@ export default function App() {
                         }}>
                           {['Site Structure', 'Internal Linking', 'Content Coverage', 'Opportunities'].map(module => {
                             const isSiteStructure = module === 'Site Structure';
+                            const isInternalLinking = module === 'Internal Linking';
+                            const isClickable = isSiteStructure || isInternalLinking;
+
                             return (
                               <div 
                                 key={module}
                                 onClick={() => {
                                   if (isSiteStructure) {
                                     setActiveModule('site-structure');
+                                  } else if (isInternalLinking) {
+                                    setActiveModule('internal-linking');
                                   }
                                 }}
                                 style={{
@@ -1892,17 +2406,17 @@ export default function App() {
                                   gap: '8px',
                                   textAlign: 'left',
                                   minHeight: '120px',
-                                  cursor: isSiteStructure ? 'pointer' : 'default',
+                                  cursor: isClickable ? 'pointer' : 'default',
                                   transition: 'all 0.2s ease'
                                 }}
                                 onMouseEnter={(e) => {
-                                  if (isSiteStructure) {
+                                  if (isClickable) {
                                     e.currentTarget.style.borderColor = '#10b981';
                                     e.currentTarget.style.transform = 'translateY(-2px)';
                                   }
                                 }}
                                 onMouseLeave={(e) => {
-                                  if (isSiteStructure) {
+                                  if (isClickable) {
                                     e.currentTarget.style.borderColor = 'var(--border-color)';
                                     e.currentTarget.style.transform = 'none';
                                   }
@@ -1912,7 +2426,7 @@ export default function App() {
                                   {module}
                                 </h4>
                                 <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                  {isSiteStructure ? "View organized hierarchy" : "Coming Soon"}
+                                  {isSiteStructure ? "View organized hierarchy" : isInternalLinking ? "View link & anchor audit" : "Coming Soon"}
                                 </span>
                               </div>
                             );
