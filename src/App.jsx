@@ -1272,22 +1272,34 @@ export default function App() {
           <span>TSE Work Portal</span>
         </div>
 
-        <div className="hub-navigation" style={{ display: 'flex', gap: '24px' }}>
+         <div className="hub-navigation" style={{ display: 'flex', gap: '24px' }}>
           <button 
             onClick={() => {
-              if (currentView === "ARCHITECTURE") {
+              if (currentView === "ARCHITECTURE" || currentView === "SITE_ANALYSIS") {
                 setCurrentView("CONNECTED_SITES");
               }
             }} 
             style={{
               background: 'none', border: 'none', 
-              color: currentView !== "ARCHITECTURE" ? 'var(--text-primary)' : 'var(--text-secondary)',
+              color: (currentView !== "ARCHITECTURE" && currentView !== "SITE_ANALYSIS") ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-              borderBottom: currentView !== "ARCHITECTURE" ? '2px solid var(--accent-color)' : '2px solid transparent',
+              borderBottom: (currentView !== "ARCHITECTURE" && currentView !== "SITE_ANALYSIS") ? '2px solid var(--accent-color)' : '2px solid transparent',
               padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
             }}
           >
             Work Portal
+          </button>
+          <button 
+            onClick={() => setCurrentView("SITE_ANALYSIS")} 
+            style={{
+              background: 'none', border: 'none', 
+              color: currentView === "SITE_ANALYSIS" ? 'var(--text-primary)' : 'var(--text-secondary)',
+              fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
+              borderBottom: currentView === "SITE_ANALYSIS" ? '2px solid var(--accent-color)' : '2px solid transparent',
+              padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
+            }}
+          >
+            Site Analysis
           </button>
           <button 
             onClick={() => setCurrentView("ARCHITECTURE")} 
@@ -1314,7 +1326,87 @@ export default function App() {
         <div className="hub-content">
           
           {/* Stepper Indicator */}
-          {currentView !== "ARCHITECTURE" && <WorkflowStepper currentView={currentView} />}
+          {currentView !== "ARCHITECTURE" && currentView !== "SITE_ANALYSIS" && <WorkflowStepper currentView={currentView} />}
+
+          {/* SITE ANALYSIS PLACEHOLDER */}
+          {currentView === "SITE_ANALYSIS" && (
+            <div className="report-section" style={{ maxWidth: '1100px', margin: '0 auto', padding: '2.5rem', textAlign: 'left' }}>
+              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+                <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)' }}>
+                  <Globe size={14} /> Site Analysis Entry Point
+                </span>
+                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                  Site Analysis Dashboard
+                </h2>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                  Explore mapping configurations, structures, internal links, and general settings for your connected sites.
+                </p>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '1.5rem',
+                marginTop: '1.5rem'
+              }}>
+                {/* Card 1: Page Configuration */}
+                <div style={{
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Page Configuration</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Configure targeting phrases and titles for configured pages.</p>
+                </div>
+
+                {/* Card 2: Site Structure */}
+                <div style={{
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Site Structure</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Analyze directories, layouts, and page relationships.</p>
+                </div>
+
+                {/* Card 3: Internal Linking */}
+                <div style={{
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Internal Linking</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Review anchor distributions, missing link warnings, and stats.</p>
+                </div>
+
+                {/* Card 4: Settings */}
+                <div style={{
+                  backgroundColor: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px'
+                }}>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Settings</h4>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>Manage crawlers, connection keys, and sync behaviors.</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* STAGE 1: CONNECTED WEBSITES LIST */}
           {currentView === "CONNECTED_SITES" && (
