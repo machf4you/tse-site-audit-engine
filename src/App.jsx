@@ -1352,6 +1352,62 @@ export default function App() {
     }, 1000);
   };
 
+  const handleExportData = () => {
+    try {
+      const dataToExport = {
+        sites: sites,
+        pagesData: pagesData
+      };
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataToExport, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "tse_connected_websites_backup.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showNotification("Successfully exported connected websites and configuration.");
+    } catch (error) {
+      showNotification("Failed to export backup: " + error.message);
+    }
+  };
+
+  const handleImportData = () => {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const parsed = JSON.parse(e.target.result);
+            if (!parsed.sites || !parsed.pagesData) {
+              showNotification("Invalid backup format. Must contain sites and pagesData.");
+              return;
+            }
+
+            setSites(parsed.sites);
+            setPagesData(parsed.pagesData);
+
+            localStorage.setItem("tse_sites_data", JSON.stringify(parsed.sites));
+            localStorage.setItem("tse_pages_data", JSON.stringify(parsed.pagesData));
+
+            showNotification("Successfully imported connected websites and configuration.");
+          } catch (error) {
+            showNotification("Failed to parse backup JSON: " + error.message);
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    } catch (error) {
+      showNotification("Failed to initiate import: " + error.message);
+    }
+  };
+
   const selectedSite = sites.find(s => s.id === selectedSiteId) || null;
   const activeTask = selectedSite ? selectedSite.tasks.find(t => t.id === selectedTaskId) : null;
 
@@ -3174,25 +3230,57 @@ export default function App() {
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Connected Websites</h2>
                   <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Select a connected site to view its generated tasks, or run a new audit.</span>
                 </div>
-                <button 
-                  className="btn-primary" 
-                  onClick={() => setIsAddWebsiteModalOpen(true)}
-                  style={{ 
-                    borderRadius: '20px', 
-                    padding: '8px 16px', 
-                    backgroundColor: '#10b981', 
-                    color: '#ffffff', 
-                    fontWeight: 600, 
-                    fontSize: '0.85rem',
-                    border: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    boxShadow: 'none'
-                  }}
-                >
-                  <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>+</span> Add Website
-                </button>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button 
+                    className="btn-secondary" 
+                    onClick={handleExportData}
+                    style={{ 
+                      borderRadius: '20px', 
+                      padding: '8px 16px', 
+                      fontWeight: 600, 
+                      fontSize: '0.85rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    Export Backup
+                  </button>
+                  <button 
+                    className="btn-secondary" 
+                    onClick={handleImportData}
+                    style={{ 
+                      borderRadius: '20px', 
+                      padding: '8px 16px', 
+                      fontWeight: 600, 
+                      fontSize: '0.85rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    Import Backup
+                  </button>
+                  <button 
+                    className="btn-primary" 
+                    onClick={() => setIsAddWebsiteModalOpen(true)}
+                    style={{ 
+                      borderRadius: '20px', 
+                      padding: '8px 16px', 
+                      backgroundColor: '#10b981', 
+                      color: '#ffffff', 
+                      fontWeight: 600, 
+                      fontSize: '0.85rem',
+                      border: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      boxShadow: 'none'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>+</span> Add Website
+                  </button>
+                </div>
               </div>
 
               <div className="websites-grid">
