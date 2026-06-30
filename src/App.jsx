@@ -655,6 +655,7 @@ export default function App() {
   const [inputTargetPhrase, setInputTargetPhrase] = useState("");
   const [inputPageUrl, setInputPageUrl] = useState("");
   const [inputPageTitle, setInputPageTitle] = useState("");
+  const [inputParentPage, setInputParentPage] = useState("");
   const [modalMode, setModalMode] = useState("edit"); // edit, add
   const [currentFilter, setCurrentFilter] = useState("all"); // all, configured, unconfigured, planned
   const [selectedPageUrl, setSelectedPageUrl] = useState(null);
@@ -948,6 +949,85 @@ export default function App() {
     return 4;
   };
 
+  const getGroupedPageType = (page) => {
+    if (!page) return "Unassigned Pages";
+    if (page.assignedType) {
+      if (page.assignedType === "Homepage") return "Homepage";
+      if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages") return "Hub Pages";
+      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages") return "Landing Pages";
+      if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages") return "Supporting Pages";
+      if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages") return "Topical Pages";
+      return "Unassigned Pages";
+    }
+    const url = page.pageUrl;
+    if (url === "/") return "Homepage";
+    const score = getPageSEOScore(page);
+    switch (score) {
+      case 0: return "Homepage";
+      case 1:
+      case 2: return "Landing Pages";
+      case 3: return "Supporting Pages";
+      case 4: return "Topical Pages";
+      default: return "Unassigned Pages";
+    }
+  };
+
+  const buildHierarchyOptions = (sitePages, currentEditingUrl) => {
+    const list = [];
+    const visited = new Set();
+
+    // Find the Homepage page
+    const home = sitePages.find(p => p.pageUrl === "/");
+    
+    const traverse = (url, depth) => {
+      const page = sitePages.find(p => p.pageUrl === url);
+      if (!page) return;
+
+      // Cycle prevention: skip the page being edited and its branches
+      if (url === currentEditingUrl) return;
+
+      list.push({
+        url: url,
+        title: page.pageTitle,
+        depth: depth
+      });
+      visited.add(url);
+
+      // Find children of this url
+      const children = sitePages.filter(p => {
+        if (p.pageUrl === "/") return false;
+        const parent = p.parentPage !== undefined ? p.parentPage : "/";
+        return parent === url && p.status === "Configured";
+      });
+
+      // Sort children alphabetically
+      children.sort((a, b) => a.pageTitle.localeCompare(b.pageTitle));
+
+      children.forEach(child => {
+        if (!visited.has(child.pageUrl)) {
+          traverse(child.pageUrl, depth + 1);
+        }
+      });
+    };
+
+    if (home) {
+      traverse("/", 0);
+    }
+
+    // Add any configured pages that were not reached by traversal (e.g. orphans or disconnected pages)
+    sitePages.forEach(p => {
+      if (p.status === "Configured" && !visited.has(p.pageUrl) && p.pageUrl !== currentEditingUrl) {
+        list.push({
+          url: p.pageUrl,
+          title: p.pageTitle,
+          depth: p.pageUrl === "/" ? 0 : 1
+        });
+      }
+    });
+
+    return list;
+  };
+
   const sortPagesForSEO = (pages) => {
     return [...pages].sort((a, b) => {
       const scoreA = getPageSEOScore(a);
@@ -1171,6 +1251,18 @@ export default function App() {
     setInputPageUrl(page.pageUrl);
     setInputPageTitle(page.pageTitle);
     setInputTargetPhrase(page.targetPhrase || "");
+    
+    // Set parent page input state
+    if (page.parentPage !== undefined) {
+      setInputParentPage(page.parentPage);
+    } else {
+      if (page.pageUrl === "/") {
+        setInputParentPage("");
+      } else {
+        setInputParentPage("/"); // Default to Homepage for all pages
+      }
+    }
+    
     setIsConfigModalOpen(true);
   };
 
@@ -1180,6 +1272,7 @@ export default function App() {
     setInputPageUrl("");
     setInputPageTitle("");
     setInputTargetPhrase("");
+    setInputParentPage("/"); // Default to Homepage
     setIsConfigModalOpen(true);
   };
 
@@ -1207,6 +1300,7 @@ export default function App() {
           pageUrl: formattedUrl,
           pageTitle: inputPageTitle.trim() || "Untitled Page",
           targetPhrase: inputTargetPhrase.trim(),
+          parentPage: formattedUrl === "/" ? "" : inputParentPage,
           status: "Planned",
           lastModifiedDate: new Date().toISOString().split('T')[0]
         };
@@ -1230,6 +1324,7 @@ export default function App() {
               ...p,
               pageTitle: inputPageTitle.trim() || p.pageTitle,
               targetPhrase: inputTargetPhrase.trim(),
+              parentPage: p.pageUrl === "/" ? "" : inputParentPage,
               status: updatedStatus
             };
           }
@@ -1703,6 +1798,333 @@ export default function App() {
                     const site = sites.find(s => s.id === selectedAnalysisSiteId);
                     if (!site) return null;
 
+                    if (activeModule === 'visual-site-map') {
+                      const sitePages = pagesData[site.id] || [];
+                      
+                      // Classify page types consistently with the main list
+                      const getGroupedPageType = (page) => {
+                        if (page.assignedType) {
+                          if (page.assignedType === "Homepage") return "Homepage";
+                          if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages") return "Hub Pages";
+                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages") return "Landing Pages";
+                          if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages") return "Supporting Pages";
+                          if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages") return "Topical Pages";
+                          return "Unassigned Pages";
+                        }
+                        const url = page.pageUrl;
+                        if (url === "/") return "Homepage";
+                        const score = getPageSEOScore(page);
+                        switch (score) {
+                          case 0: return "Homepage";
+                          case 1:
+                          case 2: return "Landing Pages";
+                          case 3: return "Supporting Pages";
+                          case 4: return "Topical Pages";
+                          default: return "Unassigned Pages";
+                        }
+                      };
+
+                      // Construct the hierarchical tree model
+                      const rootNode = { 
+                        pageUrl: "/", 
+                        pageTitle: "Homepage", 
+                        type: "Homepage", 
+                        children: [] 
+                      };
+                      
+                      const landingNodes = [];
+                      const otherPages = [];
+
+                      sitePages.forEach(p => {
+                        if (p.assignedType === "Excluded") return;
+                        const type = getGroupedPageType(p);
+                        if (type === "Homepage") {
+                          rootNode.pageTitle = p.pageTitle || "Homepage";
+                          rootNode.targetPhrase = p.targetPhrase;
+                        } else if (type === "Hub Pages" || type === "Landing Pages") {
+                          landingNodes.push({ ...p, type, children: [] });
+                        } else {
+                          otherPages.push({ ...p, type });
+                        }
+                      });
+
+                      // Assign supporting/topical pages to the best matching parent landing page based on URL keyword overlap
+                      otherPages.forEach(p => {
+                        let bestParent = null;
+                        let maxOverlap = 0;
+                        
+                        const getUrlWords = (url) => {
+                          return url.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 3 && w !== "page" && w !== "html");
+                        };
+                        
+                        const pWords = getUrlWords(p.pageUrl);
+                        
+                        landingNodes.forEach(ln => {
+                          const lnWords = getUrlWords(ln.pageUrl);
+                          const overlap = pWords.filter(w => lnWords.includes(w)).length;
+                          if (overlap > maxOverlap) {
+                            maxOverlap = overlap;
+                            bestParent = ln;
+                          }
+                        });
+                        
+                        if (bestParent) {
+                          bestParent.children.push(p);
+                        } else {
+                          rootNode.children.push(p);
+                        }
+                      });
+
+                      // Prepend all matched landing nodes to the root's children list
+                      rootNode.children.unshift(...landingNodes);
+
+                      return (
+                        <div style={{ textAlign: 'left' }}>
+                          {/* Back navigation */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                            <button 
+                              onClick={() => setActiveModule('site-structure')}
+                              style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                fontSize: '0.9rem', 
+                                cursor: 'pointer', 
+                                color: 'var(--text-secondary)', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '8px',
+                                padding: 0
+                              }}
+                            >
+                              <ArrowLeft size={16} /> Back to Site Structure
+                            </button>
+                          </div>
+
+                          {/* Visual Tree Map Card Container */}
+                          <div style={{
+                            backgroundColor: 'var(--surface-color)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            padding: '2rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '2.5rem',
+                            overflowX: 'auto'
+                          }}>
+                            <div>
+                              <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
+                                Visual Site Map
+                              </h2>
+                              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                {site.name} ({site.url})
+                              </span>
+                            </div>
+
+                            {/* Connected Tree Nodes Layout */}
+                            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', minWidth: 'max-content', paddingLeft: '0.5rem', gap: '3rem' }}>
+                              
+                              {/* Homepage (Root Node Column) */}
+                              <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignSelf: 'center',
+                                position: 'relative',
+                                paddingRight: '3rem'
+                              }}>
+                                <div style={{
+                                  backgroundColor: '#070b13',
+                                  border: '2px solid #10b981',
+                                  borderRadius: '8px',
+                                  padding: '1rem 1.25rem',
+                                  minWidth: '260px',
+                                  maxWidth: '320px',
+                                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)',
+                                  zIndex: 2,
+                                  textAlign: 'left'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                      Homepage (Root)
+                                    </span>
+                                    {rootNode.targetPhrase && (
+                                      <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>
+                                        Target: {rootNode.targetPhrase}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'Outfit' }}>
+                                    {rootNode.pageTitle}
+                                  </div>
+                                  <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#60a5fa', marginTop: '6px', wordBreak: 'break-all' }}>
+                                    {rootNode.pageUrl}
+                                  </div>
+                                </div>
+
+                                {/* Line connector extending right from Homepage card to the main stem */}
+                                {rootNode.children.length > 0 && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: '50%',
+                                    width: '3rem',
+                                    height: '2px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                    zIndex: 1
+                                  }} />
+                                )}
+                              </div>
+
+                              {/* Branch Nodes Column (Landing Pages & their Sub-stems) */}
+                              {rootNode.children.length > 0 && (
+                                <div style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '2.5rem',
+                                  borderLeft: '2px solid rgba(255, 255, 255, 0.08)',
+                                  paddingLeft: '3rem',
+                                  position: 'relative'
+                                }}>
+                                  {rootNode.children.map((child, cIdx) => {
+                                    const hasGrandchildren = child.children && child.children.length > 0;
+                                    return (
+                                      <div 
+                                        key={cIdx} 
+                                        style={{ 
+                                          display: 'flex', 
+                                          flexDirection: 'row', 
+                                          alignItems: 'center', 
+                                          gap: '3rem', 
+                                          position: 'relative' 
+                                        }}
+                                      >
+                                        {/* Horizontal connection line from main stem on the left to this Landing card */}
+                                        <div style={{
+                                          position: 'absolute',
+                                          left: '-3rem',
+                                          top: '50%',
+                                          width: '3rem',
+                                          height: '2px',
+                                          backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                                        }} />
+
+                                        {/* Landing / Hub Node Card */}
+                                        <div style={{
+                                          backgroundColor: '#0c101b',
+                                          border: '1px solid var(--border-color)',
+                                          borderRadius: '8px',
+                                          padding: '0.85rem 1.15rem',
+                                          minWidth: '240px',
+                                          maxWidth: '320px',
+                                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                          zIndex: 2,
+                                          textAlign: 'left',
+                                          position: 'relative'
+                                        }}>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ 
+                                              fontSize: '0.7rem', 
+                                              fontWeight: 700, 
+                                              color: child.type === "Hub Pages" ? "#a78bfa" : "#38bdf8",
+                                              backgroundColor: child.type === "Hub Pages" ? "rgba(167, 139, 250, 0.08)" : "rgba(56, 189, 248, 0.08)",
+                                              padding: '2px 6px',
+                                              borderRadius: '4px'
+                                            }}>
+                                              {child.type === "Hub Pages" ? "Hub Page" : "Landing Page"}
+                                            </span>
+                                            {child.targetPhrase && (
+                                              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>
+                                                Target: {child.targetPhrase}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontFamily: 'Outfit' }}>
+                                            {child.pageTitle}
+                                          </div>
+                                          <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginTop: '4px', wordBreak: 'break-all' }}>
+                                            {child.pageUrl}
+                                          </div>
+
+                                          {/* Horizontal connection line extending right from Landing card to its grandchildren stem */}
+                                          {hasGrandchildren && (
+                                            <div style={{
+                                              position: 'absolute',
+                                              right: '-3rem',
+                                              top: '50%',
+                                              width: '3rem',
+                                              height: '2px',
+                                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                              zIndex: 1
+                                            }} />
+                                          )}
+                                        </div>
+
+                                        {/* Grandchildren Column (Supporting / Topical Pages) */}
+                                        {hasGrandchildren && (
+                                          <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            gap: '1.5rem',
+                                            position: 'relative',
+                                            alignItems: 'center'
+                                          }}>
+                                            {/* Continuous horizontal connection line behind all grandchildren cards */}
+                                            <div style={{
+                                              position: 'absolute',
+                                              left: '-3rem',
+                                              top: '50%',
+                                              width: 'calc(100% + 3rem)',
+                                              height: '2px',
+                                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                              zIndex: 1
+                                            }} />
+
+                                            {child.children.map((grandchild, gIdx) => (
+                                              <div 
+                                                key={gIdx}
+                                                style={{
+                                                  backgroundColor: '#070b13',
+                                                  border: '1px dashed var(--border-color)',
+                                                  borderRadius: '6px',
+                                                  padding: '0.75rem 1rem',
+                                                  minWidth: '220px',
+                                                  maxWidth: '300px',
+                                                  position: 'relative',
+                                                  zIndex: 2,
+                                                  textAlign: 'left'
+                                                }}
+                                              >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                  <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                                    Supporting Page
+                                                  </span>
+                                                  {grandchild.targetPhrase && (
+                                                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 600 }}>
+                                                      {grandchild.targetPhrase}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
+                                                  {grandchild.pageTitle}
+                                                </div>
+                                                <div style={{ fontSize: '0.725rem', fontFamily: 'monospace', color: '#94a3b8', marginTop: '4px', wordBreak: 'break-all' }}>
+                                                  {grandchild.pageUrl}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
                     const sitePages = pagesData[site.id] || [];
                     const pagesFound = sitePages.length || (site.id === 'bathroom-upgrades' ? 33 : 113);
                     const configuredPages = sitePages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded").length;
@@ -1904,8 +2326,38 @@ export default function App() {
                             ];
 
                             return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                {sections.map(sec => {
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {/* Header / Action Area */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', textAlign: 'left' }}>
+                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                                    Site Structure
+                                  </h3>
+                                  <button
+                                    className="btn-primary"
+                                    onClick={() => setActiveModule('visual-site-map')}
+                                    style={{
+                                      backgroundColor: '#f97316',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      padding: '8px 16px',
+                                      borderRadius: '6px',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      transition: 'background-color 0.2s ease',
+                                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.15)'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ea580c'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f97316'}
+                                  >
+                                    Visual Site Map
+                                  </button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                  {sections.map(sec => {
                                   const isSectionExpanded = !!expandedSections[sec.key];
                                   return (
                                     <div 
@@ -2022,6 +2474,7 @@ export default function App() {
                                     </div>
                                   );
                                 })}
+                                </div>
                               </div>
                             );
                           }
@@ -3130,11 +3583,11 @@ export default function App() {
                   <table className="audit-config-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '30%', minWidth: '400px' }}>Page URL</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '25%', minWidth: '300px' }}>Page Title</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '130px' }}>Page Type</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '200px' }}>Target Phrase</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '130px' }}>Status</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}>Page</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}>Type</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '20%', minWidth: '180px' }}>Parent</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}>Target</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}>Status</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
                       </tr>
                     </thead>
@@ -3178,10 +3631,23 @@ export default function App() {
                                 transition: 'all 0.2s ease'
                               }}
                             >
-                              <td style={{ padding: '16px 20px', fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600, whiteSpace: 'nowrap' }}>{page.pageUrl}</td>
-                              <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '350px' }}>{page.pageTitle}</td>
+                              <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600 }}>{page.pageUrl}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '350px' }}>{page.pageTitle}</div>
+                              </td>
                               <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
-                                {getPageType(page)}
+                                {(() => {
+                                  const type = getPageType(page);
+                                  return type.replace(/\s*Page(s)?/gi, "");
+                                })()}
+                              </td>
+                              <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
+                                {(() => {
+                                  if (page.pageUrl === "/") return "—";
+                                  if (!page.parentPage) return "—";
+                                  const parent = (pagesData[selectedSiteId] || []).find(p => p.pageUrl === page.parentPage);
+                                  return parent ? `${parent.pageTitle} (${page.parentPage})` : page.parentPage;
+                                })()}
                               </td>
                               <td style={{ padding: '16px 20px', fontStyle: isConfigured && page.targetPhrase ? 'normal' : 'italic', color: isConfigured && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isConfigured && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
                                 {isExcluded ? "Excluded" : page.targetPhrase || "Not Configured"}
@@ -3206,10 +3672,20 @@ export default function App() {
                                   <>
                                     <button
                                       className="btn-primary site-btn-sm"
-                                      style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important', boxShadow: 'none', backgroundColor: '#f97316' }}
+                                      style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px', boxShadow: 'none', background: '#f97316', backgroundColor: '#f97316', borderColor: '#f97316' }}
                                       onClick={() => {
                                         setReviewPageUrl(page.pageUrl);
                                         setCurrentView("AUDIT_RESULTS");
+                                      }}
+                                      onMouseOver={(e) => {
+                                        e.currentTarget.style.background = '#ea580c';
+                                        e.currentTarget.style.backgroundColor = '#ea580c';
+                                        e.currentTarget.style.borderColor = '#ea580c';
+                                      }}
+                                      onMouseOut={(e) => {
+                                        e.currentTarget.style.background = '#f97316';
+                                        e.currentTarget.style.backgroundColor = '#f97316';
+                                        e.currentTarget.style.borderColor = '#f97316';
                                       }}
                                     >
                                       Last Audit
@@ -4911,6 +5387,44 @@ export default function App() {
                       onKeyDown={(e) => { if (e.key === 'Enter') handleSavePageConfig(); }}
                     />
                   </div>
+
+                  {/* Parent Page dropdown */}
+                  {(modalMode === "add" ? inputPageUrl !== "/" : editingPage?.pageUrl !== "/") ? (
+                    <div>
+                      <label htmlFor="modalParentInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Parent Page</label>
+                      <select 
+                        id="modalParentInput"
+                        value={inputParentPage}
+                        onChange={(e) => setInputParentPage(e.target.value)}
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {(() => {
+                          const sitePages = pagesData[selectedSiteId] || [];
+                          const hierarchy = buildHierarchyOptions(sitePages, editingPage?.pageUrl || inputPageUrl);
+                          return hierarchy.map(item => {
+                            const indent = "\u00a0\u00a0\u00a0\u00a0".repeat(item.depth);
+                            return (
+                              <option key={item.url} value={item.url}>
+                                {indent}{item.title} ({item.url})
+                              </option>
+                            );
+                          });
+                        })()}
+                      </select>
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Parent Page</label>
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '0.25rem 0' }}>
+                        Homepage has no parent
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
