@@ -529,6 +529,7 @@ const getPageType = (page) => {
 const paramsTemp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
 const viewParamTemp = paramsTemp ? paramsTemp.get('view') : null;
 const isAutomationViewTemp = ['results', 'detail', 'edit', 'tasklist'].includes(viewParamTemp);
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const BU_PAGES = exporterData["bathroom-upgrades"].pages.map(p => {
   if (isAutomationViewTemp) {
@@ -826,15 +827,90 @@ export default function App() {
     showNotification(`Website "${newSite.name}" connected successfully!`);
   };
 
+  // Load sites and page configurations from PostgreSQL database on mount
+  useEffect(() => {
+    let active = true;
+    const fetchDatabaseData = async () => {
+      try {
+        const sitesRes = await fetch(`${API_BASE}/sites`);
+        if (!sitesRes.ok) throw new Error("Failed to fetch sites from database");
+        const sitesJson = await sitesRes.json();
+
+        const pagesRes = await fetch(`${API_BASE}/pages-data`);
+        if (!pagesRes.ok) throw new Error("Failed to fetch pages configurations from database");
+        const pagesJson = await pagesRes.json();
+
+        if (active) {
+          // Merge database sites with localStorage sites (prioritizing localStorage)
+          setSites(prevSites => {
+            const merged = [...prevSites];
+            sitesJson.forEach(dbSite => {
+              if (!merged.some(s => s.id === dbSite.id)) {
+                merged.push(dbSite);
+              }
+            });
+            return merged;
+          });
+
+          // Merge database page configurations with localStorage configurations (prioritizing localStorage)
+          setPagesData(prevPages => {
+            const merged = { ...prevPages };
+            Object.keys(pagesJson).forEach(siteId => {
+              if (!merged[siteId]) {
+                merged[siteId] = pagesJson[siteId];
+              } else {
+                const existingUrls = new Set(merged[siteId].map(p => p.pageUrl));
+                pagesJson[siteId].forEach(dbPage => {
+                  if (!existingUrls.has(dbPage.pageUrl)) {
+                    merged[siteId].push(dbPage);
+                  }
+                });
+              }
+            });
+            return merged;
+          });
+
+          console.log("Loaded and merged connected websites and configurations from database.");
+        }
+      } catch (err) {
+        console.warn("Database API load failed. Using offline localStorage fallback. Error:", err.message);
+      }
+    };
+    
+    if (!isAutomation) {
+      fetchDatabaseData();
+    }
+    
+    return () => {
+      active = false;
+    };
+  }, [isAutomation]);
+
   useEffect(() => {
     if (!isAutomation) {
       localStorage.setItem("tse_pages_data", JSON.stringify(pagesData));
+      
+      fetch(`${API_BASE}/pages-data/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pagesData })
+      }).catch(err => {
+        console.warn("Failed to sync pagesData to database:", err.message);
+      });
     }
   }, [pagesData, isAutomation]);
 
   useEffect(() => {
     if (!isAutomation) {
       localStorage.setItem("tse_sites_data", JSON.stringify(sites));
+      
+      fetch(`${API_BASE}/sites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sites })
+      }).catch(err => {
+        console.warn("Failed to sync sites to database:", err.message);
+      });
     }
   }, [sites, isAutomation]);
 
@@ -1820,7 +1896,7 @@ export default function App() {
                               style={{
                                 background: 'none',
                                 border: 'none',
-                                color: '#10b981',
+                                color: '#ffffff',
                                 fontWeight: 700,
                                 fontSize: '0.95rem',
                                 cursor: 'pointer',
@@ -1831,15 +1907,13 @@ export default function App() {
                                 transition: 'all 0.2s ease'
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.color = '#34d399';
-                                e.currentTarget.style.transform = 'translateX(4px)';
+                                e.currentTarget.style.color = '#cbd5e1';
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.color = '#10b981';
-                                e.currentTarget.style.transform = 'none';
+                                e.currentTarget.style.color = '#ffffff';
                               }}
                             >
-                              Open Site Analysis &rarr;
+                              Open Site Analysis
                             </button>
                           </div>
                         </div>

@@ -39,3 +39,7 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Database local backup fallbacks
+server/db_backup.json
+

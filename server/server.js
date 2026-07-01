@@ -4,6 +4,22 @@ require('dotenv').config({ path: './.env' });
 const OpenAI = require('openai');
 const axios = require('axios');
 const cheerio = require('cheerio');
+const {
+  initDb,
+  getSites,
+  saveSite,
+  saveAllSites,
+  getPagesData,
+  savePageConfig,
+  saveAllPagesForSite
+} = require('./db');
+
+// Initialize database connection and tables
+initDb().then(() => {
+  console.log("Database initialization routine completed.");
+}).catch(err => {
+  console.error("Database initialization failed:", err.message);
+});
 
 console.log("API KEY LOADED:", process.env.OPENAI_API_KEY ? "YES (hidden)" : "NO");
 
@@ -11,7 +27,8 @@ const app = express();
 const port = 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -87,6 +104,77 @@ app.post('/api/audit', async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// GET Connected Websites
+app.get('/api/sites', async (req, res) => {
+  console.log('GET /api/sites requested');
+  try {
+    const sites = await getSites();
+    res.json(sites);
+  } catch (err) {
+    console.error('GET /api/sites error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Save Connected Websites
+app.post('/api/sites', async (req, res) => {
+  console.log('POST /api/sites called with sites count:', req.body.sites ? req.body.sites.length : (Array.isArray(req.body) ? req.body.length : 'unknown'));
+  try {
+    const body = req.body;
+    if (Array.isArray(body)) {
+      await saveAllSites(body);
+    } else if (body.sites && Array.isArray(body.sites)) {
+      await saveAllSites(body.sites);
+    } else if (body.site) {
+      await saveSite(body.site);
+    } else {
+      await saveSite(body);
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('POST /api/sites error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET Page Configurations
+app.get('/api/pages-data', async (req, res) => {
+  console.log('GET /api/pages-data requested');
+  try {
+    const pagesData = await getPagesData();
+    res.json(pagesData);
+  } catch (err) {
+    console.error('GET /api/pages-data error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Save Page Configurations
+app.post('/api/pages-data/save', async (req, res) => {
+  console.log('POST /api/pages-data/save called');
+  try {
+    const { siteId, page, pages } = req.body;
+    if (siteId) {
+      if (pages && Array.isArray(pages)) {
+        await saveAllPagesForSite(siteId, pages);
+      } else if (page) {
+        await savePageConfig(siteId, page);
+      } else {
+        return res.status(400).json({ error: "Missing page or pages data" });
+      }
+    } else {
+      const pagesData = req.body.pagesData || req.body;
+      for (const sId of Object.keys(pagesData)) {
+        await saveAllPagesForSite(sId, pagesData[sId]);
+      }
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('POST /api/pages-data/save error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
