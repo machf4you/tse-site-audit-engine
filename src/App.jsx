@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
   ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, ChevronDown, Globe, FileText,
-  Lock, AlertTriangle
+  Lock, AlertTriangle, Sliders, Database
 } from 'lucide-react';
 import './App.css';
 import exporterData from './exporter-data.json';
@@ -942,6 +942,10 @@ export default function App() {
 
   // Architecture view state variables
   const [selectedArchTaskId, setSelectedArchTaskId] = useState("t1");
+  const [activeSettingsTab, setActiveSettingsTab] = useState("general_settings");
+  const [expandedSettingsGroups, setExpandedSettingsGroups] = useState({
+    "GENERAL": true
+  });
   const [simSource, setSimSource] = useState("Search Console");
   const [simSiteId, setSimSiteId] = useState("bathroom-upgrades");
   const [simUrl, setSimUrl] = useState("/search-performance-drop/");
@@ -3319,39 +3323,9 @@ export default function App() {
                   }}>
                     W1 | Connected Websites
                   </div>
-                  <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Select a connected site to view its generated tasks, or run a new audit.</span>
+                  <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Manage your connected websites.</span>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <button 
-                    className="btn-secondary" 
-                    onClick={handleExportData}
-                    style={{ 
-                      borderRadius: '20px', 
-                      padding: '8px 16px', 
-                      fontWeight: 600, 
-                      fontSize: '0.85rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    Export Backup
-                  </button>
-                  <button 
-                    className="btn-secondary" 
-                    onClick={handleImportData}
-                    style={{ 
-                      borderRadius: '20px', 
-                      padding: '8px 16px', 
-                      fontWeight: 600, 
-                      fontSize: '0.85rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    Import Backup
-                  </button>
                   <button 
                     className="btn-primary" 
                     onClick={() => setIsAddWebsiteModalOpen(true)}
@@ -3609,11 +3583,7 @@ export default function App() {
               {/* Header section */}
               <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
-                  <div>
-                    <span className="status-indicator">Configuration Management</span>
-                    <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)', marginBottom: 0 }}>
-                      Website: {selectedSite?.name}
-                    </h2>
+                  <div style={{ textAlign: 'left' }}>
                     <div style={{
                       fontFamily: 'Inter, sans-serif',
                       fontSize: '0.7rem',
@@ -3624,19 +3594,21 @@ export default function App() {
                       padding: '2px 8px',
                       borderRadius: '4px',
                       display: 'inline-block',
-                      marginTop: '6px',
-                      marginBottom: '6px',
+                      marginBottom: '0.5rem',
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>
                       W2 | Website Configuration
                     </div>
+                    <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                      Website: {selectedSite?.name}
+                    </h2>
                     <a 
                       href={selectedSite?.url} 
                       target="_blank" 
                       rel="noreferrer" 
                       className="site-url-link"
-                      style={{ fontSize: '0.9rem', marginTop: '0.25rem' }}
+                      style={{ display: 'block', fontSize: '0.9rem', marginTop: '0.35rem', textAlign: 'left' }}
                     >
                       {selectedSite?.url} <ExternalLink size={12} />
                     </a>
@@ -5013,353 +4985,391 @@ export default function App() {
           )}
 
           {currentView === "SETTINGS" && (
-            <div className="report-section" style={{ maxWidth: '1100px', margin: '0 auto', padding: '2.5rem' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+              
               <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem', textAlign: 'left' }}>
-                <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)' }}>
-                  Settings Page
-                </span>
                 <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
                   Settings
                 </h2>
-              </div>
-
-              {/* Placeholder settings elements */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '3rem', textAlign: 'left' }}>
-                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Crawler API Token</label>
-                  <input type="password" value="••••••••••••••••••••••••" readOnly style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px', borderRadius: '6px', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }} />
+                <div style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  color: 'rgba(16, 185, 129, 0.85)',
+                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  display: 'inline-block',
+                  marginTop: '6px',
+                  marginBottom: '6px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  T1 | Settings
                 </div>
-                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>WordPress Connection Status</label>
-                  <input type="text" value="All Connected Sites Synchronized" readOnly style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: '#34d399', padding: '10px', borderRadius: '6px', fontSize: '0.9rem', fontWeight: 600, outline: 'none', boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Sync Interval</label>
-                  <select disabled style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '10px', borderRadius: '6px', fontSize: '0.9rem', outline: 'none' }}>
-                    <option>Every 24 Hours (Default)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Task Engine Architecture header */}
-              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem', textAlign: 'left' }}>
-                <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: 'var(--accent-color)' }}>
-                  <Server size={14} /> Master Data Architecture View
+                <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                  System configuration and administration.
                 </span>
-                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)', margin: '0.25rem 0 0 0' }}>
-                  Task Engine Architecture
-                </h3>
               </div>
 
               {(() => {
-                const allTasks = sites.flatMap(s => s.tasks);
-                const currentArchTask = allTasks.find(t => t.taskId === selectedArchTaskId) || allTasks[0];
-                
-                if (!currentArchTask) {
-                  return (
-                    <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                      No tasks available in the system.
-                    </div>
-                  );
-                }
+                const SETTINGS_GROUPS = [
+                  {
+                    title: "GENERAL",
+                    items: [
+                      { id: "general_settings", label: "General Settings" },
+                      { id: "default_settings", label: "Default Settings" }
+                    ]
+                  },
+                  {
+                    title: "CONNECTED WEBSITES",
+                    items: [
+                      { id: "wordpress_connections", label: "WordPress Connections" },
+                      { id: "api_connections", label: "API Connections" }
+                    ]
+                  },
+                  {
+                    title: "USERS",
+                    items: [
+                      { id: "user_accounts", label: "User Accounts" },
+                      { id: "roles_permissions", label: "Roles & Permissions" }
+                    ]
+                  },
+                  {
+                    title: "SEO CONFIGURATION",
+                    items: [
+                      { id: "page_types", label: "Page Types" },
+                      { id: "audit_rules", label: "Audit Rules" },
+                      { id: "internal_linking", label: "Internal Linking" }
+                    ]
+                  },
+                  {
+                    title: "AI",
+                    items: [
+                      { id: "ai_models", label: "AI Models" },
+                      { id: "ai_prompts", label: "AI Prompts" }
+                    ]
+                  },
+                  {
+                    title: "NOTIFICATIONS",
+                    items: [
+                      { id: "email_notifications", label: "Email Notifications" },
+                      { id: "task_notifications", label: "Task Notifications" }
+                    ]
+                  },
+                  {
+                    title: "DATA MANAGEMENT",
+                    items: [
+                      { id: "import_export", label: "Import / Export" },
+                      { id: "backup_restore", label: "Backup & Restore" }
+                    ]
+                  },
+                  {
+                    title: "DEVELOPER",
+                    items: [
+                      { id: "task_engine", label: "Task Engine" },
+                      { id: "logs", label: "Logs" },
+                      { id: "diagnostics", label: "Diagnostics" }
+                    ]
+                  },
+                  {
+                    title: "ABOUT",
+                    items: [
+                      { id: "version", label: "Version" },
+                      { id: "release_notes", label: "Release Notes" }
+                    ]
+                  }
+                ];
+
+                const activeItem = SETTINGS_GROUPS.flatMap(g => g.items).find(i => i.id === activeSettingsTab) || SETTINGS_GROUPS[0].items[0];
 
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    {/* Interactive Task Actions (Demonstrate state updates) */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        Interactive Controller: Move this task through states
-                      </span>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          className="btn-secondary btn-sm"
-                          disabled={currentArchTask.assignedTo !== null}
-                          onClick={() => {
-                            setSites(prev => prev.map(s => {
-                              if (s.name === currentArchTask.website) {
-                                  return {
-                                    ...s,
-                                    tasks: s.tasks.map(t => t.taskId === currentArchTask.taskId ? { ...t, assignedTo: "Sarah", assignee: "Sarah", status: "Assigned" } : t)
-                                  };
-                              }
-                              return s;
-                            }));
-                            showNotification("Task status updated to Assigned.");
-                          }}
-                        >
-                          Assign to Sarah
-                        </button>
-                        <button
-                          className="btn-secondary btn-sm"
-                          disabled={currentArchTask.status === "In Progress" || currentArchTask.status === "Completed"}
-                          onClick={() => {
-                            setSites(prev => prev.map(s => {
-                              if (s.name === currentArchTask.website) {
-                                return {
-                                  ...s,
-                                  tasks: s.tasks.map(t => t.taskId === currentArchTask.taskId ? { ...t, assignedTo: t.assignedTo || "Sarah", assignee: t.assignedTo || "Sarah", status: "In Progress", state: "progress" } : t)
-                                };
-                              }
-                              return s;
-                            }));
-                            showNotification("Task status updated to In Progress.");
-                          }}
-                        >
-                          Start Fix
-                        </button>
-                        <button
-                          className="btn-primary btn-sm"
-                          disabled={currentArchTask.status === "Completed"}
-                          onClick={() => {
-                            setSites(prev => prev.map(s => {
-                              if (s.name === currentArchTask.website) {
-                                return {
-                                  ...s,
-                                  tasks: s.tasks.map(t => t.taskId === currentArchTask.taskId ? { ...t, status: "Completed", state: "completed", completedDate: "2026-06-22" } : t)
-                                };
-                              }
-                              return s;
-                            }));
-                            showNotification("Task verified and status set to Completed.");
-                          }}
-                        >
-                          Verify & Close
-                        </button>
-                      </div>
+                  <div style={{
+                    backgroundColor: '#0c101b',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: '12px',
+                    padding: '2.5rem',
+                    display: 'flex',
+                    gap: '3rem',
+                    minHeight: '650px',
+                    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
+                    textAlign: 'left'
+                  }}>
+                    {/* Left-hand Navigation Sidebar */}
+                    <div style={{
+                      width: '260px',
+                      flexShrink: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '1.25rem',
+                      paddingRight: '1rem'
+                    }}>
+                      {SETTINGS_GROUPS.map((group, gIdx) => {
+                        const isExpanded = expandedSettingsGroups[group.title] || false;
+                        return (
+                          <div key={gIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <div 
+                              onClick={() => {
+                                setExpandedSettingsGroups(prev => ({
+                                  ...prev,
+                                  [group.title]: !prev[group.title]
+                                }));
+                              }}
+                              style={{
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                color: '#f97316',
+                                letterSpacing: '0.08em',
+                                textTransform: 'uppercase',
+                                marginBottom: '4px',
+                                paddingLeft: '12px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                userSelect: 'none'
+                              }}
+                            >
+                              <span>{isExpanded ? "▼" : "▶"}</span>
+                              <span>{group.title}</span>
+                            </div>
+                            {isExpanded && group.items.map((item) => {
+                              const isActive = activeSettingsTab === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  onClick={() => setActiveSettingsTab(item.id)}
+                                  style={{
+                                    background: isActive ? 'rgba(16, 185, 129, 0.08)' : 'none',
+                                    border: 'none',
+                                    borderLeft: isActive ? '2px solid #10b981' : '2px solid transparent',
+                                    borderRadius: '0 4px 4px 0',
+                                    color: isActive ? '#10b981' : '#94a3b8',
+                                    padding: '6px 12px 6px 14px',
+                                    fontSize: '0.8rem',
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    width: '100%',
+                                    transition: 'all 0.15s ease',
+                                    outline: 'none'
+                                  }}
+                                >
+                                  {item.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
                     </div>
 
-                        {/* Live JSON Inspector */}
-                        <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <h3 className="section-title-custom" style={{ fontSize: '1rem', margin: 0 }}>Formalized 14-Field JSON Schema Record</h3>
-                            <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, backgroundColor: 'rgba(16,185,129,0.08)', padding: '2px 8px', borderRadius: '4px' }}>
-                              Valid Model Object
-                            </span>
+                    {/* Right-hand Content Panel */}
+                    <div style={{ flexGrow: 1, minWidth: 0 }}>
+                      
+                      {/* Active Tab Header */}
+                      <div style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1rem', marginBottom: '2rem' }}>
+                        <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                          {activeItem.label}
+                        </h2>
+                      </div>
+
+                      {/* Import/Export backup page */}
+                      {activeSettingsTab === "import_export" && (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '1.5rem',
+                          backgroundColor: '#070b13',
+                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          borderRadius: '12px',
+                          padding: '2rem',
+                          maxWidth: '650px'
+                        }}>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                            Export or import a full backup of all connected websites and their page configurations. This backup is stored locally on your device.
+                          </p>
+                          
+                          <div style={{ display: 'flex', gap: '16px' }}>
+                            <button 
+                              className="btn-secondary" 
+                              onClick={handleExportData}
+                              style={{ 
+                                padding: '10px 20px', 
+                                fontWeight: 600, 
+                                fontSize: '0.85rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              Export Backup
+                            </button>
+                            <button 
+                              className="btn-secondary" 
+                              onClick={handleImportData}
+                              style={{ 
+                                padding: '10px 20px', 
+                                fontWeight: 600, 
+                                fontSize: '0.85rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}
+                            >
+                              Import Backup
+                            </button>
                           </div>
-
-                          <pre style={{
-                            margin: 0,
-                            padding: '1.25rem',
-                            backgroundColor: '#07090b',
-                            borderRadius: '8px',
-                            border: '1px solid rgba(255,255,255,0.05)',
-                            overflowX: 'auto',
-                            fontFamily: 'monospace',
-                            fontSize: '0.85rem',
-                            color: '#a7f3d0',
-                            lineHeight: 1.4
-                          }}>
-                            {JSON.stringify({
-                              taskId: currentArchTask.taskId,
-                              website: currentArchTask.website,
-                              pageUrl: getRelativeUrl(currentArchTask.pageUrl, sites.find(s => s.name === currentArchTask.website)?.url),
-                              pageTitle: currentArchTask.pageTitle,
-                              targetPhrase: currentArchTask.targetPhrase,
-                              taskSource: currentArchTask.taskSource,
-                              issueType: currentArchTask.issueType,
-                              issueDescription: currentArchTask.issueDescription,
-                              priority: currentArchTask.priority,
-                              status: currentArchTask.status,
-                              assignedTo: currentArchTask.assignedTo,
-                              verificationMethod: currentArchTask.verificationMethod,
-                              createdDate: currentArchTask.createdDate,
-                              completedDate: currentArchTask.completedDate
-                            }, null, 2)}
-                          </pre>
                         </div>
+                      )}
+
+                      {/* Task Engine page */}
+                      {activeSettingsTab === "task_engine" && (
+                        <div>
+                          {(() => {
+                            const allTasks = sites.flatMap(s => s.tasks);
+                            const currentArchTask = allTasks.find(t => t.taskId === selectedArchTaskId) || allTasks[0];
+                            
+                            if (!currentArchTask) {
+                              return (
+                                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+                                  No tasks available in the system.
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                                {/* Interactive Task Actions (Demonstrate state updates) */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '8px' }}>
+                                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    Interactive Controller: Move this task through states
+                                  </span>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                      className="btn-secondary btn-sm"
+                                      disabled={currentArchTask.assignedTo !== null}
+                                      onClick={() => {
+                                        setSites(prev => prev.map(s => {
+                                          if (s.name === currentArchTask.website) {
+                                              return {
+                                                ...s,
+                                                tasks: s.tasks.map(t => t.taskId === currentArchTask.taskId ? { ...t, assignedTo: "Sarah", assignee: "Sarah", status: "Assigned" } : t)
+                                              };
+                                          }
+                                          return s;
+                                        }));
+                                        showNotification("Task status updated to Assigned.");
+                                      }}
+                                    >
+                                      Assign to Sarah
+                                    </button>
+                                    <button
+                                      className="btn-secondary btn-sm"
+                                      disabled={currentArchTask.status === "In Progress" || currentArchTask.status === "Completed"}
+                                      onClick={() => {
+                                        setSites(prev => prev.map(s => {
+                                          if (s.name === currentArchTask.website) {
+                                            return {
+                                              ...s,
+                                              tasks: s.tasks.map(t => t.taskId === currentArchTask.taskId ? { ...t, assignedTo: t.assignedTo || "Sarah", assignee: t.assignedTo || "Sarah", status: "In Progress", state: "progress" } : t)
+                                            };
+                                          }
+                                          return s;
+                                        }));
+                                        showNotification("Task status updated to In Progress.");
+                                      }}
+                                    >
+                                      Start Fix
+                                    </button>
+                                    <button
+                                      className="btn-primary btn-sm"
+                                      disabled={currentArchTask.status === "Completed"}
+                                      onClick={() => {
+                                        setSites(prev => prev.map(s => {
+                                          if (s.name === currentArchTask.website) {
+                                            return {
+                                              ...s,
+                                              tasks: s.tasks.map(t => t.taskId === currentArchTask.taskId ? { ...t, status: "Completed", state: "completed", completedDate: "2026-06-22" } : t)
+                                            };
+                                          }
+                                          return s;
+                                        }));
+                                        showNotification("Task verified and status set to Completed.");
+                                      }}
+                                    >
+                                      Verify & Close
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Live JSON Inspector */}
+                                <div style={{ backgroundColor: '#070b13', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                    <h3 className="section-title-custom" style={{ fontSize: '1rem', margin: 0 }}>Formalized 14-Field JSON Schema Record</h3>
+                                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 700, backgroundColor: 'rgba(16,185,129,0.08)', padding: '2px 8px', borderRadius: '4px' }}>
+                                      Valid Model Object
+                                    </span>
+                                  </div>
+
+                                  <pre style={{
+                                    margin: 0,
+                                    padding: '1.25rem',
+                                    backgroundColor: '#030508',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(255,255,255,0.03)',
+                                    overflowX: 'auto',
+                                    fontFamily: 'monospace',
+                                    fontSize: '0.85rem',
+                                    color: '#a7f3d0',
+                                    lineHeight: 1.4
+                                  }}>
+                                    {JSON.stringify({
+                                      taskId: currentArchTask.taskId,
+                                      website: currentArchTask.website,
+                                      pageUrl: getRelativeUrl(currentArchTask.pageUrl, sites.find(s => s.name === currentArchTask.website)?.url),
+                                      pageTitle: currentArchTask.pageTitle,
+                                      targetPhrase: currentArchTask.targetPhrase,
+                                      taskSource: currentArchTask.taskSource,
+                                      issueType: currentArchTask.issueType,
+                                      issueDescription: currentArchTask.issueDescription,
+                                      priority: currentArchTask.priority,
+                                      status: currentArchTask.status,
+                                      assignedTo: currentArchTask.assignedTo,
+                                      verificationMethod: currentArchTask.verificationMethod,
+                                      createdDate: currentArchTask.createdDate,
+                                      completedDate: currentArchTask.completedDate
+                                    }, null, 2)}
+                                  </pre>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      {/* Coming Soon placeholders for other settings sub-pages */}
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && (
+                        <div style={{
+                          backgroundColor: '#070b13',
+                          border: '1px solid rgba(255, 255, 255, 0.06)',
+                          borderRadius: '12px',
+                          padding: '4rem 2rem',
+                          textAlign: 'center',
+                          marginTop: '1rem'
+                        }}>
+                          <h4 style={{ fontWeight: 700, fontSize: '1.15rem', color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>Coming Soon</h4>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            This settings page is currently under development.
+                          </p>
+                        </div>
+                      )}
+
+                    </div>
                   </div>
-                    );
-                  })()}
-
-              {/* Task Generator Simulator */}
-              <div style={{ marginTop: '3rem', borderTop: '1px solid var(--border-color)', paddingTop: '2.5rem', textAlign: 'left' }}>
-                <h3 className="section-title-custom" style={{ fontSize: '1.25rem', color: 'var(--text-primary)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <RefreshCw size={18} style={{ color: 'var(--accent-color)' }} />
-                  Integration Sandbox: Future Task Creator
-                </h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.4 }}>
-                  This sandbox demonstrates how future integrations (GA4, Search Console, manual requests) can inject tasks into the workflow. Submit the form to generate a valid task that matches the 14-field schema.
-                </p>
-
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                  gap: '1.5rem',
-                  backgroundColor: 'rgba(255,255,255,0.01)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '12px',
-                  padding: '2rem'
-                }}>
-                  <div>
-                    <label htmlFor="simSourceSelect" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Task Source</label>
-                    <select
-                      id="simSourceSelect"
-                      value={simSource}
-                      onChange={(e) => setSimSource(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem' }}
-                    >
-                      <option value="Search Console">Search Console</option>
-                      <option value="GA4">GA4 Insights</option>
-                      <option value="Internal Link Auditor">Internal Link Auditor</option>
-                      <option value="Content Gap Analysis">Content Gap Analysis</option>
-                      <option value="Manual">Manual Entry</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="simSiteSelect" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Target Website</label>
-                    <select
-                      id="simSiteSelect"
-                      value={simSiteId}
-                      onChange={(e) => setSimSiteId(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem' }}
-                    >
-                      <option value="bathroom-upgrades">Bathroom Upgrades</option>
-                      <option value="the-search-equation">The Search Equation</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="simUrlInput" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Page URL Path</label>
-                    <input
-                      id="simUrlInput"
-                      type="text"
-                      value={simUrl}
-                      onChange={(e) => setSimUrl(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="simTitleInput" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Page Title</label>
-                    <input
-                      id="simTitleInput"
-                      type="text"
-                      value={simTitle}
-                      onChange={(e) => setSimTitle(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="simPhraseInput" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Target Phrase</label>
-                    <input
-                      id="simPhraseInput"
-                      type="text"
-                      value={simPhrase}
-                      onChange={(e) => setSimPhrase(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="simIssueInput" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Issue Type</label>
-                    <input
-                      id="simIssueInput"
-                      type="text"
-                      value={simIssueType}
-                      onChange={(e) => setSimIssueType(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="simPrioritySelect" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Priority</label>
-                    <select
-                      id="simPrioritySelect"
-                      value={simPriority}
-                      onChange={(e) => setSimPriority(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem' }}
-                    >
-                      <option value="High">High</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Low">Low</option>
-                    </select>
-                  </div>
-
-                  <div style={{ gridColumn: 'span 2' }}>
-                    <label htmlFor="simDescInput" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Issue Description</label>
-                    <textarea
-                      id="simDescInput"
-                      value={simDesc}
-                      onChange={(e) => setSimDesc(e.target.value)}
-                      rows={2}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box', resize: 'vertical' }}
-                    />
-                  </div>
-
-                  <div style={{ gridColumn: 'span 3' }}>
-                    <label htmlFor="simVerifyInput" style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>Verification Method</label>
-                    <input
-                      id="simVerifyInput"
-                      type="text"
-                      value={simVerification}
-                      onChange={(e) => setSimVerification(e.target.value)}
-                      style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.9rem', boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  <div style={{ gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                    <button
-                      className="btn-primary"
-                      onClick={() => {
-                        if (!simUrl || !simTitle || !simPhrase || !simIssueType || !simDesc || !simVerification) {
-                          showNotification("All simulator fields are required!");
-                          return;
-                        }
-
-                        const targetSite = sites.find(s => s.id === simSiteId);
-                        const nextId = "t" + (sites.flatMap(s => s.tasks).length + 1);
-
-                        const newTask = {
-                          taskId: nextId,
-                          id: nextId,
-                          website: targetSite.name,
-                          pageUrl: targetSite.url + simUrl,
-                          pageTitle: simTitle,
-                          targetPhrase: simPhrase,
-                          keyword: simPhrase,
-                          taskSource: simSource,
-                          source: simSource,
-                          issueType: simIssueType,
-                          issueDescription: simDesc,
-                          issueFound: simDesc,
-                          priority: simPriority,
-                          status: "Open",
-                          state: "backlog",
-                          assignedTo: null,
-                          assignedToName: "Unassigned",
-                          assignee: null,
-                          verificationMethod: simVerification,
-                          successCheck: "Verified automatically.",
-                          createdDate: "2026-06-22",
-                          completedDate: null,
-                          taskTitle: `Optimize ${simPhrase} on ${simTitle}`,
-                          currentVersion: `<!-- Current version for ${simTitle} -->`,
-                          requiredVersion: `<!-- Optimized version containing ${simPhrase} -->`,
-                          whyItMatters: `This issue is identified by ${simSource} and requires immediate remediation.`
-                        };
-
-                        setSites(prev => prev.map(s => {
-                          if (s.id === simSiteId) {
-                            return {
-                              ...s,
-                              tasks: [...s.tasks, newTask]
-                            };
-                          }
-                          return s;
-                        }));
-
-                        setSelectedArchTaskId(nextId);
-                        showNotification(`Generated simulated task ${nextId} from ${simSource}!`);
-                      }}
-                      style={{ padding: '12px 24px' }}
-                    >
-                      Generate Architectural Task <Play size={14} />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           )}
 
