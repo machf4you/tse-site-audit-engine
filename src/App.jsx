@@ -3302,6 +3302,23 @@ export default function App() {
               <div className="column-header-row mb-4" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                 <div style={{ textAlign: 'left' }}>
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Connected Websites</h2>
+                  <div style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'rgba(16, 185, 129, 0.85)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginTop: '6px',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    W1 | Connected Websites
+                  </div>
                   <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Select a connected site to view its generated tasks, or run a new audit.</span>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -3594,9 +3611,26 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
                   <div>
                     <span className="status-indicator">Configuration Management</span>
-                    <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                    <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                       Website: {selectedSite?.name}
                     </h2>
+                    <div style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: 'rgba(16, 185, 129, 0.85)',
+                      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.15)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                      marginTop: '6px',
+                      marginBottom: '6px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}>
+                      W2 | Website Configuration
+                    </div>
                     <a 
                       href={selectedSite?.url} 
                       target="_blank" 
@@ -3902,9 +3936,26 @@ export default function App() {
 
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
                   <span className="status-indicator">Audit Configuration</span>
-                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                     Website: {siteName}
                   </h2>
+                  <div style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'rgba(16, 185, 129, 0.85)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginTop: '6px',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    W3 | Page Configuration
+                  </div>
                   <div style={{ display: 'flex', gap: '2rem', marginTop: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                     <div>Pages Included in Audit: <strong style={{ color: '#34d399' }}>{includedPages.length}</strong></div>
                     <div>Target Phrases Loaded: <strong style={{ color: '#34d399' }}>{includedPages.length}</strong></div>
@@ -4477,9 +4528,26 @@ export default function App() {
                       Source: {activeTask.source || "Site Auditor"}
                     </span>
                   </div>
-                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                     {activeTask.taskTitle}
                   </h2>
+                  <div style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'rgba(16, 185, 129, 0.85)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginTop: '6px',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    W4 | Fix Issues
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -4606,9 +4674,26 @@ export default function App() {
                       Source: {activeTask.source || "Site Auditor"}
                     </span>
                   </div>
-                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                     {activeTask.taskTitle}
                   </h2>
+                  <div style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'rgba(16, 185, 129, 0.85)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginTop: '6px',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    W4 | Fix Issues
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -4785,9 +4870,26 @@ export default function App() {
               <div className="report-section" style={{ padding: '2.5rem' }}>
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>WordPress CMS Sync Editor</span>
-                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                     Editing: {activeTask.pageUrl}
                   </h2>
+                  <div style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'rgba(16, 185, 129, 0.85)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginTop: '6px',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    W4 | Fix Issues
+                  </div>
                 </div>
 
                 <div className="editing-workspace-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2.5rem' }}>
@@ -5481,9 +5583,26 @@ export default function App() {
                 borderRadius: '16px', padding: '2rem', maxWidth: '480px', width: '100%',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative'
               }}>
-                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
+                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                   {modalMode === "add" ? "Add New Page Target" : "Configure Page Targeting"}
                 </h3>
+                <div style={{
+                  fontFamily: 'Inter, sans-serif',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  color: 'rgba(16, 185, 129, 0.85)',
+                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  display: 'inline-block',
+                  marginTop: '6px',
+                  marginBottom: '6px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em'
+                }}>
+                  W3 | Page Configuration
+                </div>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
                   {modalMode === "add" 
                     ? "Manually add a planned future page to include it in future audit scans and task generation." 
