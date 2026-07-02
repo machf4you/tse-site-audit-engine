@@ -3732,7 +3732,7 @@ export default function App() {
                       W2 | Website Configuration
                     </div>
                     <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                      Website: {selectedSite?.name}
+                      {selectedSite?.name}
                     </h2>
                     <a 
                       href={selectedSite?.url} 
