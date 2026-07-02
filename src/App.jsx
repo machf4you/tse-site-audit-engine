@@ -1167,6 +1167,74 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState("All changes saved");
   const saveTimeoutRef = useRef(null);
 
+  const [gitStatus, setGitStatus] = useState({
+    branch: 'unknown',
+    currentCommit: 'unknown',
+    lastPullTime: null,
+    lastPullStatus: null,
+    previousCommit: 'unknown'
+  });
+  const [gitPullLogs, setGitPullLogs] = useState("");
+  const [isGitPulling, setIsGitPulling] = useState(false);
+
+  const fetchGitStatus = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/github/status`);
+      if (res.ok) {
+        const data = await res.json();
+        setGitStatus(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch git status:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSettingsTab === "github_deployment") {
+      fetchGitStatus();
+    }
+  }, [activeSettingsTab]);
+
+  const handleGitPull = async () => {
+    const confirm = window.confirm("Are you sure you want to pull the latest changes from GitHub? This will update local files.");
+    if (!confirm) return;
+
+    setIsGitPulling(true);
+    setGitPullLogs("Initiating git pull...\n");
+
+    try {
+      const response = await fetch(`${API_BASE}/github/pull`, {
+        method: "POST"
+      });
+      const data = await response.json();
+      setGitPullLogs(data.output || "No output returned.");
+      
+      if (data.success) {
+        showNotification("Git pull completed successfully!");
+        setGitStatus({
+          branch: data.branch,
+          currentCommit: data.currentCommit,
+          lastPullTime: data.lastPullTime,
+          lastPullStatus: 'success',
+          previousCommit: data.previousCommit
+        });
+      } else {
+        showNotification("Git pull failed! See logs for details.");
+        setGitStatus(prev => ({
+          ...prev,
+          lastPullTime: data.lastPullTime,
+          lastPullStatus: 'failure'
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+      setGitPullLogs(prev => prev + `\nError: ${err.message}`);
+      showNotification("Network error executing git pull.");
+    } finally {
+      setIsGitPulling(false);
+    }
+  };
+
   useEffect(() => {
     if (activeSettingsTab === "diagnostics") {
       setSaveStatus("Loading...");
@@ -5372,7 +5440,8 @@ export default function App() {
                     items: [
                       { id: "task_engine", label: "Task Engine" },
                       { id: "logs", label: "Logs" },
-                      { id: "diagnostics", label: "Architecture Notes" }
+                      { id: "diagnostics", label: "Architecture Notes" },
+                      { id: "github_deployment", label: "GitHub Deployment" }
                     ]
                   },
                   {
@@ -5691,8 +5760,144 @@ export default function App() {
                         </div>
                       )}
 
+                      {/* GitHub Deployment Page */}
+                      {activeSettingsTab === "github_deployment" && (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '1.5rem',
+                          width: '100%',
+                          maxWidth: '900px',
+                          textAlign: 'left'
+                        }}>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            Internal developer console to pull updates from GitHub and review build/deploy metadata.
+                          </p>
+
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                            gap: '1rem',
+                            marginTop: '0.5rem'
+                          }}>
+                            {/* Branch */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Branch</span>
+                              <div style={{ fontSize: '1.25rem', fontWeight: 850, color: '#10b981', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                                {gitStatus.branch}
+                              </div>
+                            </div>
+
+                            {/* Last Pull Time */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Time of Last Pull</span>
+                              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.45rem' }}>
+                                {gitStatus.lastPullTime ? new Date(gitStatus.lastPullTime).toLocaleString() : 'Never'}
+                              </div>
+                            </div>
+
+                            {/* Status */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Pull Status</span>
+                              <div style={{ fontSize: '1rem', fontWeight: 700, color: gitStatus.lastPullStatus === 'success' ? '#10b981' : (gitStatus.lastPullStatus === 'failure' ? '#ef4444' : 'var(--text-secondary)'), marginTop: '0.45rem', textTransform: 'capitalize' }}>
+                                {gitStatus.lastPullStatus || 'No status'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+                            gap: '1.25rem',
+                            marginTop: '0.5rem'
+                          }}>
+                            {/* Previous Commit */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Previous Commit</span>
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                {gitStatus.previousCommit}
+                              </div>
+                            </div>
+
+                            {/* Current Commit */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Commit</span>
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                {gitStatus.currentCommit}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Button */}
+                          <div style={{ marginTop: '0.5rem' }}>
+                            <button
+                              className="btn-primary"
+                              disabled={isGitPulling}
+                              onClick={handleGitPull}
+                              style={{
+                                padding: '12px 24px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '0.95rem',
+                                fontWeight: 750
+                              }}
+                            >
+                              {isGitPulling ? "Pulling..." : "⬇ Pull Latest from GitHub"}
+                            </button>
+                          </div>
+
+                          {/* Scrolling Log Window */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Git Pull Output Log</span>
+                            <pre style={{
+                              margin: 0,
+                              padding: '1.25rem',
+                              backgroundColor: '#030508',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              color: '#cbd5e1',
+                              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                              fontSize: '0.85rem',
+                              lineHeight: 1.5,
+                              maxHeight: '300px',
+                              overflowY: 'auto',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-all'
+                            }}>
+                              {gitPullLogs || "No logs available. Click 'Pull Latest from GitHub' to run."}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Coming Soon placeholders for other settings sub-pages */}
-                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && (
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && (
                         <div style={{
                           backgroundColor: '#070b13',
                           border: '1px solid rgba(255, 255, 255, 0.06)',

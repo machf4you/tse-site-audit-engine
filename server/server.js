@@ -15,6 +15,9 @@ const {
   getArchitectureNotes,
   saveArchitectureNotes
 } = require('./db');
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 // Initialize database connection and tables
 initDb().then(() => {
@@ -221,6 +224,76 @@ app.post('/api/architecture-notes', async (req, res) => {
     console.error("POST /api/architecture-notes error:", err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// GET GitHub Deployment Status
+app.get('/api/github/status', async (req, res) => {
+  try {
+    exec('git rev-parse --abbrev-ref HEAD', (err1, branchStdout) => {
+      const branch = err1 ? 'unknown' : branchStdout.trim();
+      exec('git rev-parse HEAD', (err2, commitStdout) => {
+        const currentCommit = err2 ? 'unknown' : commitStdout.trim();
+        const metaPath = path.join(__dirname, 'git_pull_metadata.json');
+        let metadata = { lastPullTime: null, lastPullStatus: null, previousCommit: null, currentCommit: null };
+        if (fs.existsSync(metaPath)) {
+          try {
+            metadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+          } catch (e) {
+            console.error("Failed to parse metadata file:", e.message);
+          }
+        }
+        res.json({
+          branch,
+          currentCommit,
+          lastPullTime: metadata.lastPullTime,
+          lastPullStatus: metadata.lastPullStatus,
+          previousCommit: metadata.previousCommit || 'unknown'
+        });
+      });
+    });
+  } catch (err) {
+    console.error("GET /api/github/status error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Run GitHub Deployment Pull
+app.post('/api/github/pull', async (req, res) => {
+  const metaPath = path.join(__dirname, 'git_pull_metadata.json');
+  exec('git rev-parse --abbrev-ref HEAD', (err1, branchStdout) => {
+    const branch = err1 ? 'main' : branchStdout.trim();
+    exec('git rev-parse HEAD', (err2, preCommitStdout) => {
+      const previousCommit = err2 ? 'unknown' : preCommitStdout.trim();
+      console.log(`Executing git pull on branch: ${branch}...`);
+      exec(`git pull origin ${branch}`, { cwd: path.join(__dirname, '..') }, (err3, pullStdout, pullStderr) => {
+        const pullOutput = pullStdout + '\n' + pullStderr;
+        const status = err3 ? 'failure' : 'success';
+        exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+          const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+          const timestamp = new Date().toISOString();
+          const metadata = {
+            lastPullTime: timestamp,
+            lastPullStatus: status,
+            previousCommit: previousCommit,
+            currentCommit: currentCommit
+          };
+          try {
+            fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+          } catch (e) {
+            console.error("Failed to write metadata file:", e.message);
+          }
+          res.json({
+            success: !err3,
+            output: pullOutput,
+            branch,
+            previousCommit,
+            currentCommit,
+            lastPullTime: timestamp
+          });
+        });
+      });
+    });
+  });
 });
 
 app.listen(port, () => {
