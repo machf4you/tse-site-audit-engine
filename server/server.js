@@ -264,31 +264,60 @@ app.post('/api/github/pull', async (req, res) => {
     const branch = err1 ? 'main' : branchStdout.trim();
     exec('git rev-parse HEAD', (err2, preCommitStdout) => {
       const previousCommit = err2 ? 'unknown' : preCommitStdout.trim();
-      console.log(`Executing git pull on branch: ${branch}...`);
-      exec(`git pull origin ${branch}`, { cwd: path.join(__dirname, '..') }, (err3, pullStdout, pullStderr) => {
-        const pullOutput = pullStdout + '\n' + pullStderr;
-        const status = err3 ? 'failure' : 'success';
-        exec('git rev-parse HEAD', (err4, postCommitStdout) => {
-          const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+      
+      // Check for uncommitted changes first
+      exec('git status --porcelain', { cwd: path.join(__dirname, '..') }, (errStatus, statusStdout) => {
+        if (statusStdout && statusStdout.trim().length > 0) {
+          console.warn("Aborting git pull: Local uncommitted changes detected.");
           const timestamp = new Date().toISOString();
           const metadata = {
             lastPullTime: timestamp,
-            lastPullStatus: status,
+            lastPullStatus: 'failure',
             previousCommit: previousCommit,
-            currentCommit: currentCommit
+            currentCommit: previousCommit
           };
           try {
             fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
           } catch (e) {
             console.error("Failed to write metadata file:", e.message);
           }
-          res.json({
-            success: !err3,
-            output: pullOutput,
+          return res.json({
+            success: false,
+            dirty: true,
+            output: "Local uncommitted changes detected. Commit or discard them before pulling from GitHub.\n\n" + statusStdout,
             branch,
             previousCommit,
-            currentCommit,
+            currentCommit: previousCommit,
             lastPullTime: timestamp
+          });
+        }
+
+        console.log(`Executing git pull on branch: ${branch}...`);
+        exec(`git pull origin ${branch}`, { cwd: path.join(__dirname, '..') }, (err3, pullStdout, pullStderr) => {
+          const pullOutput = pullStdout + '\n' + pullStderr;
+          const status = err3 ? 'failure' : 'success';
+          exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+            const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+            const timestamp = new Date().toISOString();
+            const metadata = {
+              lastPullTime: timestamp,
+              lastPullStatus: status,
+              previousCommit: previousCommit,
+              currentCommit: currentCommit
+            };
+            try {
+              fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+            } catch (e) {
+              console.error("Failed to write metadata file:", e.message);
+            }
+            res.json({
+              success: !err3,
+              output: pullOutput,
+              branch,
+              previousCommit,
+              currentCommit,
+              lastPullTime: timestamp
+            });
           });
         });
       });

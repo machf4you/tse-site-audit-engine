@@ -1218,6 +1218,13 @@ export default function App() {
           lastPullStatus: 'success',
           previousCommit: data.previousCommit
         });
+      } else if (data.dirty) {
+        showNotification("Local uncommitted changes detected. Commit or discard them before pulling from GitHub.");
+        setGitStatus(prev => ({
+          ...prev,
+          lastPullTime: data.lastPullTime,
+          lastPullStatus: 'failure'
+        }));
       } else {
         showNotification("Git pull failed! See logs for details.");
         setGitStatus(prev => ({
