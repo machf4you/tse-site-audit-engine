@@ -325,6 +325,39 @@ app.post('/api/github/pull', async (req, res) => {
   });
 });
 
+// POST Check GitHub Updates
+app.post('/api/github/check-updates', async (req, res) => {
+  try {
+    const cwd = path.join(__dirname, '..');
+    console.log("Executing git fetch origin...");
+    exec('git fetch origin', { cwd }, (fetchErr) => {
+      exec('git rev-parse --abbrev-ref HEAD', { cwd }, (err1, branchStdout) => {
+        const branch = err1 ? 'main' : branchStdout.trim();
+        exec('git rev-parse HEAD', { cwd }, (err2, localCommitStdout) => {
+          const localCommit = err2 ? 'unknown' : localCommitStdout.trim();
+          exec(`git rev-parse origin/${branch}`, { cwd }, (err3, remoteCommitStdout) => {
+            const remoteCommit = err3 ? localCommit : remoteCommitStdout.trim();
+            exec(`git rev-list --count HEAD..origin/${branch}`, { cwd }, (err4, countStdout) => {
+              const behindCount = err4 ? 0 : parseInt(countStdout.trim(), 10);
+              res.json({
+                success: true,
+                branch,
+                localCommit,
+                remoteCommit,
+                behindCount,
+                timeChecked: new Date().toISOString()
+              });
+            });
+          });
+        });
+      });
+    });
+  } catch (err) {
+    console.error("POST /api/github/check-updates error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Backend server listening at http://localhost:${port}`);
 });

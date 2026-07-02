@@ -1177,6 +1177,39 @@ export default function App() {
   const [gitPullLogs, setGitPullLogs] = useState("");
   const [isGitPulling, setIsGitPulling] = useState(false);
 
+  const [latestGithubCommit, setLatestGithubCommit] = useState("unknown");
+  const [behindCount, setBehindCount] = useState(null);
+  const [timeChecked, setTimeChecked] = useState(null);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+
+  const handleCheckUpdates = async () => {
+    setIsCheckingUpdates(true);
+    try {
+      const res = await fetch(`${API_BASE}/github/check-updates`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLatestGithubCommit(data.remoteCommit);
+        setBehindCount(data.behindCount);
+        setTimeChecked(data.timeChecked);
+        setGitStatus(prev => ({
+          ...prev,
+          branch: data.branch,
+          currentCommit: data.localCommit
+        }));
+        showNotification("Checked for updates successfully!");
+      } else {
+        showNotification("Failed to check for updates.");
+      }
+    } catch (e) {
+      console.error(e);
+      showNotification("Network error checking for updates.");
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
+
   const fetchGitStatus = async () => {
     try {
       const res = await fetch(`${API_BASE}/github/status`);
@@ -5783,7 +5816,7 @@ export default function App() {
 
                           <div style={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                             gap: '1rem',
                             marginTop: '0.5rem'
                           }}>
@@ -5825,6 +5858,24 @@ export default function App() {
                                 {gitStatus.lastPullStatus || 'No status'}
                               </div>
                             </div>
+
+                            {/* Update Status Card */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Update Status</span>
+                              <div style={{
+                                fontSize: '1.15rem',
+                                fontWeight: 800,
+                                color: behindCount === 0 ? '#10b981' : (behindCount > 0 ? '#ef4444' : 'var(--text-secondary)'),
+                                marginTop: '0.35rem'
+                              }}>
+                                {behindCount === null ? "Not Checked" : (behindCount === 0 ? "Up to date" : (behindCount === 1 ? "1 update available" : `${behindCount} updates available`))}
+                              </div>
+                            </div>
                           </div>
 
                           <div style={{
@@ -5853,18 +5904,86 @@ export default function App() {
                               borderRadius: '8px',
                               padding: '1.25rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Commit</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Local Commit</span>
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                                 {gitStatus.currentCommit}
                               </div>
                             </div>
                           </div>
 
-                          {/* Action Button */}
-                          <div style={{ marginTop: '0.5rem' }}>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+                            gap: '1.25rem',
+                            marginTop: '0.5rem'
+                          }}>
+                            {/* Latest GitHub Commit */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Latest GitHub Commit</span>
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                {latestGithubCommit}
+                              </div>
+                            </div>
+
+                            {/* Time Checked */}
+                            <div style={{
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '8px',
+                              padding: '1.25rem'
+                            }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Time Checked</span>
+                              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.35rem' }}>
+                                {timeChecked ? new Date(timeChecked).toLocaleString() : 'Never'}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Alert banner if updates available */}
+                          {behindCount > 0 && (
+                            <div style={{
+                              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                              border: '1px solid #10b981',
+                              borderRadius: '8px',
+                              padding: '1rem',
+                              color: '#10b981',
+                              fontSize: '0.9rem',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span>📢</span> Updates are available. You can now safely pull the latest version.
+                            </div>
+                          )}
+
+                          {/* Action Buttons Section */}
+                          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                            <button
+                              className="btn-secondary"
+                              disabled={isCheckingUpdates}
+                              onClick={handleCheckUpdates}
+                              style={{
+                                padding: '12px 24px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '0.95rem',
+                                fontWeight: 750,
+                                cursor: isCheckingUpdates ? 'not-allowed' : 'pointer'
+                              }}
+                            >
+                              {isCheckingUpdates ? "Checking..." : "🔄 Check for Updates"}
+                            </button>
+
                             <button
                               className="btn-primary"
-                              disabled={isGitPulling}
+                              disabled={isGitPulling || behindCount === null || behindCount === 0}
                               onClick={handleGitPull}
                               style={{
                                 padding: '12px 24px',
@@ -5872,7 +5991,9 @@ export default function App() {
                                 alignItems: 'center',
                                 gap: '8px',
                                 fontSize: '0.95rem',
-                                fontWeight: 750
+                                fontWeight: 750,
+                                opacity: (isGitPulling || behindCount === null || behindCount === 0) ? 0.5 : 1,
+                                cursor: (isGitPulling || behindCount === null || behindCount === 0) ? 'not-allowed' : 'pointer'
                               }}
                             >
                               {isGitPulling ? "Pulling..." : "⬇ Pull Latest from GitHub"}
