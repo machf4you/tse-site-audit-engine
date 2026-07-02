@@ -1456,43 +1456,48 @@ export default function App() {
   };
 
   const handleAutoClassifySelectedSite = async () => {
-    const sitePages = pagesData[selectedSiteId] || [];
     let updatedCount = 0;
-    
-    const updatedPages = sitePages.map(page => {
-      if (!page.assignedType || page.assignedType.trim() === "") {
-        const classified = getPageAuditorAssignedType(page.pageUrl);
-        updatedCount++;
-        return { ...page, assignedType: classified };
+    const nextPagesData = { ...pagesData };
+    const sitesToSave = [];
+
+    Object.keys(pagesData).forEach(siteId => {
+      const sitePages = pagesData[siteId] || [];
+      let siteUpdated = false;
+      const updatedPages = sitePages.map(page => {
+        if (!page.assignedType || page.assignedType.trim() === "") {
+          const classified = getPageAuditorAssignedType(page.pageUrl);
+          updatedCount++;
+          siteUpdated = true;
+          return { ...page, assignedType: classified };
+        }
+        return page;
+      });
+      if (siteUpdated) {
+        nextPagesData[siteId] = updatedPages;
+        sitesToSave.push({ siteId, pages: updatedPages });
       }
-      return page;
     });
 
     if (updatedCount === 0) {
-      showNotification("All pages on this website already have assigned types.");
+      showNotification("All pages across all websites already have assigned types.");
       return;
     }
 
-    showNotification(`Classifying ${updatedCount} untyped pages...`);
+    showNotification(`Classifying ${updatedCount} untyped pages across all websites...`);
 
     try {
-      const response = await fetch(`${API_BASE}/pages-data/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ siteId: selectedSiteId, pages: updatedPages })
-      });
-
-      if (response.ok) {
-        setPagesData(prevPages => {
-          const nextPages = { ...prevPages };
-          nextPages[selectedSiteId] = updatedPages;
-          initialPagesDataRef.current = JSON.parse(JSON.stringify(nextPages));
-          return nextPages;
+      for (const siteInfo of sitesToSave) {
+        const response = await fetch(`${API_BASE}/pages-data/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ siteId: siteInfo.siteId, pages: siteInfo.pages })
         });
-        showNotification(`Successfully auto-classified ${updatedCount} pages!`);
-      } else {
-        throw new Error("Failed to save to database");
+        if (!response.ok) throw new Error(`Failed to save pages for site ${siteInfo.siteId}`);
       }
+
+      setPagesData(nextPagesData);
+      initialPagesDataRef.current = JSON.parse(JSON.stringify(nextPagesData));
+      showNotification(`Successfully auto-classified ${updatedCount} pages across all websites!`);
     } catch (err) {
       console.error(err);
       showNotification("Error saving classified page types.");
@@ -3827,7 +3832,7 @@ export default function App() {
                       onClick={handleAutoClassifySelectedSite}
                       style={{ cursor: 'pointer' }}
                     >
-                      Classify Untyped Pages
+                      Classify All Untyped Pages
                     </button>
 
                     <button 
