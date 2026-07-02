@@ -385,6 +385,11 @@ async function getPagesData() {
 }
 
 async function savePageConfig(siteId, page) {
+  const validTypes = ["Hub", "Landing", "Supporting", "Topical", "Excluded", "Hub Page", "Landing Page", "Supporting Page", "Topical Page"];
+  const type = validTypes.includes(page.assignedType)
+    ? page.assignedType
+    : getPageAuditorAssignedType(page.pageUrl);
+
   if (useDb) {
     try {
       await pool.query(
@@ -401,7 +406,7 @@ async function savePageConfig(siteId, page) {
           page.pageTitle || "",
           page.targetPhrase || "",
           page.parentPage || "/",
-          page.assignedType || "Supporting Page",
+          type,
           page.status || "Unconfigured",
           page.lastModifiedDate || "",
           JSON.stringify(page.crawlData || {})
@@ -427,6 +432,8 @@ async function savePageConfig(siteId, page) {
 
 async function saveAllPagesForSite(siteId, pages) {
   console.log(`[DB] saveAllPagesForSite called for siteId: ${siteId} with ${pages ? pages.length : 0} pages`);
+  const validTypes = ["Hub", "Landing", "Supporting", "Topical", "Excluded", "Hub Page", "Landing Page", "Supporting Page", "Topical Page"];
+
   if (useDb) {
     try {
       const currentUrls = pages.map(p => p.pageUrl);
@@ -437,6 +444,9 @@ async function saveAllPagesForSite(siteId, pages) {
       }
       
       for (const page of pages) {
+        if (!validTypes.includes(page.assignedType)) {
+          page.assignedType = getPageAuditorAssignedType(page.pageUrl);
+        }
         await savePageConfig(siteId, page);
       }
       return;
@@ -445,7 +455,13 @@ async function saveAllPagesForSite(siteId, pages) {
     }
   }
   const data = loadFallback();
-  data.pagesData[siteId] = pages;
+  const classifiedPages = pages.map(p => {
+    const type = validTypes.includes(p.assignedType)
+      ? p.assignedType
+      : getPageAuditorAssignedType(p.pageUrl);
+    return { ...p, assignedType: type };
+  });
+  data.pagesData[siteId] = classifiedPages;
   saveFallback(data);
 }
 
