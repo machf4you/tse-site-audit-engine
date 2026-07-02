@@ -867,7 +867,85 @@ export default function App() {
     });
   };
 
-  const handleSaveWebsite = () => {
+  const handleSyncWebsitePages = async (siteId, siteUrl, username, password) => {
+    let cleanUrl = siteUrl.trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = "https://" + cleanUrl;
+    }
+    cleanUrl = cleanUrl.replace(/\/+$/, "");
+    const endpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/export`;
+
+    let credentials = "";
+    try {
+      credentials = window.btoa(username.trim() + ":" + password.trim());
+    } catch (e) {
+      console.error(e);
+      showNotification("Error: Invalid credentials format.");
+      return false;
+    }
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          "Authorization": `Basic ${credentials}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`WordPress server returned status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const parsedRecords = data["full-export.json"] || [];
+      if (!Array.isArray(parsedRecords)) {
+        throw new Error("Invalid exporter records data received.");
+      }
+
+      const formattedPages = parsedRecords.map(record => {
+        const pageUrl = getRelativeUrl(record.url, cleanUrl);
+        return {
+          pageUrl: pageUrl,
+          pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
+          targetPhrase: record.seo?.focus_keywords?.[0] || "",
+          parentPage: record.parent_id ? String(record.parent_id) : "/",
+          assignedType: getPageAuditorAssignedType(pageUrl),
+          status: "Unconfigured",
+          lastModifiedDate: record.modified_at || "",
+          crawlData: {
+            h1: record.content?.h1 || "",
+            wordCount: record.content?.word_count || 0,
+            metaDescription: record.seo?.description || ""
+          }
+        };
+      });
+
+      const saveResponse = await fetch(`${API_BASE}/pages-data/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, pages: formattedPages })
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save pages to the database backend.");
+      }
+
+      setPagesData(prev => ({
+        ...prev,
+        [siteId]: formattedPages
+      }));
+
+      showNotification(`Successfully synchronized ${formattedPages.length} pages from WordPress.`);
+      return true;
+    } catch (err) {
+      console.error("Sync error:", err);
+      showNotification(`Sync Failed: ${err.message}`);
+      return false;
+    }
+  };
+
+  const handleSaveWebsite = async () => {
     if (connectionTestStatus !== "success") return;
 
     let cleanUrl = newSiteUrl.trim();
@@ -911,6 +989,8 @@ export default function App() {
     setConnectionTestStatus("idle");
     setConnectionTestMessage("");
     showNotification(`Website "${newSite.name}" connected successfully!`);
+
+    await handleSyncWebsitePages(finalId, cleanUrl, newSite.credentials.username, newSite.credentials.password);
   };
 
   // Load sites and page configurations from PostgreSQL database on mount
@@ -1602,14 +1682,29 @@ export default function App() {
     setEditingPage(null);
   };
 
-  const handleImportPages = (siteId) => {
+  const handleImportPages = async (siteId) => {
+    const site = sites.find(s => s.id === siteId);
+    if (!site) {
+      showNotification("Error: Website not found.");
+      return;
+    }
+
+    if (!site.credentials?.username || !site.credentials?.password) {
+      showNotification("Error: Credentials not found. Please reconnect the website to set credentials.");
+      return;
+    }
+
     setIsImporting(true);
-    showNotification("Connecting to TSE Exporter...");
+    showNotification(`Connecting to TSE Exporter for "${site.name}"...`);
     
-    setTimeout(() => {
-      setIsImporting(false);
-      showNotification("All exporter pages are fully synchronized.");
-    }, 1000);
+    await handleSyncWebsitePages(
+      site.id, 
+      site.url, 
+      site.credentials.username, 
+      site.credentials.password
+    );
+
+    setIsImporting(false);
   };
 
   const handleExportData = () => {
@@ -3833,6 +3928,15 @@ export default function App() {
                       style={{ cursor: 'pointer' }}
                     >
                       Classify All Untyped Pages
+                    </button>
+
+                    <button 
+                      className="btn-secondary" 
+                      onClick={() => handleImportPages(selectedSiteId)}
+                      disabled={isImporting}
+                      style={{ cursor: isImporting ? 'not-allowed' : 'pointer', opacity: isImporting ? 0.7 : 1 }}
+                    >
+                      {isImporting ? "Syncing..." : "Sync from WordPress"}
                     </button>
 
                     <button 

@@ -14,7 +14,7 @@ let seoH1 = "Professional Bathroom Installation";
 
 app.use((req, res, next) => {
   // Only require basic auth for REST API endpoints
-  if (!req.path.startsWith('/wp-json/')) {
+  if (req.method === 'OPTIONS' || !req.path.startsWith('/wp-json/')) {
     return next();
   }
   const authHeader = req.headers.authorization;
@@ -74,6 +74,10 @@ app.get('/bathroom-installation/', (req, res) => {
   </main>
 </body>
 </html>`);
+});
+
+app.get('/wp-json/wp/v2/users/me', (req, res) => {
+  res.json({ id: 1, name: "admin" });
 });
 
 app.get('/wp-json/tse-site-exporter/v1/export', (req, res) => {

@@ -187,10 +187,16 @@ async function initDb() {
         status VARCHAR(50) NOT NULL DEFAULT 'Connected',
         last_audit VARCHAR(100),
         tasks JSONB DEFAULT '[]'::jsonb,
+        wp_username VARCHAR(255),
+        wp_password VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Migrate existing table if needed
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS wp_username VARCHAR(255)");
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS wp_password VARCHAR(255)");
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS page_configurations (
@@ -286,14 +292,18 @@ async function initDb() {
 async function getSites() {
   if (useDb) {
     try {
-      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks FROM websites ORDER BY created_at ASC");
+      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks, wp_username, wp_password FROM websites ORDER BY created_at ASC");
       return rows.map(r => ({
         id: r.id,
         name: r.name,
         url: r.url,
         status: r.status,
         lastAudit: r.lastAudit,
-        tasks: typeof r.tasks === 'string' ? JSON.parse(r.tasks) : (r.tasks || [])
+        tasks: typeof r.tasks === 'string' ? JSON.parse(r.tasks) : (r.tasks || []),
+        credentials: {
+          username: r.wp_username || "",
+          password: r.wp_password || ""
+        }
       }));
     } catch (err) {
       console.error("Database query sites failed, using fallback:", err.message);
@@ -306,11 +316,27 @@ async function saveSite(site) {
   if (useDb) {
     try {
       await pool.query(
-        `INSERT INTO websites (id, name, url, status, last_audit, tasks)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (id) DO UPDATE 
-         SET name = EXCLUDED.name, url = EXCLUDED.url, status = EXCLUDED.status, last_audit = EXCLUDED.last_audit, tasks = EXCLUDED.tasks, updated_at = NOW()`,
-        [site.id, site.name, site.url, site.status, site.lastAudit, JSON.stringify(site.tasks || [])]
+         SET name = EXCLUDED.name, 
+             url = EXCLUDED.url, 
+             status = EXCLUDED.status, 
+             last_audit = EXCLUDED.last_audit, 
+             tasks = EXCLUDED.tasks,
+             wp_username = EXCLUDED.wp_username,
+             wp_password = EXCLUDED.wp_password,
+             updated_at = NOW()`,
+        [
+          site.id, 
+          site.name, 
+          site.url, 
+          site.status, 
+          site.lastAudit, 
+          JSON.stringify(site.tasks || []),
+          site.credentials?.username || "",
+          site.credentials?.password || ""
+        ]
       );
       return;
     } catch (err) {
