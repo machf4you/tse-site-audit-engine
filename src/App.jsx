@@ -1455,6 +1455,50 @@ export default function App() {
     return "#fbbf24";
   };
 
+  const handleAutoClassifySelectedSite = async () => {
+    const sitePages = pagesData[selectedSiteId] || [];
+    let updatedCount = 0;
+    
+    const updatedPages = sitePages.map(page => {
+      if (!page.assignedType || page.assignedType.trim() === "") {
+        const classified = getPageAuditorAssignedType(page.pageUrl);
+        updatedCount++;
+        return { ...page, assignedType: classified };
+      }
+      return page;
+    });
+
+    if (updatedCount === 0) {
+      showNotification("All pages on this website already have assigned types.");
+      return;
+    }
+
+    showNotification(`Classifying ${updatedCount} untyped pages...`);
+
+    try {
+      const response = await fetch(`${API_BASE}/pages-data/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId: selectedSiteId, pages: updatedPages })
+      });
+
+      if (response.ok) {
+        setPagesData(prevPages => {
+          const nextPages = { ...prevPages };
+          nextPages[selectedSiteId] = updatedPages;
+          initialPagesDataRef.current = JSON.parse(JSON.stringify(nextPages));
+          return nextPages;
+        });
+        showNotification(`Successfully auto-classified ${updatedCount} pages!`);
+      } else {
+        throw new Error("Failed to save to database");
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification("Error saving classified page types.");
+    }
+  };
+
   const handleOpenConfigModal = (page) => {
     setModalMode("edit");
     setEditingPage(page);
@@ -3776,6 +3820,14 @@ export default function App() {
                       style={{ opacity: selectedPageUrl ? 1 : 0.5, cursor: selectedPageUrl ? 'pointer' : 'not-allowed' }}
                     >
                       Edit Configuration
+                    </button>
+
+                    <button 
+                      className="btn-secondary" 
+                      onClick={handleAutoClassifySelectedSite}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      Classify Untyped Pages
                     </button>
 
                     <button 
