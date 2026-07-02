@@ -11,7 +11,9 @@ const {
   saveAllSites,
   getPagesData,
   savePageConfig,
-  saveAllPagesForSite
+  saveAllPagesForSite,
+  getArchitectureNotes,
+  saveArchitectureNotes
 } = require('./db');
 
 // Initialize database connection and tables
@@ -154,26 +156,69 @@ app.get('/api/pages-data', async (req, res) => {
 
 // POST Save Page Configurations
 app.post('/api/pages-data/save', async (req, res) => {
-  console.log('POST /api/pages-data/save called');
+  const timestamp = new Date().toISOString();
+  const method = req.method;
+  console.log(`[${timestamp}] ${method} /api/pages-data/save received`);
   try {
     const { siteId, page, pages } = req.body;
+    let siteIdLogged = siteId || 'N/A (Bulk)';
+    let pagesCount = 0;
+    let executed = true;
+
     if (siteId) {
       if (pages && Array.isArray(pages)) {
+        pagesCount = pages.length;
+        console.log(`[${timestamp}] Executing saveAllPagesForSite for Site ID: ${siteId}, Pages: ${pagesCount}`);
         await saveAllPagesForSite(siteId, pages);
       } else if (page) {
+        pagesCount = 1;
+        console.log(`[${timestamp}] Executing savePageConfig for Site ID: ${siteId}, Page URL: ${page.pageUrl}`);
         await savePageConfig(siteId, page);
       } else {
+        executed = false;
+        console.log(`[${timestamp}] Save skipped: Missing page or pages data`);
         return res.status(400).json({ error: "Missing page or pages data" });
       }
     } else {
       const pagesData = req.body.pagesData || req.body;
-      for (const sId of Object.keys(pagesData)) {
-        await saveAllPagesForSite(sId, pagesData[sId]);
+      const siteIds = Object.keys(pagesData);
+      siteIdLogged = siteIds.join(', ');
+      for (const sId of siteIds) {
+        const sPages = pagesData[sId];
+        if (Array.isArray(sPages)) {
+          pagesCount += sPages.length;
+          console.log(`[${timestamp}] Executing saveAllPagesForSite for Site ID: ${sId}, Pages: ${sPages.length}`);
+          await saveAllPagesForSite(sId, sPages);
+        }
       }
     }
+    console.log(`[${timestamp}] Request completed: Method=${method}, Sites=${siteIdLogged}, Total Pages=${pagesCount}, Executed=${executed}`);
     res.json({ success: true });
   } catch (err) {
-    console.error('POST /api/pages-data/save error:', err.message);
+    console.error(`[${timestamp}] POST /api/pages-data/save error:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET Architecture Notes
+app.get('/api/architecture-notes', async (req, res) => {
+  try {
+    const content = await getArchitectureNotes();
+    res.json({ content });
+  } catch (err) {
+    console.error("GET /api/architecture-notes error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Save Architecture Notes
+app.post('/api/architecture-notes', async (req, res) => {
+  try {
+    const { content } = req.body;
+    await saveArchitectureNotes(content);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("POST /api/architecture-notes error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

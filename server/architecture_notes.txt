@@ -1,0 +1,90 @@
+# TSE Platform Architecture Notes
+
+## Projects
+
+### 1. TSE Site Exporter (WordPress Plugin)
+
+- Installed inside WordPress.
+- Reads the WordPress database.
+- Exports the complete page inventory.
+- Creates exporter-data.json.
+- Runs AI Analysis.
+- Produces AI reports and ZIP files.
+- Does NOT generate Hub, Landing, Category, Supporting or Topical page types.
+
+### 2. TSE Page Auditor
+
+- Audits one page at a time.
+- Uses the existing Audit Engine.
+- Produces:
+  - Page Type
+  - Phrase Fit
+  - Strategic Recommendation
+  - Rationale
+  - SEO Score
+
+Stores:
+
+audits
+- Full audit JSON
+
+page_classifications
+- assigned_type
+- detected_type
+- seo_score
+- last_audited
+
+### 3. TSE Audit Engine (Website Management)
+
+- Imports exporter-data.json.
+- Manages the website.
+- Displays W1, W2 and W3.
+- Reads page classifications from page_classifications.
+
+Current W2 consumes:
+- Page Type
+- SEO Score
+
+Future W2 should also consume:
+- Phrase Fit
+- Strategic Recommendation
+- Rationale
+
+## Architecture
+
+WordPress
+
+↓
+
+Site Exporter
+
+↓
+
+exporter-data.json
+
+↓
+
+Website Management imports page inventory
+
+↓
+
+Page Auditor audits pages
+
+↓
+
+Page Assessment
+
+↓
+
+page_classifications
+
+↓
+
+Website Management displays results
+
+## Important Discoveries
+
+- Site Exporter does not classify pages.
+- Original Audit Engine used detectPageType() heuristics.
+- Page Auditor is now the intelligent decision engine.
+- Website Management should become the consumer of Page Auditor results.

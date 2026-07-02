@@ -17,60 +17,132 @@ try {
   console.error("Failed to load exporter-data.json:", err.message);
 }
 
+function getPageSEOScore(pageUrl) {
+  const url = pageUrl;
+  if (url === "/") return 0;
+  if (url.includes("elementor_library") || url.includes("template") || url.includes("library")) {
+    return 6;
+  }
+  const legalKeywords = [
+    "privacy", "terms", "cookie", "sitemap", "disclaimer", "legal", "complaints", "conditions"
+  ];
+  if (legalKeywords.some(kw => url.includes(kw))) {
+    return 5;
+  }
+  const coreKeywords = [
+    "installation", "refurbishment", "fitters", "renovations", "renovation-cost",
+    "seo-services", "seo-consultant", "local-seo", "ecommerce-seo", "technical-seo",
+    "paid-search", "migration", "specialist", "developer", "google-business-profile-seo",
+    "seo-audit", "fractional-seo", "ppc", "design", "audit"
+  ];
+  const isLocation = (url.includes("renovation-") && (
+    url.includes("sidcup") || url.includes("welling") || url.includes("bexleyheath") || 
+    url.includes("erith") || url.includes("dartford") || url.includes("belvedere") || 
+    url.includes("abbey-wood")
+  )) || url.includes("seo-london") || url.includes("seo-bournemouth") || 
+       url.includes("seo-exeter") || url.includes("seo-oxford") || url.includes("seo-reading");
+  if (!isLocation && coreKeywords.some(kw => url.includes(kw))) {
+    return 1;
+  }
+  if (isLocation) return 2;
+  const commercialKeywords = [
+    "contact", "thank-you", "gallery", "about", "case-studies", "domain-services",
+    "affordable-seo", "builder-seo", "clinic-seo", "dentist-seo", "law-firm-seo", "shopify-seo",
+    "domain", "prices", "faqs", "estate-agents", "areas", "about-us"
+  ];
+  if (commercialKeywords.some(kw => url.includes(kw))) {
+    return 3;
+  }
+  return 4;
+}
+
+function getPageAuditorAssignedType(pageUrl) {
+  const score = getPageSEOScore(pageUrl);
+  switch (score) {
+    case 0: return "Hub";
+    case 1:
+    case 2: return "Landing";
+    case 3: return "Supporting";
+    case 4: return "Topical";
+    default: return "Excluded";
+  }
+}
+
 // Helper to load fallback JSON data
 function loadFallback() {
+  let loadedData = null;
   if (fs.existsSync(fallbackFilePath)) {
     try {
-      return JSON.parse(fs.readFileSync(fallbackFilePath, 'utf8'));
+      loadedData = JSON.parse(fs.readFileSync(fallbackFilePath, 'utf8'));
     } catch (err) {
       console.error("Error reading fallback JSON file:", err.message);
     }
   }
   
-  // Default seed fallback structure
-  const buPages = (exporterData["bathroom-upgrades"]?.pages || []).map(p => {
-    // Default target phrases
-    if (p.pageUrl === "/") {
-      return { ...p, targetPhrase: "bathroom upgrades", status: "Configured" };
-    } else if (p.pageUrl === "/bathroom-renovations/") {
-      return { ...p, targetPhrase: "bathroom renovations", status: "Configured" };
-    } else if (p.pageUrl === "/bathroom-installation/") {
-      return { ...p, targetPhrase: "bathroom installation", status: "Configured" };
+  if (!loadedData) {
+    // Default seed fallback structure
+    const buPages = (exporterData["bathroom-upgrades"]?.pages || []).map(p => {
+      // Default target phrases
+      if (p.pageUrl === "/") {
+        return { ...p, targetPhrase: "bathroom upgrades", status: "Configured" };
+      } else if (p.pageUrl === "/bathroom-renovations/") {
+        return { ...p, targetPhrase: "bathroom renovations", status: "Configured" };
+      } else if (p.pageUrl === "/bathroom-installation/") {
+        return { ...p, targetPhrase: "bathroom installation", status: "Configured" };
+      }
+      return p;
+    });
+
+    const tsePages = exporterData["the-search-equation"]?.pages || [];
+
+    const initialSites = [
+      {
+        id: "bathroom-upgrades",
+        name: "Bathroom Upgrades",
+        url: exporterData["bathroom-upgrades"]?.site_url || "https://bathroomupgrades.co.uk",
+        status: "Connected",
+        lastAudit: "16 May 2026",
+        tasks: []
+      },
+      {
+        id: "the-search-equation",
+        name: "The Search Equation",
+        url: exporterData["the-search-equation"]?.site_url || "https://thesearchequation.com",
+        status: "Connected",
+        lastAudit: null,
+        tasks: []
+      }
+    ];
+
+    loadedData = {
+      sites: initialSites,
+      pagesData: {
+        "bathroom-upgrades": buPages,
+        "the-search-equation": tsePages
+      }
+    };
+    saveFallback(loadedData);
+  }
+
+  // Ensure all pages have their Page Auditor assigned type mirrored
+  if (loadedData && loadedData.pagesData) {
+    let changed = false;
+    Object.keys(loadedData.pagesData).forEach(siteId => {
+      loadedData.pagesData[siteId] = loadedData.pagesData[siteId].map(p => {
+        const calculatedType = getPageAuditorAssignedType(p.pageUrl);
+        if (p.assignedType !== calculatedType) {
+          changed = true;
+          return { ...p, assignedType: calculatedType };
+        }
+        return p;
+      });
+    });
+    if (changed) {
+      saveFallback(loadedData);
     }
-    return p;
-  });
+  }
 
-  const tsePages = exporterData["the-search-equation"]?.pages || [];
-
-  const initialSites = [
-    {
-      id: "bathroom-upgrades",
-      name: "Bathroom Upgrades",
-      url: exporterData["bathroom-upgrades"]?.site_url || "https://bathroomupgrades.co.uk",
-      status: "Connected",
-      lastAudit: "16 May 2026",
-      tasks: []
-    },
-    {
-      id: "the-search-equation",
-      name: "The Search Equation",
-      url: exporterData["the-search-equation"]?.site_url || "https://thesearchequation.com",
-      status: "Connected",
-      lastAudit: null,
-      tasks: []
-    }
-  ];
-
-  const defaultData = {
-    sites: initialSites,
-    pagesData: {
-      "bathroom-upgrades": buPages,
-      "the-search-equation": tsePages
-    }
-  };
-
-  saveFallback(defaultData);
-  return defaultData;
+  return loadedData;
 }
 
 function saveFallback(data) {
@@ -137,6 +209,27 @@ async function initDb() {
       );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS page_classifications (
+        site_id VARCHAR(100) REFERENCES websites(id) ON DELETE CASCADE,
+        page_url TEXT NOT NULL,
+        page_title TEXT NOT NULL,
+        assigned_type VARCHAR(100) NOT NULL,
+        detected_type VARCHAR(100) NOT NULL,
+        seo_score INTEGER NOT NULL,
+        last_audited TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (site_id, page_url)
+      );
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS architecture_notes (
+        id VARCHAR(100) PRIMARY KEY,
+        content TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
     // Seed database if empty
     const { rows } = await pool.query("SELECT COUNT(*) FROM websites");
     if (parseInt(rows[0].count, 10) === 0) {
@@ -171,6 +264,16 @@ async function initDb() {
           );
         }
       }
+
+      console.log("Seeding default architecture notes...");
+      const initialNotesPath = path.join(__dirname, 'architecture_notes.txt');
+      const initialNotes = fs.readFileSync(initialNotesPath, 'utf8');
+      await pool.query(
+        `INSERT INTO architecture_notes (id, content) VALUES ('default', $1)
+         ON CONFLICT (id) DO UPDATE SET content = EXCLUDED.content`,
+        [initialNotes]
+      );
+
       console.log("Seeding completed successfully.");
     }
   } catch (err) {
@@ -243,7 +346,20 @@ async function saveAllSites(sites) {
 async function getPagesData() {
   if (useDb) {
     try {
-      const { rows } = await pool.query("SELECT site_id, page_url, page_title, target_phrase, parent_page, assigned_type, status, last_modified_date, crawl_data FROM page_configurations");
+      const { rows } = await pool.query(`
+        SELECT 
+          pc.site_id, 
+          pc.page_url, 
+          pc.page_title, 
+          pc.target_phrase, 
+          pc.parent_page, 
+          pc.status, 
+          pc.last_modified_date, 
+          pc.crawl_data,
+          c.assigned_type as page_auditor_assigned_type
+        FROM page_configurations pc
+        LEFT JOIN page_classifications c ON pc.site_id = c.site_id AND pc.page_url = c.page_url
+      `);
       const pagesData = {};
       rows.forEach(r => {
         if (!pagesData[r.site_id]) {
@@ -254,7 +370,7 @@ async function getPagesData() {
           pageTitle: r.page_title,
           targetPhrase: r.target_phrase || "",
           parentPage: r.parent_page || "/",
-          assignedType: r.assigned_type || "Supporting Page",
+          assignedType: r.page_auditor_assigned_type || "Excluded",
           status: r.status,
           lastModifiedDate: r.last_modified_date || "",
           crawlData: typeof r.crawl_data === 'string' ? JSON.parse(r.crawl_data) : (r.crawl_data || {})
@@ -310,6 +426,7 @@ async function savePageConfig(siteId, page) {
 }
 
 async function saveAllPagesForSite(siteId, pages) {
+  console.log(`[DB] saveAllPagesForSite called for siteId: ${siteId} with ${pages ? pages.length : 0} pages`);
   if (useDb) {
     try {
       const currentUrls = pages.map(p => p.pageUrl);
@@ -332,6 +449,42 @@ async function saveAllPagesForSite(siteId, pages) {
   saveFallback(data);
 }
 
+async function getArchitectureNotes() {
+  if (useDb) {
+    try {
+      const { rows } = await pool.query("SELECT content FROM architecture_notes WHERE id = 'default'");
+      if (rows.length > 0) {
+        return rows[0].content;
+      }
+    } catch (err) {
+      console.error("Database query architecture_notes failed:", err.message);
+    }
+  }
+  const notesPath = path.join(__dirname, 'architecture_notes.txt');
+  if (fs.existsSync(notesPath)) {
+    return fs.readFileSync(notesPath, 'utf8');
+  }
+  return "";
+}
+
+async function saveArchitectureNotes(content) {
+  if (useDb) {
+    try {
+      await pool.query(
+        `INSERT INTO architecture_notes (id, content, updated_at)
+         VALUES ('default', $1, NOW())
+         ON CONFLICT (id) DO UPDATE SET content = EXCLUDED.content, updated_at = NOW()`,
+        [content]
+      );
+      return;
+    } catch (err) {
+      console.error("Database save architecture_notes failed:", err.message);
+    }
+  }
+  const notesPath = path.join(__dirname, 'architecture_notes.txt');
+  fs.writeFileSync(notesPath, content, 'utf8');
+}
+
 module.exports = {
   initDb,
   getSites,
@@ -339,5 +492,7 @@ module.exports = {
   saveAllSites,
   getPagesData,
   savePageConfig,
-  saveAllPagesForSite
+  saveAllPagesForSite,
+  getArchitectureNotes,
+  saveArchitectureNotes
 };

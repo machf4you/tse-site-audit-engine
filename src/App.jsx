@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
   ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, ChevronDown, Globe, FileText,
@@ -6,6 +6,68 @@ import {
 } from 'lucide-react';
 import './App.css';
 import exporterData from './exporter-data.json';
+
+const getPageSEOScore = (pageOrUrl) => {
+  const url = typeof pageOrUrl === 'string' ? pageOrUrl : (pageOrUrl ? pageOrUrl.pageUrl : "");
+  if (!url) return 4;
+  
+  if (url === "/") return 0;
+  
+  if (url.includes("elementor_library") || url.includes("template") || url.includes("library")) {
+    return 6;
+  }
+  
+  const legalKeywords = [
+    "privacy", "terms", "cookie", "sitemap", "disclaimer", "legal", "complaints", "conditions"
+  ];
+  if (legalKeywords.some(kw => url.includes(kw))) {
+    return 5;
+  }
+  
+  const coreKeywords = [
+    "installation", "refurbishment", "fitters", "renovations", "renovation-cost",
+    "seo-services", "seo-consultant", "local-seo", "ecommerce-seo", "technical-seo",
+    "paid-search", "migration", "specialist", "developer", "google-business-profile-seo",
+    "seo-audit", "fractional-seo", "ppc", "design", "audit"
+  ];
+  
+  const isLocation = (url.includes("renovation-") && (
+    url.includes("sidcup") || url.includes("welling") || url.includes("bexleyheath") || 
+    url.includes("erith") || url.includes("dartford") || url.includes("belvedere") || 
+    url.includes("abbey-wood")
+  )) || url.includes("seo-london") || url.includes("seo-bournemouth") || 
+       url.includes("seo-exeter") || url.includes("seo-oxford") || url.includes("seo-reading");
+        
+  if (!isLocation && coreKeywords.some(kw => url.includes(kw))) {
+    return 1;
+  }
+  
+  if (isLocation) return 2;
+  
+  const commercialKeywords = [
+    "contact", "thank-you", "gallery", "about", "case-studies", "domain-services",
+    "affordable-seo", "builder-seo", "clinic-seo", "dentist-seo", "law-firm-seo", "shopify-seo",
+    "domain", "prices", "faqs", "estate-agents", "areas", "about-us"
+  ];
+  if (commercialKeywords.some(kw => url.includes(kw))) {
+    return 3;
+  }
+  
+  return 4;
+};
+
+const getPageAuditorAssignedType = (pageOrUrl) => {
+  const url = typeof pageOrUrl === 'string' ? pageOrUrl : (pageOrUrl ? pageOrUrl.pageUrl : "");
+  const score = getPageSEOScore(url);
+  switch (score) {
+    case 0: return "Hub";
+    case 1:
+    case 2: return "Landing";
+    case 3: return "Supporting";
+    case 4: return "Topical";
+    default: return "Excluded";
+  }
+};
 
 const runPageAudit = (pageUrl, targetPhrase, pageTitle, siteId) => {
   let foundPage = null;
@@ -522,8 +584,8 @@ const getFindingsAndTasksForSite = (siteId, pages, siteUrl, siteName) => {
 };
 
 const getPageType = (page) => {
-  if (!page) return "Unconfigured";
-  return page.assignedType || "Unconfigured";
+  if (!page) return "Excluded";
+  return page.assignedType || "Excluded";
 };
 
 const paramsTemp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -532,16 +594,17 @@ const isAutomationViewTemp = ['results', 'detail', 'edit', 'tasklist'].includes(
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const BU_PAGES = exporterData["bathroom-upgrades"].pages.map(p => {
+  let mapped = { ...p, assignedType: p.assignedType || "Excluded" };
   if (isAutomationViewTemp) {
     if (p.pageUrl === "/") {
-      return { ...p, targetPhrase: "bathroom upgrades", status: "Configured" };
+      mapped = { ...mapped, targetPhrase: "bathroom upgrades", status: "Configured" };
     } else if (p.pageUrl === "/bathroom-renovations/") {
-      return { ...p, targetPhrase: "bathroom renovations", status: "Configured" };
+      mapped = { ...mapped, targetPhrase: "bathroom renovations", status: "Configured" };
     } else if (p.pageUrl === "/bathroom-installation/") {
-      return { ...p, targetPhrase: "bathroom installation", status: "Configured" };
+      mapped = { ...mapped, targetPhrase: "bathroom installation", status: "Configured" };
     }
   }
-  return p;
+  return mapped;
 });
 
 const BU_URL = exporterData["bathroom-upgrades"].site_url;
@@ -572,7 +635,10 @@ const INITIAL_SITES = [
 
 const INITIAL_PAGES_DATA = {
   "bathroom-upgrades": BU_PAGES,
-  "the-search-equation": exporterData["the-search-equation"].pages
+  "the-search-equation": exporterData["the-search-equation"].pages.map(p => ({
+    ...p,
+    assignedType: getPageAuditorAssignedType(p)
+  }))
 };
 
 // Workflow indicator stepper
@@ -619,7 +685,10 @@ const isPageExcluded = (page) => {
   return page.assignedType === "Excluded";
 };
 
+
+
 export default function App() {
+  console.log("[TSE BUILD TEST 2026-07-02 11:02]");
   const [sites, setSites] = useState(() => {
     if (isAutomationViewTemp) {
       return INITIAL_SITES;
@@ -662,28 +731,46 @@ export default function App() {
   const [selectedPageUrl, setSelectedPageUrl] = useState(null);
   const [reviewPageUrl, setReviewPageUrl] = useState("");
   
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+  const initialPagesDataRef = React.useRef(null);
+  const initialSitesRef = React.useRef(null);
+  
   // Parse query parameters for screenshot capturing / navigation testing
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const viewParam = params ? params.get('view') : null;
   const instantParam = params ? params.get('instant') === 'true' : false;
   const findingParam = params ? params.get('findingId') : null;
   
-  const initialView = (viewParam === 'detail') ? 'TASK_FOCUS' : 
-                      (viewParam === 'edit') ? 'EDIT' : 
-                      (viewParam === 'tasklist') ? 'WEBSITES' : 
-                      (viewParam === 'config_manage') ? 'WEBSITES_CONFIG' :
-                      (viewParam === 'config') ? 'AUDIT_CONFIG' :
-                      (viewParam === 'running') ? 'AUDIT_RUNNING' :
-                      (viewParam === 'results') ? 'AUDIT_RESULTS' :
-                      (viewParam === 'settings' || viewParam === 'architecture') ? 'SETTINGS' :
-                      'CONNECTED_SITES';
-  const initialSiteId = (viewParam === 'dashboard') ? null : 
-                        (viewParam === 'config' || viewParam === 'running' || viewParam === 'results' || viewParam === 'config_manage') ? 'bathroom-upgrades' : 
-                        INITIAL_SITES[0].id;
-  const initialTaskId = (viewParam === 'detail' || viewParam === 'edit') ? INITIAL_SITES[0].tasks[0].id : null;
+   const savedView = typeof window !== 'undefined' ? localStorage.getItem("tse_current_view") : null;
+   const initialView = savedView || ((viewParam === 'detail') ? 'TASK_FOCUS' : 
+                       (viewParam === 'edit') ? 'EDIT' : 
+                       (viewParam === 'tasklist') ? 'WEBSITES' : 
+                       (viewParam === 'config_manage') ? 'WEBSITES_CONFIG' :
+                       (viewParam === 'config') ? 'AUDIT_CONFIG' :
+                       (viewParam === 'running') ? 'AUDIT_RUNNING' :
+                       (viewParam === 'results') ? 'AUDIT_RESULTS' :
+                       (viewParam === 'settings' || viewParam === 'architecture') ? 'SETTINGS' :
+                       'CONNECTED_SITES');
+   const savedSiteId = typeof window !== 'undefined' ? localStorage.getItem("tse_selected_site_id") : null;
+   const initialSiteId = savedSiteId || ((viewParam === 'dashboard') ? null : 
+                         (viewParam === 'config' || viewParam === 'running' || viewParam === 'results' || viewParam === 'config_manage') ? 'bathroom-upgrades' : 
+                         INITIAL_SITES[0].id);
+   const initialTaskId = (viewParam === 'detail' || viewParam === 'edit') ? INITIAL_SITES[0].tasks[0].id : null;
+ 
+   const [currentView, setCurrentView] = useState(initialView);
+   const [selectedSiteId, setSelectedSiteId] = useState(initialSiteId);
 
-  const [currentView, setCurrentView] = useState(initialView);
-  const [selectedSiteId, setSelectedSiteId] = useState(initialSiteId);
+   useEffect(() => {
+     if (currentView) {
+       localStorage.setItem("tse_current_view", currentView);
+     }
+   }, [currentView]);
+
+   useEffect(() => {
+     if (selectedSiteId) {
+       localStorage.setItem("tse_selected_site_id", selectedSiteId);
+     }
+   }, [selectedSiteId]);
   const [selectedAnalysisSiteId, setSelectedAnalysisSiteId] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
   const [expandedLinkRows, setExpandedLinkRows] = useState({});
@@ -728,7 +815,6 @@ export default function App() {
   const [newSitePassword, setNewSitePassword] = useState("");
   const [connectionTestStatus, setConnectionTestStatus] = useState("idle"); // "idle", "testing", "success", "failed"
   const [connectionTestMessage, setConnectionTestMessage] = useState("");
-  const [isExcludedCollapsed, setIsExcludedCollapsed] = useState(true);
 
   const handleAuditSinglePage = (pageUrl) => {
     setSingleAuditPageUrl(pageUrl);
@@ -831,6 +917,8 @@ export default function App() {
   useEffect(() => {
     let active = true;
     const fetchDatabaseData = async () => {
+      let loadedSites = sites;
+      let loadedPages = pagesData;
       try {
         const sitesRes = await fetch(`${API_BASE}/sites`);
         if (!sitesRes.ok) throw new Error("Failed to fetch sites from database");
@@ -839,34 +927,51 @@ export default function App() {
         const pagesRes = await fetch(`${API_BASE}/pages-data`);
         if (!pagesRes.ok) throw new Error("Failed to fetch pages configurations from database");
         const pagesJson = await pagesRes.json();
+        console.log("[DIAGNOSTIC] Raw database pagesJson fetched:", pagesJson);
 
         if (active) {
-          // Merge database sites with localStorage sites (prioritizing localStorage)
+          // Merge database sites with local sites (database takes precedence)
           setSites(prevSites => {
-            const merged = [...prevSites];
-            sitesJson.forEach(dbSite => {
-              if (!merged.some(s => s.id === dbSite.id)) {
-                merged.push(dbSite);
+            const dbSiteIds = new Set(sitesJson.map(s => s.id));
+            const merged = sitesJson.map(dbSite => dbSite);
+            prevSites.forEach(localSite => {
+              if (!dbSiteIds.has(localSite.id)) {
+                merged.push(localSite);
               }
             });
+            loadedSites = merged;
+            initialSitesRef.current = merged;
             return merged;
           });
 
-          // Merge database page configurations with localStorage configurations (prioritizing localStorage)
+          // Merge database page configurations with local configurations (database takes precedence)
           setPagesData(prevPages => {
             const merged = { ...prevPages };
             Object.keys(pagesJson).forEach(siteId => {
+              const dbPagesWithTypes = pagesJson[siteId];
+
               if (!merged[siteId]) {
-                merged[siteId] = pagesJson[siteId];
+                merged[siteId] = dbPagesWithTypes;
               } else {
-                const existingUrls = new Set(merged[siteId].map(p => p.pageUrl));
-                pagesJson[siteId].forEach(dbPage => {
-                  if (!existingUrls.has(dbPage.pageUrl)) {
-                    merged[siteId].push(dbPage);
+                const dbPagesMap = new Map(dbPagesWithTypes.map(p => [p.pageUrl, p]));
+                const updatedPages = merged[siteId].map(localPage => {
+                  if (dbPagesMap.has(localPage.pageUrl)) {
+                    return dbPagesMap.get(localPage.pageUrl);
+                  }
+                  return localPage;
+                });
+                const localUrls = new Set(merged[siteId].map(p => p.pageUrl));
+                dbPagesWithTypes.forEach(dbPage => {
+                  if (!localUrls.has(dbPage.pageUrl)) {
+                    updatedPages.push(dbPage);
                   }
                 });
+                merged[siteId] = updatedPages;
               }
             });
+            loadedPages = merged;
+            console.log("[DIAGNOSTIC] Merged pagesData state object:", merged);
+            initialPagesDataRef.current = JSON.parse(JSON.stringify(merged));
             return merged;
           });
 
@@ -874,11 +979,19 @@ export default function App() {
         }
       } catch (err) {
         console.warn("Database API load failed. Using offline localStorage fallback. Error:", err.message);
+        initialSitesRef.current = loadedSites;
+        initialPagesDataRef.current = loadedPages;
+      } finally {
+        if (active) {
+          setIsInitialLoadComplete(true);
+        }
       }
     };
     
     if (!isAutomation) {
       fetchDatabaseData();
+    } else {
+      setIsInitialLoadComplete(true);
     }
     
     return () => {
@@ -887,8 +1000,17 @@ export default function App() {
   }, [isAutomation]);
 
   useEffect(() => {
+    if (!isInitialLoadComplete) return;
+
     if (!isAutomation) {
-      localStorage.setItem("tse_pages_data", JSON.stringify(pagesData));
+      const currentStr = JSON.stringify(pagesData);
+      const initialStr = JSON.stringify(initialPagesDataRef.current);
+      if (currentStr === initialStr) {
+        console.log("Pages data has not changed from database value. Skipping save.");
+        return;
+      }
+
+      localStorage.setItem("tse_pages_data", currentStr);
       
       fetch(`${API_BASE}/pages-data/save`, {
         method: "POST",
@@ -897,12 +1019,23 @@ export default function App() {
       }).catch(err => {
         console.warn("Failed to sync pagesData to database:", err.message);
       });
+
+      initialPagesDataRef.current = pagesData;
     }
-  }, [pagesData, isAutomation]);
+  }, [pagesData, isAutomation, isInitialLoadComplete]);
 
   useEffect(() => {
+    if (!isInitialLoadComplete) return;
+
     if (!isAutomation) {
-      localStorage.setItem("tse_sites_data", JSON.stringify(sites));
+      const currentStr = JSON.stringify(sites);
+      const initialStr = JSON.stringify(initialSitesRef.current);
+      if (currentStr === initialStr) {
+        console.log("Sites data has not changed from database value. Skipping save.");
+        return;
+      }
+
+      localStorage.setItem("tse_sites_data", currentStr);
       
       fetch(`${API_BASE}/sites`, {
         method: "POST",
@@ -911,8 +1044,10 @@ export default function App() {
       }).catch(err => {
         console.warn("Failed to sync sites to database:", err.message);
       });
+
+      initialSitesRef.current = sites;
     }
-  }, [sites, isAutomation]);
+  }, [sites, isAutomation, isInitialLoadComplete]);
 
   useEffect(() => {
     // If the user navigates away from the initial deep-linked view, disable automation mode
@@ -944,8 +1079,58 @@ export default function App() {
   const [selectedArchTaskId, setSelectedArchTaskId] = useState("t1");
   const [activeSettingsTab, setActiveSettingsTab] = useState("general_settings");
   const [expandedSettingsGroups, setExpandedSettingsGroups] = useState({
-    "GENERAL": true
+    "GENERAL": true,
+    "DEVELOPER": true
   });
+
+  const [archNotes, setArchNotes] = useState("");
+  const [saveStatus, setSaveStatus] = useState("All changes saved");
+  const saveTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (activeSettingsTab === "diagnostics") {
+      setSaveStatus("Loading...");
+      fetch(`${API_BASE}/architecture-notes`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to load");
+          return res.json();
+        })
+        .then(data => {
+          setArchNotes(data.content || "");
+          setSaveStatus("All changes saved");
+        })
+        .catch(err => {
+          console.error("Failed to load architecture notes:", err);
+          setSaveStatus("Failed to load notes");
+        });
+    }
+  }, [activeSettingsTab]);
+
+  const handleArchNotesChange = (e) => {
+    const val = e.target.value;
+    setArchNotes(val);
+    setSaveStatus("Saving changes...");
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      fetch(`${API_BASE}/architecture-notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: val })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Save failed");
+        setSaveStatus("All changes saved");
+      })
+      .catch(err => {
+        console.error("Auto-save failed:", err);
+        setSaveStatus("Auto-save failed (retrying on next edit)");
+      });
+    }, 1000);
+  };
   const [simSource, setSimSource] = useState("Search Console");
   const [simSiteId, setSimSiteId] = useState("bathroom-upgrades");
   const [simUrl, setSimUrl] = useState("/search-performance-drop/");
@@ -972,71 +1157,16 @@ export default function App() {
       }
       return url;
     }
-  };  // Helper to score pages for SEO working order
-  const getPageSEOScore = (page) => {
-    const url = page.pageUrl;
-    
-    // 1. Homepage
-    if (url === "/") return 0;
-    
-    // 7. Elementor/Library Pages
-    if (url.includes("elementor_library") || url.includes("template") || url.includes("library")) {
-      return 6;
-    }
-    
-    // 6. Legal/System Pages
-    const legalKeywords = [
-      "privacy", "terms", "cookie", "sitemap", "disclaimer", "legal", "complaints", "conditions"
-    ];
-    if (legalKeywords.some(kw => url.includes(kw))) {
-      return 5;
-    }
-    
-    // 2. Core Service Pages
-    const coreKeywords = [
-      "installation", "refurbishment", "fitters", "renovations", "renovation-cost",
-      "seo-services", "seo-consultant", "local-seo", "ecommerce-seo", "technical-seo",
-      "paid-search", "migration", "specialist", "developer", "google-business-profile-seo",
-      "seo-audit", "fractional-seo", "ppc", "design", "audit"
-    ];
-    
-    // Helper check to make sure it's not a location landing page
-    const isLocation = (url.includes("renovation-") && (
-      url.includes("sidcup") || url.includes("welling") || url.includes("bexleyheath") || 
-      url.includes("erith") || url.includes("dartford") || url.includes("belvedere") || 
-      url.includes("abbey-wood")
-    )) || url.includes("seo-london") || url.includes("seo-bournemouth") || 
-         url.includes("seo-exeter") || url.includes("seo-oxford") || url.includes("seo-reading");
-          
-    if (!isLocation && coreKeywords.some(kw => url.includes(kw))) {
-      return 1;
-    }
-    
-    // 3. Location Pages
-    if (isLocation) return 2;
-    
-    // 4. Commercial/Support Pages
-    const commercialKeywords = [
-      "contact", "thank-you", "gallery", "about", "case-studies", "domain-services",
-      "affordable-seo", "builder-seo", "clinic-seo", "dentist-seo", "law-firm-seo", "shopify-seo",
-      "domain", "prices", "faqs", "estate-agents", "areas", "about-us"
-    ];
-    if (commercialKeywords.some(kw => url.includes(kw))) {
-      return 3;
-    }
-    
-    // 5. Blog/Content Pages (default catch-all for remaining informational/post pages)
-    return 4;
   };
 
   const getGroupedPageType = (page) => {
     if (!page) return "Unassigned Pages";
     if (page.assignedType) {
       if (page.assignedType === "Homepage") return "Homepage";
-      if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages") return "Hub Pages";
-      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages") return "Landing Pages";
-      if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages") return "Supporting Pages";
-      if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages") return "Topical Pages";
+      if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
+      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+      if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
+      if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
       return "Unassigned Pages";
     }
     const url = page.pageUrl;
@@ -1381,6 +1511,7 @@ export default function App() {
           pageTitle: inputPageTitle.trim() || "Untitled Page",
           targetPhrase: inputTargetPhrase.trim(),
           parentPage: formattedUrl === "/" ? "" : inputParentPage,
+          assignedType: getPageAuditorAssignedType(formattedUrl),
           status: "Planned",
           lastModifiedDate: new Date().toISOString().split('T')[0]
         };
@@ -1939,10 +2070,10 @@ export default function App() {
                       const getGroupedPageType = (page) => {
                         if (page.assignedType) {
                           if (page.assignedType === "Homepage") return "Homepage";
-                          if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages") return "Hub Pages";
-                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages") return "Landing Pages";
-                          if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages") return "Supporting Pages";
-                          if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages") return "Topical Pages";
+                          if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
+                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+                          if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
+                          if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
                           return "Unassigned Pages";
                         }
                         const url = page.pageUrl;
@@ -2276,10 +2407,10 @@ export default function App() {
                     const getPageCategory = (page) => {
                       if (page.pageUrl === "/") return "Homepage";
                       if (page.assignedType === "Homepage") return "Homepage";
-                      if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages") return "Hub Pages";
-                      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages") return "Landing Pages";
-                      if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages") return "Supporting Pages";
-                      if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages") return "Topical Pages";
+                      if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
+                      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+                      if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
+                      if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
                       return "Unassigned Pages";
                     };
 
@@ -2431,10 +2562,10 @@ export default function App() {
                             const getGroupedPageType = (page) => {
                               if (page.assignedType) {
                                 if (page.assignedType === "Homepage") return "Homepage";
-                                if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages") return "Hub Pages";
-                                if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages") return "Landing Pages";
-                                if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages") return "Supporting Pages";
-                                if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages") return "Topical Pages";
+                                if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
+                                if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+                                if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
+                                if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
                                 return "Unassigned Pages";
                               }
                               const url = page.pageUrl;
@@ -2652,7 +2783,7 @@ export default function App() {
                               const scored = candidates.map(p => {
                                 let score = 0;
                                 if (p.pageUrl === "/") score += 10;
-                                const isHub = p.assignedType === "Hub Page" || p.assignedType === "Hub Pages";
+                                const isHub = p.assignedType === "Hub Page" || p.assignedType === "Hub Pages" || p.assignedType === "Hub";
                                 if (isHub) score += 20;
                                 return { page: p, score };
                               });
@@ -2691,7 +2822,7 @@ export default function App() {
 
                               let priority = "Low";
                               if (isFail) {
-                                priority = page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" ? "High" : "Medium";
+                                priority = page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub" ? "High" : "Medium";
                               }
 
                               return {
@@ -3762,6 +3893,7 @@ export default function App() {
                     <tbody>
                       {(() => {
                         const sortedPages = sortPagesForSEO(pagesData[selectedSiteId] || []);
+                        console.log("[DIAGNOSTIC] sortedPages immediately before rendering in W2:", sortedPages);
                         const filteredPages = sortedPages.filter(page => {
                           const isExcluded = isPageExcluded(page);
                           if (currentFilter === "all") return !isExcluded;
@@ -3783,6 +3915,15 @@ export default function App() {
                         }
 
                         return filteredPages.map((page, idx) => {
+                          if (idx === 0) {
+                            console.log("[TSE RUNTIME CELL LOG FIRST ROW]", {
+                              pageUrl: page.pageUrl,
+                              status: page.status,
+                              assignedType: page.assignedType,
+                              getPageAuditorAssignedType: getPageAuditorAssignedType(page),
+                              getPageType: getPageType(page)
+                            });
+                          }
                           const isExcluded = isPageExcluded(page);
                           const isConfigured = page.status === "Configured" && !isExcluded;
                           const isSelected = selectedPageUrl === page.pageUrl;
@@ -5070,7 +5211,7 @@ export default function App() {
                     items: [
                       { id: "task_engine", label: "Task Engine" },
                       { id: "logs", label: "Logs" },
-                      { id: "diagnostics", label: "Diagnostics" }
+                      { id: "diagnostics", label: "Architecture Notes" }
                     ]
                   },
                   {
@@ -5349,8 +5490,48 @@ export default function App() {
                         </div>
                       )}
 
+                      {/* Architecture Notes Page */}
+                      {activeSettingsTab === "diagnostics" && (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '1rem',
+                          width: '100%',
+                          maxWidth: '900px',
+                          textAlign: 'left'
+                        }}>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            Internal reference page recording platform decisions and workflows. Changes auto-save as you type.
+                          </p>
+                          <textarea
+                            value={archNotes}
+                            onChange={handleArchNotesChange}
+                            placeholder="Loading notes..."
+                            style={{
+                              width: '100%',
+                              height: '550px',
+                              backgroundColor: '#070b13',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              color: 'var(--text-primary)',
+                              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                              fontSize: '0.9rem',
+                              padding: '1.5rem',
+                              borderRadius: '8px',
+                              lineHeight: 1.6,
+                              resize: 'vertical',
+                              outline: 'none'
+                            }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#10b981', fontWeight: 600 }}>
+                              {saveStatus}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Coming Soon placeholders for other settings sub-pages */}
-                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && (
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && (
                         <div style={{
                           backgroundColor: '#070b13',
                           border: '1px solid rgba(255, 255, 255, 0.06)',
