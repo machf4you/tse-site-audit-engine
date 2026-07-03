@@ -721,6 +721,7 @@ export default function App() {
   const [isAutomation, setIsAutomation] = useState(isAutomationViewTemp);
   const [isImporting, setIsImporting] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+  const [isBackHovered, setIsBackHovered] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
   const [inputTargetPhrase, setInputTargetPhrase] = useState("");
   const [inputPageUrl, setInputPageUrl] = useState("");
@@ -3945,11 +3946,27 @@ export default function App() {
               {/* Back to websites or Site Analysis */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                 <button 
-                  className="flex align-center gap-2 text-secondary"
+                  className="flex align-center gap-2"
                   onClick={() => setCurrentView(currentView === "SITE_ANALYSIS_CONFIG" ? "SITE_ANALYSIS" : "CONNECTED_SITES")}
-                  style={{ background: 'none', border: 'none', fontSize: '0.9rem', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.35rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    color: 'var(--accent-color)',
+                    padding: '8px 16px',
+                    marginLeft: '-16px',
+                    textDecoration: isBackHovered ? 'underline' : 'none',
+                    opacity: isBackHovered ? 0.95 : 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={() => setIsBackHovered(true)}
+                  onMouseLeave={() => setIsBackHovered(false)}
                 >
-                  <ArrowLeft size={16} /> Back to {currentView === "SITE_ANALYSIS_CONFIG" ? "Site Analysis" : "Websites"}
+                  {currentView === "SITE_ANALYSIS_CONFIG" ? "← Back to Site Analysis" : "← Back to All Connected Websites"}
                 </button>
               </div>
 
