@@ -1172,6 +1172,7 @@ export default function App() {
     currentCommit: 'unknown',
     lastPullTime: null,
     lastPullStatus: null,
+    lastPullError: null,
     previousCommit: 'unknown'
   });
   const [gitPullLogs, setGitPullLogs] = useState("");
@@ -1216,6 +1217,11 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setGitStatus(data);
+        if (data.lastPullStatus === 'failure' && data.lastPullError) {
+          setGitPullLogs(`Last Actual Pull Failed:\n\n${data.lastPullError}`);
+        } else {
+          setGitPullLogs("");
+        }
       }
     } catch (e) {
       console.error("Failed to fetch git status:", e);
@@ -1249,22 +1255,29 @@ export default function App() {
           currentCommit: data.currentCommit,
           lastPullTime: data.lastPullTime,
           lastPullStatus: 'success',
+          lastPullError: null,
           previousCommit: data.previousCommit
         });
       } else if (data.dirty) {
         showNotification("Local uncommitted changes detected. Commit or discard them before pulling from GitHub.");
-        setGitStatus(prev => ({
-          ...prev,
+        setGitStatus({
+          branch: data.branch,
+          currentCommit: data.currentCommit,
           lastPullTime: data.lastPullTime,
-          lastPullStatus: 'failure'
-        }));
+          lastPullStatus: data.lastPullStatus,
+          lastPullError: data.lastPullError,
+          previousCommit: data.previousCommit
+        });
       } else {
         showNotification("Git pull failed! See logs for details.");
-        setGitStatus(prev => ({
-          ...prev,
+        setGitStatus({
+          branch: data.branch,
+          currentCommit: data.currentCommit,
           lastPullTime: data.lastPullTime,
-          lastPullStatus: 'failure'
-        }));
+          lastPullStatus: 'failure',
+          lastPullError: data.lastPullError || data.output,
+          previousCommit: data.previousCommit
+        });
       }
     } catch (err) {
       console.error(err);
@@ -5854,8 +5867,8 @@ export default function App() {
                               padding: '1.25rem'
                             }}>
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Pull Status</span>
-                              <div style={{ fontSize: '1rem', fontWeight: 700, color: gitStatus.lastPullStatus === 'success' ? '#10b981' : (gitStatus.lastPullStatus === 'failure' ? '#ef4444' : 'var(--text-secondary)'), marginTop: '0.45rem', textTransform: 'capitalize' }}>
-                                {gitStatus.lastPullStatus || 'No status'}
+                              <div style={{ fontSize: '1rem', fontWeight: 700, color: gitStatus.lastPullStatus === 'success' ? '#10b981' : (gitStatus.lastPullStatus === 'failure' ? (behindCount === 0 ? '#94a3b8' : '#ef4444') : 'var(--text-secondary)'), marginTop: '0.45rem', textTransform: 'capitalize' }}>
+                                {gitStatus.lastPullStatus === 'failure' && behindCount === 0 ? 'Failed (Resolved / Up to date)' : (gitStatus.lastPullStatus || 'No status')}
                               </div>
                             </div>
 
