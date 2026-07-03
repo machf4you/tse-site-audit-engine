@@ -594,7 +594,7 @@ const isAutomationViewTemp = ['results', 'detail', 'edit', 'tasklist'].includes(
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const BU_PAGES = exporterData["bathroom-upgrades"].pages.map(p => {
-  let mapped = { ...p, assignedType: p.assignedType || "Excluded" };
+  let mapped = { ...p, assignedType: p.assignedType || getPageAuditorAssignedType(p) };
   if (isAutomationViewTemp) {
     if (p.pageUrl === "/") {
       mapped = { ...mapped, targetPhrase: "bathroom upgrades", status: "Configured" };

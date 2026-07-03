@@ -379,6 +379,7 @@ async function getPagesData() {
           pc.page_title, 
           pc.target_phrase, 
           pc.parent_page, 
+          pc.assigned_type as page_config_assigned_type,
           pc.status, 
           pc.last_modified_date, 
           pc.crawl_data,
@@ -391,12 +392,23 @@ async function getPagesData() {
         if (!pagesData[r.site_id]) {
           pagesData[r.site_id] = [];
         }
+        // Determine assignedType prioritizing page_classifications (Page Auditor) 
+        // then page_configurations (WordPress import/user override), falling back to calculated type
+        let assignedType = r.page_auditor_assigned_type || r.page_config_assigned_type || getPageAuditorAssignedType(r.page_url);
+        
+        // Heal database corruption: If the database value got corrupted to "Excluded" by the previous bug,
+        // restore the page to its calculated type, unless it was actually classified as "Excluded" by the Page Auditor
+        // or matches one of the explicit exclusion rules (e.g. calculated type is Excluded).
+        if (assignedType === "Excluded" && !r.page_auditor_assigned_type && getPageAuditorAssignedType(r.page_url) !== "Excluded") {
+          assignedType = getPageAuditorAssignedType(r.page_url);
+        }
+
         pagesData[r.site_id].push({
           pageUrl: r.page_url,
           pageTitle: r.page_title,
           targetPhrase: r.target_phrase || "",
           parentPage: r.parent_page || "/",
-          assignedType: r.page_auditor_assigned_type || "Excluded",
+          assignedType: assignedType,
           status: r.status,
           lastModifiedDate: r.last_modified_date || "",
           crawlData: typeof r.crawl_data === 'string' ? JSON.parse(r.crawl_data) : (r.crawl_data || {})
