@@ -1680,54 +1680,7 @@ export default function App() {
     return "#fbbf24";
   };
 
-  const handleAutoClassifySelectedSite = async () => {
-    let updatedCount = 0;
-    const nextPagesData = { ...pagesData };
-    const sitesToSave = [];
 
-    Object.keys(pagesData).forEach(siteId => {
-      const sitePages = pagesData[siteId] || [];
-      let siteUpdated = false;
-      const updatedPages = sitePages.map(page => {
-        if (!page.assignedType || page.assignedType.trim() === "") {
-          const classified = getPageAuditorAssignedType(page.pageUrl);
-          updatedCount++;
-          siteUpdated = true;
-          return { ...page, assignedType: classified };
-        }
-        return page;
-      });
-      if (siteUpdated) {
-        nextPagesData[siteId] = updatedPages;
-        sitesToSave.push({ siteId, pages: updatedPages });
-      }
-    });
-
-    if (updatedCount === 0) {
-      showNotification("All pages across all websites already have assigned types.");
-      return;
-    }
-
-    showNotification(`Classifying ${updatedCount} untyped pages across all websites...`);
-
-    try {
-      for (const siteInfo of sitesToSave) {
-        const response = await fetch(`${API_BASE}/pages-data/save`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ siteId: siteInfo.siteId, pages: siteInfo.pages })
-        });
-        if (!response.ok) throw new Error(`Failed to save pages for site ${siteInfo.siteId}`);
-      }
-
-      setPagesData(nextPagesData);
-      initialPagesDataRef.current = JSON.parse(JSON.stringify(nextPagesData));
-      showNotification(`Successfully auto-classified ${updatedCount} pages across all websites!`);
-    } catch (err) {
-      console.error(err);
-      showNotification("Error saving classified page types.");
-    }
-  };
 
   const handleOpenConfigModal = (page) => {
     setModalMode("edit");
@@ -4065,14 +4018,6 @@ export default function App() {
                       style={{ opacity: selectedPageUrl ? 1 : 0.5, cursor: selectedPageUrl ? 'pointer' : 'not-allowed' }}
                     >
                       Edit Configuration
-                    </button>
-
-                    <button 
-                      className="btn-secondary" 
-                      onClick={handleAutoClassifySelectedSite}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      Classify All Untyped Pages
                     </button>
 
                     <button 
