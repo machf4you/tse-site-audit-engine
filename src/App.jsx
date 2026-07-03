@@ -4241,7 +4241,7 @@ export default function App() {
                                 })()}
                               </td>
                               <td style={{ padding: '16px 20px', fontStyle: isConfigured && page.targetPhrase ? 'normal' : 'italic', color: isConfigured && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isConfigured && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
-                                {isExcluded ? "Excluded" : page.targetPhrase || "Not Configured"}
+                                {isExcluded ? "Excluded" : page.targetPhrase || "No Target Assigned"}
                               </td>
                               <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
                                 {isExcluded ? (
@@ -4587,7 +4587,7 @@ export default function App() {
                     <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', textAlign: 'left' }}>
                       <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Target Phrase</label>
                       <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontStyle: currentTargetPhrase ? 'normal' : 'italic' }}>
-                        {currentTargetPhrase || "Not Configured"}
+                        {currentTargetPhrase || "No Target Assigned"}
                       </div>
                     </div>
 
