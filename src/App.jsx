@@ -1172,7 +1172,7 @@ export default function App() {
     currentCommit: 'unknown',
     lastPullTime: null,
     lastPullStatus: null,
-    lastPullError: null,
+    lastPullLog: null,
     previousCommit: 'unknown'
   });
   const [gitPullLogs, setGitPullLogs] = useState("");
@@ -1217,8 +1217,8 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setGitStatus(data);
-        if (data.lastPullStatus === 'failure' && data.lastPullError) {
-          setGitPullLogs(`Last Actual Pull Failed:\n\n${data.lastPullError}`);
+        if (data.lastPullLog) {
+          setGitPullLogs(data.lastPullLog);
         } else {
           setGitPullLogs("");
         }
@@ -1246,7 +1246,7 @@ export default function App() {
         method: "POST"
       });
       const data = await response.json();
-      setGitPullLogs(data.output || "No output returned.");
+      setGitPullLogs(data.lastPullLog || data.output || "No output returned.");
       
       if (data.success) {
         showNotification("Git pull completed successfully!");
@@ -1255,7 +1255,7 @@ export default function App() {
           currentCommit: data.currentCommit,
           lastPullTime: data.lastPullTime,
           lastPullStatus: 'success',
-          lastPullError: null,
+          lastPullLog: data.lastPullLog,
           previousCommit: data.previousCommit
         });
       } else if (data.dirty) {
@@ -1265,7 +1265,7 @@ export default function App() {
           currentCommit: data.currentCommit,
           lastPullTime: data.lastPullTime,
           lastPullStatus: data.lastPullStatus,
-          lastPullError: data.lastPullError,
+          lastPullLog: data.lastPullLog,
           previousCommit: data.previousCommit
         });
       } else {
@@ -1275,7 +1275,7 @@ export default function App() {
           currentCommit: data.currentCommit,
           lastPullTime: data.lastPullTime,
           lastPullStatus: 'failure',
-          lastPullError: data.lastPullError || data.output,
+          lastPullLog: data.lastPullLog || data.output,
           previousCommit: data.previousCommit
         });
       }
@@ -5853,7 +5853,9 @@ export default function App() {
                               borderRadius: '8px',
                               padding: '1.25rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Time of Last Pull</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                {gitStatus.lastPullStatus === 'success' ? 'Last Successful Pull' : 'Last Pull Attempt'}
+                              </span>
                               <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.45rem' }}>
                                 {gitStatus.lastPullTime ? new Date(gitStatus.lastPullTime).toLocaleString() : 'Never'}
                               </div>
@@ -5867,8 +5869,8 @@ export default function App() {
                               padding: '1.25rem'
                             }}>
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Pull Status</span>
-                              <div style={{ fontSize: '1rem', fontWeight: 700, color: gitStatus.lastPullStatus === 'success' ? '#10b981' : (gitStatus.lastPullStatus === 'failure' ? (behindCount === 0 ? '#94a3b8' : '#ef4444') : 'var(--text-secondary)'), marginTop: '0.45rem', textTransform: 'capitalize' }}>
-                                {gitStatus.lastPullStatus === 'failure' && behindCount === 0 ? 'Failed (Resolved / Up to date)' : (gitStatus.lastPullStatus || 'No status')}
+                              <div style={{ fontSize: '1rem', fontWeight: 700, color: gitStatus.lastPullStatus === 'success' ? '#10b981' : (gitStatus.lastPullStatus === 'failure' ? '#ef4444' : 'var(--text-secondary)'), marginTop: '0.45rem', textTransform: 'capitalize' }}>
+                                {gitStatus.lastPullStatus === 'success' ? 'Successful' : (gitStatus.lastPullStatus === 'failure' ? 'Failed' : 'No Status')}
                               </div>
                             </div>
 
@@ -5879,7 +5881,7 @@ export default function App() {
                               borderRadius: '8px',
                               padding: '1.25rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Update Status</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Repository Status</span>
                               <div style={{
                                 fontSize: '1.15rem',
                                 fontWeight: 800,
@@ -5939,7 +5941,7 @@ export default function App() {
                             }}>
                               <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Latest GitHub Commit</span>
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                                {latestGithubCommit}
+                                {latestGithubCommit === 'unknown' ? "Unable to retrieve latest GitHub commit" : latestGithubCommit}
                               </div>
                             </div>
 
@@ -5950,7 +5952,7 @@ export default function App() {
                               borderRadius: '8px',
                               padding: '1.25rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Time Checked</span>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Update Check</span>
                               <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.35rem' }}>
                                 {timeChecked ? new Date(timeChecked).toLocaleString() : 'Never'}
                               </div>
@@ -6015,7 +6017,7 @@ export default function App() {
 
                           {/* Scrolling Log Window */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Git Pull Output Log</span>
+                            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Last Pull Log</span>
                             <pre style={{
                               margin: 0,
                               padding: '1.25rem',
@@ -6031,7 +6033,7 @@ export default function App() {
                               whiteSpace: 'pre-wrap',
                               wordBreak: 'break-all'
                             }}>
-                              {gitPullLogs || "No logs available. Click 'Pull Latest from GitHub' to run."}
+                              {gitPullLogs || "No logs available. Check for updates or click 'Pull Latest from GitHub' to run."}
                             </pre>
                           </div>
                         </div>

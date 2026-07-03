@@ -234,7 +234,7 @@ app.get('/api/github/status', async (req, res) => {
       exec('git rev-parse HEAD', (err2, commitStdout) => {
         const currentCommit = err2 ? 'unknown' : commitStdout.trim();
         const metaPath = path.join(__dirname, 'git_pull_metadata.json');
-        let metadata = { lastPullTime: null, lastPullStatus: null, lastPullError: null, previousCommit: null, currentCommit: null };
+        let metadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: null, currentCommit: null };
         if (fs.existsSync(metaPath)) {
           try {
             metadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
@@ -247,7 +247,7 @@ app.get('/api/github/status', async (req, res) => {
           currentCommit,
           lastPullTime: metadata.lastPullTime,
           lastPullStatus: metadata.lastPullStatus,
-          lastPullError: metadata.lastPullError || null,
+          lastPullLog: metadata.lastPullLog || null,
           previousCommit: metadata.previousCommit || 'unknown'
         });
       });
@@ -270,7 +270,7 @@ app.post('/api/github/pull', async (req, res) => {
       exec('git status --porcelain', { cwd: path.join(__dirname, '..') }, (errStatus, statusStdout) => {
         if (statusStdout && statusStdout.trim().length > 0) {
           console.warn("Aborting git pull: Local uncommitted changes detected.");
-          let existingMetadata = { lastPullTime: null, lastPullStatus: null, lastPullError: null, previousCommit: 'unknown', currentCommit: 'unknown' };
+          let existingMetadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: 'unknown', currentCommit: 'unknown' };
           try {
             if (fs.existsSync(metaPath)) {
               existingMetadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
@@ -286,7 +286,7 @@ app.post('/api/github/pull', async (req, res) => {
             currentCommit: existingMetadata.currentCommit,
             lastPullTime: existingMetadata.lastPullTime,
             lastPullStatus: existingMetadata.lastPullStatus,
-            lastPullError: existingMetadata.lastPullError
+            lastPullLog: existingMetadata.lastPullLog
           });
         }
 
@@ -294,7 +294,6 @@ app.post('/api/github/pull', async (req, res) => {
         exec(`git pull origin ${branch}`, { cwd: path.join(__dirname, '..') }, (err3, pullStdout, pullStderr) => {
           const pullOutput = pullStdout + '\n' + pullStderr;
           const status = err3 ? 'failure' : 'success';
-          const errorMsg = err3 ? pullOutput : null;
           
           exec('git rev-parse HEAD', (err4, postCommitStdout) => {
             const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
@@ -302,7 +301,7 @@ app.post('/api/github/pull', async (req, res) => {
             const metadata = {
               lastPullTime: timestamp,
               lastPullStatus: status,
-              lastPullError: errorMsg,
+              lastPullLog: pullOutput,
               previousCommit: previousCommit,
               currentCommit: currentCommit
             };
@@ -319,7 +318,7 @@ app.post('/api/github/pull', async (req, res) => {
               currentCommit,
               lastPullTime: timestamp,
               lastPullStatus: status,
-              lastPullError: errorMsg
+              lastPullLog: pullOutput
             });
           });
         });
