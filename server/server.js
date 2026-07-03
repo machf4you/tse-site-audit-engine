@@ -233,7 +233,7 @@ app.get('/api/github/status', async (req, res) => {
       const branch = err1 ? 'unknown' : branchStdout.trim();
       exec('git rev-parse HEAD', (err2, commitStdout) => {
         const currentCommit = err2 ? 'unknown' : commitStdout.trim();
-        const metaPath = path.join(__dirname, 'git_pull_metadata.json');
+        const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
         let metadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: null, currentCommit: null };
         if (fs.existsSync(metaPath)) {
           try {
@@ -260,7 +260,7 @@ app.get('/api/github/status', async (req, res) => {
 
 // POST Run GitHub Deployment Pull
 app.post('/api/github/pull', async (req, res) => {
-  const metaPath = path.join(__dirname, 'git_pull_metadata.json');
+  const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
   exec('git rev-parse --abbrev-ref HEAD', (err1, branchStdout) => {
     const branch = err1 ? 'main' : branchStdout.trim();
     exec('git rev-parse HEAD', (err2, preCommitStdout) => {
