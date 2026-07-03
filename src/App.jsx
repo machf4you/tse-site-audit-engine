@@ -2152,7 +2152,7 @@ export default function App() {
       <header className="hub-header">
         <div className="hub-brand" onClick={() => { setCurrentView("CONNECTED_SITES"); setSelectedTaskId(null); }} style={{ cursor: 'pointer' }}>
           <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
-          <span>TSE Website Management (TEST)</span>
+          <span>TSE Website Management</span>
         </div>
 
         <div className="hub-navigation" style={{ display: 'flex', gap: '24px', marginLeft: '80px', marginRight: 'auto' }}>
