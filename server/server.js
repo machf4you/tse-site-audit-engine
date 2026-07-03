@@ -413,6 +413,56 @@ app.post('/api/github/check-updates', async (req, res) => {
   }
 });
 
+// GET Debug Environment
+app.get('/api/debug-env', async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    const util = require('util');
+    const execPromise = util.promisify(exec);
+    
+    const envVars = {
+      PM2_HOME: process.env.PM2_HOME || null,
+      pm_id: process.env.pm_id || null,
+      process_dir: __dirname,
+      node_version: process.version,
+      platform: process.platform,
+    };
+
+    let pm2List = "";
+    try {
+      const { stdout } = await execPromise('pm2 list || pm2 -v');
+      pm2List = stdout;
+    } catch (e) {
+      pm2List = e.message;
+    }
+
+    let systemdStatus = "";
+    try {
+      const { stdout } = await execPromise('systemctl status || service --status-all');
+      systemdStatus = stdout;
+    } catch (e) {
+      systemdStatus = e.message;
+    }
+
+    let psList = "";
+    try {
+      const { stdout } = await execPromise('ps -ef || ps aux || tasklist');
+      psList = stdout;
+    } catch (e) {
+      psList = e.message;
+    }
+
+    res.json({
+      envVars,
+      pm2List,
+      systemdStatus,
+      psList
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Backend server listening at http://localhost:${port}`);
 });
