@@ -267,9 +267,16 @@ app.post('/api/github/pull', async (req, res) => {
       const previousCommit = err2 ? 'unknown' : preCommitStdout.trim();
       
       // Check for uncommitted changes first
-      exec('git status --porcelain', { cwd: path.join(__dirname, '..') }, (errStatus, statusStdout) => {
-        if (statusStdout && statusStdout.trim().length > 0) {
-          console.warn("Aborting git pull: Local uncommitted changes detected.");
+      const statusCwd = path.join(__dirname, '..');
+      console.log(`[GIT PULL] Executing 'git status --porcelain' in directory: ${statusCwd}`);
+      exec('git status --porcelain', { cwd: statusCwd }, (errStatus, statusStdout) => {
+        const rawStdout = statusStdout || '';
+        console.log(`[GIT PULL] Raw git status output: ${JSON.stringify(rawStdout)}`);
+        const dirty = rawStdout.trim().length > 0;
+        console.log(`[GIT PULL] Trimmed status length: ${rawStdout.trim().length}. Is dirty? ${dirty}`);
+
+        if (dirty) {
+          console.warn("[GIT PULL] Aborting git pull: Local uncommitted changes detected.");
           let existingMetadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: 'unknown', currentCommit: 'unknown' };
           try {
             if (fs.existsSync(metaPath)) {
@@ -280,7 +287,7 @@ app.post('/api/github/pull', async (req, res) => {
           return res.json({
             success: false,
             dirty: true,
-            output: "Local uncommitted changes detected. Commit or discard them before pulling from GitHub.\n\n" + statusStdout,
+            output: "Local uncommitted changes detected. Commit or discard them before pulling from GitHub.\n\n" + rawStdout,
             branch,
             previousCommit: existingMetadata.previousCommit,
             currentCommit: existingMetadata.currentCommit,
@@ -290,8 +297,8 @@ app.post('/api/github/pull', async (req, res) => {
           });
         }
 
-        console.log(`Executing git pull on branch: ${branch}...`);
-        exec(`git pull origin ${branch}`, { cwd: path.join(__dirname, '..') }, (err3, pullStdout, pullStderr) => {
+        console.log(`[GIT PULL] Executing git pull on branch: ${branch}...`);
+        exec(`git pull origin ${branch}`, { cwd: statusCwd }, (err3, pullStdout, pullStderr) => {
           const pullOutput = pullStdout + '\n' + pullStderr;
           const status = err3 ? 'failure' : 'success';
           
@@ -308,7 +315,7 @@ app.post('/api/github/pull', async (req, res) => {
             try {
               fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
             } catch (e) {
-              console.error("Failed to write metadata file:", e.message);
+              console.error("[GIT PULL] Failed to write metadata file:", e.message);
             }
             res.json({
               success: !err3,

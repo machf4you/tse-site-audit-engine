@@ -1246,7 +1246,7 @@ export default function App() {
         method: "POST"
       });
       const data = await response.json();
-      setGitPullLogs(data.lastPullLog || data.output || "No output returned.");
+      setGitPullLogs(data.output || data.lastPullLog || "No output returned.");
       
       if (data.success) {
         showNotification("Git pull completed successfully!");
