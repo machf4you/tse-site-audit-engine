@@ -5814,18 +5814,52 @@ export default function App() {
                       )}
 
                       {/* GitHub Deployment Page */}
-                      {activeSettingsTab === "github_deployment" && (
-                        <div style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '1.5rem',
-                          width: '100%',
-                          maxWidth: '900px',
-                          textAlign: 'left'
-                        }}>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
-                            Internal developer console to pull updates from GitHub and review build/deploy metadata.
-                          </p>
+                      {activeSettingsTab === "github_deployment" && (() => {
+                        let bannerText = "🟢 Development Server: Up to date";
+                        let bannerBg = "rgba(16, 185, 129, 0.1)";
+                        let bannerBorder = "1px solid #10b981";
+                        let bannerColor = "#10b981";
+
+                        if (gitStatus.lastPullStatus === 'failure') {
+                          bannerText = "🔴 Development Server: Git pull failed";
+                          bannerBg = "rgba(239, 68, 68, 0.1)";
+                          bannerBorder = "1px solid #ef4444";
+                          bannerColor = "#ef4444";
+                        } else if (behindCount > 0) {
+                          bannerText = `🟡 Development Server: ${behindCount === 1 ? "1 update available" : `${behindCount} updates available`}`;
+                          bannerBg = "rgba(245, 158, 11, 0.1)";
+                          bannerBorder = "1px solid #f59e0b";
+                          bannerColor = "#f59e0b";
+                        }
+
+                        return (
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1.5rem',
+                            width: '100%',
+                            maxWidth: '900px',
+                            textAlign: 'left'
+                          }}>
+                            {/* Top Status Banner */}
+                            <div style={{
+                              backgroundColor: bannerBg,
+                              border: bannerBorder,
+                              borderRadius: '8px',
+                              padding: '1rem 1.25rem',
+                              color: bannerColor,
+                              fontSize: '1rem',
+                              fontWeight: 800,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px'
+                            }}>
+                              {bannerText}
+                            </div>
+
+                            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                              Internal developer console to pull updates from GitHub and review build/deploy metadata.
+                            </p>
 
                           <div style={{
                             display: 'grid',
@@ -6037,7 +6071,7 @@ export default function App() {
                             </pre>
                           </div>
                         </div>
-                      )}
+                      )})()}
 
                       {/* Coming Soon placeholders for other settings sub-pages */}
                       {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && (
