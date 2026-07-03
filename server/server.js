@@ -416,3 +416,6 @@ app.post('/api/github/check-updates', async (req, res) => {
 app.listen(port, () => {
   console.log(`Backend server listening at http://localhost:${port}`);
 });
+
+// Deployment trigger comment: v1.0.1
+
