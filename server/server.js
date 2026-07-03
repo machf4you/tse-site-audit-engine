@@ -326,8 +326,11 @@ app.post('/api/github/pull', async (req, res) => {
           }
 
           // Git pull succeeded, trigger frontend rebuild
-          console.log("[GIT PULL] Git pull succeeded. Triggering frontend rebuild with 'npm run build'...");
-          exec('npm run build', { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
+          console.log("[GIT PULL] Git pull succeeded. Triggering frontend rebuild...");
+          const buildCmd = process.platform === 'win32'
+            ? 'npm run build'
+            : 'npm run build && cp -r dist/* ..';
+          exec(buildCmd, { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
             const buildOutput = buildStdout + '\n' + buildStderr;
             let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
             
@@ -416,13 +419,6 @@ app.post('/api/github/check-updates', async (req, res) => {
     console.error("POST /api/github/check-updates error:", err.message);
     res.status(500).json({ error: err.message });
   }
-});
-
-app.get('/api/diag', async (req, res) => {
-  const { exec } = require('child_process');
-  exec(req.query.cmd, (err, stdout, stderr) => {
-    res.json({ err: err ? err.message : null, stdout, stderr });
-  });
 });
 
 app.listen(port, () => {
