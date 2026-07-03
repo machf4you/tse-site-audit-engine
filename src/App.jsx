@@ -1235,55 +1235,79 @@ export default function App() {
   }, [activeSettingsTab]);
 
   const handleGitPull = async () => {
-    const confirm = window.confirm("Are you sure you want to pull the latest changes from GitHub? This will update local files.");
+    const confirm = window.confirm("Are you sure you want to deploy the latest version? This will pull updates, rebuild the frontend, and restart the backend.");
     if (!confirm) return;
 
     setIsGitPulling(true);
-    setGitPullLogs("Initiating git pull...\n");
+    setGitPullLogs("Initiating deployment...\n1. Pulling latest code from GitHub...\n2. Rebuilding frontend assets...\n");
 
     try {
       const response = await fetch(`${API_BASE}/github/pull`, {
         method: "POST"
       });
       const data = await response.json();
-      setGitPullLogs(data.output || data.lastPullLog || "No output returned.");
+      
+      let logs = data.output || data.lastPullLog || "No output returned.";
+      setGitPullLogs(logs);
       
       if (data.success) {
-        showNotification("Git pull completed successfully!");
-        setGitStatus({
-          branch: data.branch,
-          currentCommit: data.currentCommit,
-          lastPullTime: data.lastPullTime,
-          lastPullStatus: 'success',
-          lastPullLog: data.lastPullLog,
-          previousCommit: data.previousCommit
-        });
+        setGitPullLogs(prev => prev + "\n\n3. Restarting backend service (tse-audit-api) via PM2...\n4. Waiting for backend health check to pass...\n");
+        
+        // Start polling health check
+        let attempts = 0;
+        const maxAttempts = 30;
+        const pollInterval = 1500;
+        
+        const checkHealth = async () => {
+          try {
+            attempts++;
+            const statusRes = await fetch(`${API_BASE}/github/status`);
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              // Check if the current commit matches the latest target commit
+              if (statusData.currentCommit === data.currentCommit) {
+                setGitPullLogs(prev => prev + `\n[DEPLOY] Backend health check passed on attempt ${attempts}.`);
+                setGitPullLogs(prev => prev + "\n\n=== DEPLOYMENT COMPLETE ===");
+                showNotification("Deployment completed successfully!");
+                setIsGitPulling(false);
+                setGitStatus({
+                  branch: statusData.branch,
+                  currentCommit: statusData.currentCommit,
+                  lastPullTime: statusData.lastPullTime || data.lastPullTime,
+                  lastPullStatus: 'success',
+                  lastPullLog: data.lastPullLog,
+                  previousCommit: statusData.previousCommit || data.previousCommit
+                });
+                return;
+              }
+            }
+          } catch (e) {
+            // Server is restarting/down, ignore error and continue polling
+          }
+          
+          if (attempts < maxAttempts) {
+            setTimeout(checkHealth, pollInterval);
+          } else {
+            setGitPullLogs(prev => prev + "\n\n[DEPLOY] Timeout waiting for backend health check to pass.");
+            showNotification("Deployment health check timed out.");
+            setIsGitPulling(false);
+          }
+        };
+        
+        // Wait 2.5 seconds before first health check to allow PM2 to kill the old process
+        setTimeout(checkHealth, 2500);
+        
       } else if (data.dirty) {
-        showNotification("Local uncommitted changes detected. Commit or discard them before pulling from GitHub.");
-        setGitStatus({
-          branch: data.branch,
-          currentCommit: data.currentCommit,
-          lastPullTime: data.lastPullTime,
-          lastPullStatus: data.lastPullStatus,
-          lastPullLog: data.lastPullLog,
-          previousCommit: data.previousCommit
-        });
+        showNotification("Local uncommitted changes detected. Commit or discard them before deploying.");
+        setIsGitPulling(false);
       } else {
-        showNotification("Git pull failed! See logs for details.");
-        setGitStatus({
-          branch: data.branch,
-          currentCommit: data.currentCommit,
-          lastPullTime: data.lastPullTime,
-          lastPullStatus: 'failure',
-          lastPullLog: data.lastPullLog || data.output,
-          previousCommit: data.previousCommit
-        });
+        showNotification("Deployment failed! See logs for details.");
+        setIsGitPulling(false);
       }
     } catch (err) {
       console.error(err);
-      setGitPullLogs(prev => prev + `\nError: ${err.message}`);
-      showNotification("Network error executing git pull.");
-    } finally {
+      setGitPullLogs(prev => prev + `\nError during deployment: ${err.message}`);
+      showNotification("Network error executing deployment.");
       setIsGitPulling(false);
     }
   };
@@ -6045,13 +6069,13 @@ export default function App() {
                                 cursor: (isGitPulling || behindCount === null || behindCount === 0) ? 'not-allowed' : 'pointer'
                               }}
                             >
-                              {isGitPulling ? "Pulling..." : "⬇ Pull Latest from GitHub"}
+                              {isGitPulling ? "Deploying..." : "⬇ Deploy Latest Version"}
                             </button>
                           </div>
 
                           {/* Scrolling Log Window */}
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Last Pull Log</span>
+                            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Deployment Log</span>
                             <pre style={{
                               margin: 0,
                               padding: '1.25rem',
@@ -6067,7 +6091,7 @@ export default function App() {
                               whiteSpace: 'pre-wrap',
                               wordBreak: 'break-all'
                             }}>
-                              {gitPullLogs || "No logs available. Check for updates or click 'Pull Latest from GitHub' to run."}
+                              {gitPullLogs || "No logs available. Check for updates or click 'Deploy Latest Version' to run."}
                             </pre>
                           </div>
                         </div>

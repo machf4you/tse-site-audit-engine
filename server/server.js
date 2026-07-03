@@ -367,9 +367,14 @@ app.post('/api/github/pull', async (req, res) => {
               });
 
               if (!buildErr) {
-                console.log("[GIT PULL] Rebuild successful. Restarting backend server process...");
+                console.log("[GIT PULL] Rebuild successful. Scheduling pm2 restart tse-audit-api...");
                 setTimeout(() => {
-                  process.exit(0);
+                  console.log("[GIT PULL] Triggering PM2 restart for tse-audit-api...");
+                  exec('pm2 restart tse-audit-api', (pm2Err) => {
+                    if (pm2Err) {
+                      console.error("[GIT PULL] PM2 restart execution failed:", pm2Err.message);
+                    }
+                  });
                 }, 1000);
               }
             });
