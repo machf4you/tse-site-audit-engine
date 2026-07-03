@@ -300,32 +300,78 @@ app.post('/api/github/pull', async (req, res) => {
         console.log(`[GIT PULL] Executing git pull on branch: ${branch}...`);
         exec(`git pull origin ${branch}`, { cwd: statusCwd }, (err3, pullStdout, pullStderr) => {
           const pullOutput = pullStdout + '\n' + pullStderr;
-          const status = err3 ? 'failure' : 'success';
           
-          exec('git rev-parse HEAD', (err4, postCommitStdout) => {
-            const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+          if (err3) {
             const timestamp = new Date().toISOString();
             const metadata = {
               lastPullTime: timestamp,
-              lastPullStatus: status,
+              lastPullStatus: 'failure',
               lastPullLog: pullOutput,
               previousCommit: previousCommit,
-              currentCommit: currentCommit
+              currentCommit: previousCommit
             };
             try {
               fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
-            } catch (e) {
-              console.error("[GIT PULL] Failed to write metadata file:", e.message);
-            }
-            res.json({
-              success: !err3,
+            } catch (e) {}
+            return res.json({
+              success: false,
               output: pullOutput,
               branch,
               previousCommit,
-              currentCommit,
+              currentCommit: previousCommit,
               lastPullTime: timestamp,
-              lastPullStatus: status,
+              lastPullStatus: 'failure',
               lastPullLog: pullOutput
+            });
+          }
+
+          // Git pull succeeded, trigger frontend rebuild
+          console.log("[GIT PULL] Git pull succeeded. Triggering frontend rebuild with 'npm run build'...");
+          exec('npm run build', { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
+            const buildOutput = buildStdout + '\n' + buildStderr;
+            let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
+            
+            exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+              const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+              const timestamp = new Date().toISOString();
+              
+              const status = buildErr ? 'failure' : 'success';
+              if (buildErr) {
+                finalOutput += "\n\n[GIT PULL] Frontend build failed.";
+              } else {
+                finalOutput += "\n\n[GIT PULL] Frontend build succeeded. Deployment complete.";
+              }
+
+              const metadata = {
+                lastPullTime: timestamp,
+                lastPullStatus: status,
+                lastPullLog: finalOutput,
+                previousCommit: previousCommit,
+                currentCommit: currentCommit
+              };
+              try {
+                fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+              } catch (e) {
+                console.error("[GIT PULL] Failed to write metadata file:", e.message);
+              }
+
+              res.json({
+                success: !buildErr,
+                output: finalOutput,
+                branch,
+                previousCommit,
+                currentCommit,
+                lastPullTime: timestamp,
+                lastPullStatus: status,
+                lastPullLog: finalOutput
+              });
+
+              if (!buildErr) {
+                console.log("[GIT PULL] Rebuild successful. Restarting backend server process...");
+                setTimeout(() => {
+                  process.exit(0);
+                }, 1000);
+              }
             });
           });
         });
