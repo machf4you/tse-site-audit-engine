@@ -4654,19 +4654,14 @@ export default function App() {
 
                   {/* Top Page Details Grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-                    {/* Page Title Card */}
-                    <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', textAlign: 'left' }}>
-                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Page Title</label>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={pageTitle}>
-                        {pageTitle || "Untitled Page"}
-                      </div>
-                    </div>
-
                     {/* Page URL Card */}
                     <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', textAlign: 'left' }}>
                       <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Page URL</label>
-                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={currentReviewUrl}>
+                      <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#60a5fa', marginTop: '6px', fontFamily: 'monospace' }} title={currentReviewUrl}>
                         {currentReviewUrl}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        {pageTitle || "Untitled Page"}
                       </div>
                     </div>
 
