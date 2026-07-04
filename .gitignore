@@ -43,3 +43,9 @@ lerna-debug.log*
 # Database local backup fallbacks
 server/db_backup.json
 
+# Temporary backup and hotfix files
+*backup*
+*.bak
+*hotfix-backup*
+
+

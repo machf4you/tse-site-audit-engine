@@ -272,8 +272,28 @@ app.post('/api/github/pull', async (req, res) => {
       exec('git status --porcelain', { cwd: statusCwd }, (errStatus, statusStdout) => {
         const rawStdout = statusStdout || '';
         console.log(`[GIT PULL] Raw git status output: ${JSON.stringify(rawStdout)}`);
-        const dirty = rawStdout.trim().length > 0;
-        console.log(`[GIT PULL] Trimmed status length: ${rawStdout.trim().length}. Is dirty? ${dirty}`);
+        
+        // Filter out temporary backup, hotfix, database backup, or .bak files
+        const dirtyLines = rawStdout.split('\n').filter(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return false;
+          // Extract the filename portion (usually after status indicator e.g. "?? filename")
+          const parts = trimmed.split(/\s+/);
+          const filename = parts[parts.length - 1];
+          if (
+            filename.includes('hotfix-backup') || 
+            filename.includes('db_backup.json') || 
+            filename.includes('backup') || 
+            filename.endsWith('.bak') || 
+            filename.endsWith('~')
+          ) {
+            return false;
+          }
+          return true;
+        });
+
+        const dirty = dirtyLines.length > 0;
+        console.log(`[GIT PULL] Filtered dirty lines count: ${dirtyLines.length}. Is dirty? ${dirty}`);
 
         if (dirty) {
           console.warn("[GIT PULL] Aborting git pull: Local uncommitted changes detected.");
@@ -287,7 +307,7 @@ app.post('/api/github/pull', async (req, res) => {
           return res.json({
             success: false,
             dirty: true,
-            output: "Local uncommitted changes detected. Commit or discard them before pulling from GitHub.\n\n" + rawStdout,
+            output: "Local uncommitted changes detected. Commit or discard them before pulling from GitHub.\n\n" + dirtyLines.join('\n'),
             branch,
             previousCommit: existingMetadata.previousCommit,
             currentCommit: existingMetadata.currentCommit,
