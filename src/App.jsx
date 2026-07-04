@@ -1062,7 +1062,22 @@ export default function App() {
                 const dbPagesMap = new Map(dbPagesWithTypes.map(p => [p.pageUrl, p]));
                 const updatedPages = merged[siteId].map(localPage => {
                   if (dbPagesMap.has(localPage.pageUrl)) {
-                    return dbPagesMap.get(localPage.pageUrl);
+                    const dbPage = dbPagesMap.get(localPage.pageUrl);
+                    
+                    // If local page is configured but database page is not, keep the local configuration
+                    const localIsMoreConfigured = (localPage.status === "Configured" || (localPage.targetPhrase && localPage.targetPhrase.trim() !== "")) &&
+                                                  (dbPage.status !== "Configured" && (!dbPage.targetPhrase || dbPage.targetPhrase.trim() === ""));
+                    
+                    if (localIsMoreConfigured) {
+                      return {
+                        ...dbPage,
+                        targetPhrase: localPage.targetPhrase,
+                        status: localPage.status,
+                        assignedType: localPage.assignedType,
+                        parentPage: localPage.parentPage
+                      };
+                    }
+                    return dbPage;
                   }
                   return localPage;
                 });
