@@ -1092,7 +1092,32 @@ export default function App() {
             });
             loadedPages = merged;
             console.log("[DIAGNOSTIC] Merged pagesData state object:", merged);
-            initialPagesDataRef.current = JSON.parse(JSON.stringify(merged));
+            
+            // Set initialPagesDataRef.current to represent exactly what was fetched from the database (without local overrides),
+            // so that the automatic sync useEffect can detect the difference and save the local changes to the database.
+            const dbSourced = { ...prevPages };
+            Object.keys(pagesJson).forEach(siteId => {
+              const dbPagesWithTypes = pagesJson[siteId];
+              if (!dbSourced[siteId]) {
+                dbSourced[siteId] = dbPagesWithTypes;
+              } else {
+                const dbPagesMap = new Map(dbPagesWithTypes.map(p => [p.pageUrl, p]));
+                const updatedPages = dbSourced[siteId].map(localPage => {
+                  if (dbPagesMap.has(localPage.pageUrl)) {
+                    return dbPagesMap.get(localPage.pageUrl);
+                  }
+                  return localPage;
+                });
+                const localUrls = new Set(dbSourced[siteId].map(p => p.pageUrl));
+                dbPagesWithTypes.forEach(dbPage => {
+                  if (!localUrls.has(dbPage.pageUrl)) {
+                    updatedPages.push(dbPage);
+                  }
+                });
+                dbSourced[siteId] = updatedPages;
+              }
+            });
+            initialPagesDataRef.current = JSON.parse(JSON.stringify(dbSourced));
             return merged;
           });
 
