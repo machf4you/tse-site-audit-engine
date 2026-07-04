@@ -4071,6 +4071,8 @@ export default function App() {
                   
                   {/* Action Buttons Toolbar */}
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    {/* Temporarily hidden from UI until workflows are implemented */}
+                    {/*
                     <button 
                       className="btn-secondary" 
                       onClick={() => {
@@ -4101,6 +4103,7 @@ export default function App() {
                     >
                       Edit Configuration
                     </button>
+                    */}
 
                     <button 
                       className="btn-secondary" 
