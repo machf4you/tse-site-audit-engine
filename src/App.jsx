@@ -4629,11 +4629,11 @@ export default function App() {
                   {/* Top Selection & Score Bar */}
                   <div style={{ display: 'flex', gap: '1.5rem', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
                     <div style={{ flex: 1, minWidth: '250px', textAlign: 'left' }}>
-                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Select Page to Review</label>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Select Page to Review from Dropdown</label>
                       <select
                         value={currentReviewUrl}
                         onChange={(e) => setReviewPageUrl(e.target.value)}
-                        style={{ width: '100%', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.95rem', fontWeight: 600, marginTop: '4px' }}
+                        style={{ width: '50%', minWidth: '250px', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.95rem', fontWeight: 600, marginTop: '4px' }}
                       >
                         {auditedPages.map(p => (
                           <option key={p.pageUrl} value={p.pageUrl}>{p.pageUrl} ({p.pageTitle})</option>
