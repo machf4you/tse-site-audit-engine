@@ -322,8 +322,69 @@ async function initDb() {
           [site.id, creds.username, creds.password]
         );
       }
-    }
     console.log("Self-healing credentials migration completed.");
+
+    // Self-healing migration: Restore specific Bathroom Upgrades page configurations from db_backup.json
+    console.log("Running self-healing migration to restore original W2 page configurations from db_backup.json...");
+    try {
+      const backupPath = path.join(__dirname, 'db_backup.json');
+      if (fs.existsSync(backupPath)) {
+        const backupData = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+        const backupPages = backupData.pagesData?.["bathroom-upgrades"] || [];
+        const pagesToRestore = ["/", "/bathroom-fitters/", "/bathroom-installation/", "/bathroom-refurbishment/", "/bathroom-renovations/"];
+        
+        for (const p of backupPages) {
+          if (pagesToRestore.includes(p.pageUrl)) {
+            // Check if page exists in db
+            const { rows } = await pool.query(
+              "SELECT status FROM page_configurations WHERE site_id = 'bathroom-upgrades' AND page_url = $1",
+              [p.pageUrl]
+            );
+
+            if (rows.length > 0) {
+              console.log(`Restoring configuration for page ${p.pageUrl} from backup...`);
+              await pool.query(
+                `UPDATE page_configurations 
+                 SET target_phrase = $2,
+                     assigned_type = $3,
+                     parent_page = $4,
+                     status = $5,
+                     updated_at = NOW()
+                 WHERE site_id = 'bathroom-upgrades' AND page_url = $1`,
+                [
+                  p.pageUrl,
+                  p.targetPhrase || "",
+                  p.assignedType || "Supporting Page",
+                  p.parentPage || "/",
+                  p.status || "Unconfigured"
+                ]
+              );
+            } else {
+              console.log(`Inserting configuration for page ${p.pageUrl} from backup...`);
+              await pool.query(
+                `INSERT INTO page_configurations 
+                 (site_id, page_url, page_title, target_phrase, parent_page, assigned_type, status, last_modified_date, crawl_data)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                [
+                  'bathroom-upgrades',
+                  p.pageUrl,
+                  p.pageTitle || "",
+                  p.targetPhrase || "",
+                  p.parentPage || "/",
+                  p.assignedType || "Supporting Page",
+                  p.status || "Unconfigured",
+                  p.lastModifiedDate || "",
+                  JSON.stringify(p.crawlData || {})
+                ]
+              );
+            }
+          }
+        }
+        console.log("W2 page configurations restoration completed successfully.");
+      }
+    } catch (err) {
+      console.error("Failed to restore W2 page configurations from backup:", err.message);
+    }
   } catch (err) {
     console.error("Failed to initialize PostgreSQL database. Falling back to local file. Error:", err.message);
     useDb = false;
