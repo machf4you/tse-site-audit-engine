@@ -69,39 +69,43 @@ const getPageAuditorAssignedType = (pageOrUrl) => {
   }
 };
 
-const runPageAudit = (pageUrl, targetPhrase, pageTitle, siteId) => {
-  let foundPage = null;
-  const targetSiteId = siteId || "bathroom-upgrades";
-  const site = exporterData[targetSiteId];
-  if (site && site.pages) {
-    foundPage = site.pages.find(p => p.pageUrl === pageUrl);
-  }
+const runPageAudit = (pageUrl, targetPhrase, pageTitle, siteId, livePageObj) => {
+  let foundPage = livePageObj || null;
   
   if (!foundPage) {
-    for (const sId in exporterData) {
-      const s = exporterData[sId];
-      const p = s.pages.find(page => page.pageUrl === pageUrl);
-      if (p) {
-        foundPage = p;
-        break;
+    const targetSiteId = siteId || "bathroom-upgrades";
+    const site = exporterData[targetSiteId];
+    if (site && site.pages) {
+      foundPage = site.pages.find(p => p.pageUrl === pageUrl);
+    }
+    
+    if (!foundPage) {
+      for (const sId in exporterData) {
+        const s = exporterData[sId];
+        const p = s.pages.find(page => page.pageUrl === pageUrl);
+        if (p) {
+          foundPage = p;
+          break;
+        }
       }
     }
   }
 
-  const data = (foundPage && foundPage.crawlData) ? foundPage.crawlData : {
+  const crawl = (foundPage && foundPage.crawlData) ? foundPage.crawlData : {};
+  const data = {
     url: pageUrl,
-    title: pageTitle || "Page Title",
-    description: "Expert services across South East London. Call us today for a free quote.",
-    h1: pageTitle || "Page Title",
-    h2Count: 4,
-    h2List: ["Our Services", "Complete Renovations", "Get a Quote", "Contact Us"],
-    wordCount: 480,
-    plainText: (pageTitle || "Page Title") + " services. We provide high quality upgrades.",
-    internalLinkCount: 1,
-    incomingAnchors: [],
-    imageCount: 1,
-    images: [{ url: "/wp-content/uploads/dummy.webp", alt: "Bathroom Image" }],
-    imagesMissingAltText: 1
+    title: (foundPage && foundPage.pageTitle) ? foundPage.pageTitle : (crawl.title || pageTitle || "Page Title"),
+    description: crawl.metaDescription || crawl.description || "Expert services across South East London. Call us today for a free quote.",
+    h1: crawl.h1 || pageTitle || "Page Title",
+    h2Count: typeof crawl.h2Count === 'number' ? crawl.h2Count : 4,
+    h2List: crawl.h2List || ["Our Services", "Complete Renovations", "Get a Quote", "Contact Us"],
+    wordCount: typeof crawl.wordCount === 'number' ? crawl.wordCount : (typeof crawl.word_count === 'number' ? crawl.word_count : 480),
+    plainText: crawl.plainText || ((pageTitle || "Page Title") + " services. We provide high quality upgrades."),
+    internalLinkCount: typeof crawl.internalLinkCount === 'number' ? crawl.internalLinkCount : 1,
+    incomingAnchors: crawl.incomingAnchors || [],
+    imageCount: typeof crawl.imageCount === 'number' ? crawl.imageCount : 1,
+    images: crawl.images || [{ url: "/wp-content/uploads/dummy.webp", alt: "Bathroom Image" }],
+    imagesMissingAltText: typeof crawl.imagesMissingAltText === 'number' ? crawl.imagesMissingAltText : 1
   };
 
   const tp = (targetPhrase || "").trim().toLowerCase();
@@ -457,7 +461,7 @@ const generateFindingsForPage = (page, siteUrl, siteId) => {
 
   if (!target || page.status !== "Configured") return []; // Only configured pages are audited
 
-  const auditResults = runPageAudit(relUrl, target, title, siteId);
+  const auditResults = runPageAudit(relUrl, target, title, siteId, page);
   const findings = [];
 
   auditResults.forEach(res => {
@@ -506,7 +510,7 @@ const evaluateRulesForPage = (page, siteUrl, siteId) => {
     }));
   }
 
-  const auditResults = runPageAudit(relUrl, target, title, siteId);
+  const auditResults = runPageAudit(relUrl, target, title, siteId, page);
   return auditResults.map(res => ({
     ruleName: res.item,
     description: `Evaluate ${res.item}`,
@@ -1614,7 +1618,7 @@ export default function App() {
               setAuditFindings(findings);
               setSelectedFindingId(findings.length > 0 ? findings[0].findingId : null);
               
-              const auditResultsForPage = runPageAudit(targetPage.pageUrl, targetPage.targetPhrase, targetPage.pageTitle, selectedSiteId);
+              const auditResultsForPage = runPageAudit(targetPage.pageUrl, targetPage.targetPhrase, targetPage.pageTitle, selectedSiteId, targetPage);
               setPagesData(prev => ({
                 ...prev,
                 [selectedSiteId]: (prev[selectedSiteId] || []).map(p => {
@@ -1655,7 +1659,7 @@ export default function App() {
                 ...prev,
                 [selectedSiteId]: (prev[selectedSiteId] || []).map(p => {
                   if (p.status === "Configured") {
-                    const auditResultsForPage = runPageAudit(p.pageUrl, p.targetPhrase, p.pageTitle, selectedSiteId);
+                    const auditResultsForPage = runPageAudit(p.pageUrl, p.targetPhrase, p.pageTitle, selectedSiteId, p);
                     return {
                       ...p,
                       latestAudit: {
@@ -3101,7 +3105,7 @@ export default function App() {
                             };
 
                             const linkResults = configuredPagesList.map(page => {
-                              const audit = runPageAudit(page.pageUrl, page.targetPhrase, page.pageTitle, site.id);
+                              const audit = runPageAudit(page.pageUrl, page.targetPhrase, page.pageTitle, site.id, page);
                               const linkCheck = audit.find(r => r.item === "Internal Link Count") || {
                                 status: "Fail",
                                 action: "No crawl data available.",
@@ -4558,7 +4562,7 @@ export default function App() {
             const pageTitle = targetPageObj?.pageTitle || "";
             const pageType = getPageType(targetPageObj);
             
-            const auditResults = targetPageObj?.latestAudit?.results || runPageAudit(currentReviewUrl, currentTargetPhrase, pageTitle, selectedSiteId);
+            const auditResults = targetPageObj?.latestAudit?.results || runPageAudit(currentReviewUrl, currentTargetPhrase, pageTitle, selectedSiteId, targetPageObj);
             const passedCount = auditResults.filter(r => r.status === "Pass").length;
             const failedCount = auditResults.filter(r => r.status === "Fail").length;
             const scoreColor = passedCount === 8 ? "#10b981" : passedCount >= 5 ? "#fbbf24" : "#f87171";
