@@ -4525,9 +4525,21 @@ export default function App() {
                 {/* Header Title & Success Badge */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
                   <div style={{ textAlign: 'left' }}>
-                    <span className="status-indicator" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#f97316' }}>
-                      <CheckCircle size={12} /> Latest Audit Results Page
-                    </span>
+                    <div style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: 'rgba(16, 185, 129, 0.85)',
+                      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.15)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                      marginBottom: '0.5rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}>
+                      W3 | Latest Audit Results
+                    </div>
                     <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
                       Latest Audit Results
                     </h2>
