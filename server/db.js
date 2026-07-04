@@ -322,6 +322,7 @@ async function initDb() {
           [site.id, creds.username, creds.password]
         );
       }
+    }
     console.log("Self-healing credentials migration completed.");
 
     // Self-healing migration: Restore specific Bathroom Upgrades page configurations from db_backup.json
