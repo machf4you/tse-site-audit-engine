@@ -236,6 +236,17 @@ async function initDb() {
       );
     `);
 
+    // Load config fallback credentials
+    const credentialsPath = path.join(__dirname, 'fallback_credentials.json');
+    let fallbackCredentials = {};
+    if (fs.existsSync(credentialsPath)) {
+      try {
+        fallbackCredentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+      } catch (err) {
+        console.error("Error reading fallback_credentials.json:", err.message);
+      }
+    }
+
     // Seed database if empty
     const { rows } = await pool.query("SELECT COUNT(*) FROM websites");
     if (parseInt(rows[0].count, 10) === 0) {
@@ -243,10 +254,20 @@ async function initDb() {
       const defaultData = loadFallback();
       
       for (const site of defaultData.sites) {
+        const creds = fallbackCredentials[site.id] || site.credentials;
         await pool.query(
-          `INSERT INTO websites (id, name, url, status, last_audit, tasks)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [site.id, site.name, site.url, site.status, site.lastAudit, JSON.stringify(site.tasks || [])]
+          `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [
+            site.id,
+            site.name,
+            site.url,
+            site.status,
+            site.lastAudit,
+            JSON.stringify(site.tasks || []),
+            creds?.username || "",
+            creds?.password || ""
+          ]
         );
 
         const pages = defaultData.pagesData[site.id] || [];
@@ -282,6 +303,24 @@ async function initDb() {
 
       console.log("Seeding completed successfully.");
     }
+
+    // Self-healing migration for existing databases:
+    // Update blank/empty credentials from fallback file or config data
+    console.log("Running self-healing migration for website credentials...");
+    const currentFallback = loadFallback();
+    for (const site of currentFallback.sites) {
+      const creds = fallbackCredentials[site.id] || site.credentials;
+      if (creds?.username && creds?.password) {
+        await pool.query(
+          `UPDATE websites 
+           SET wp_username = COALESCE(NULLIF(wp_username, ''), $2),
+               wp_password = COALESCE(NULLIF(wp_password, ''), $3)
+           WHERE id = $1 AND (wp_username IS NULL OR wp_username = '' OR wp_password IS NULL OR wp_password = '')`,
+          [site.id, creds.username, creds.password]
+        );
+      }
+    }
+    console.log("Self-healing credentials migration completed.");
   } catch (err) {
     console.error("Failed to initialize PostgreSQL database. Falling back to local file. Error:", err.message);
     useDb = false;
