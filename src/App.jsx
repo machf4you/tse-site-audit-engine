@@ -722,6 +722,7 @@ export default function App() {
   const [isImporting, setIsImporting] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isBackHovered, setIsBackHovered] = useState(false);
+  const [isW3BackHovered, setIsW3BackHovered] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
   const [inputTargetPhrase, setInputTargetPhrase] = useState("");
   const [inputPageUrl, setInputPageUrl] = useState("");
@@ -4522,6 +4523,35 @@ export default function App() {
             return (
               <div className="report-section" style={{ maxWidth: '1680px', margin: '0 auto', padding: '2.5rem' }}>
                 
+                {/* Back Navigation Link */}
+                <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+                  <button
+                    onClick={() => {
+                      setCurrentView("WEBSITES_CONFIG");
+                      setSingleAuditPageUrl(null);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.35rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      color: 'var(--accent-color)',
+                      padding: '8px 16px',
+                      marginLeft: '-16px',
+                      textDecoration: isW3BackHovered ? 'underline' : 'none',
+                      opacity: isW3BackHovered ? 0.95 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={() => setIsW3BackHovered(true)}
+                    onMouseLeave={() => setIsW3BackHovered(false)}
+                  >
+                    ← Back to Website Configuration
+                  </button>
+                </div>
+
                 {/* Header Title & Success Badge */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
                   <div style={{ textAlign: 'left' }}>
@@ -4543,18 +4573,6 @@ export default function App() {
                     <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
                       Latest Audit Results
                     </h2>
-                  </div>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <button 
-                      className="btn-secondary"
-                      onClick={() => {
-                        setCurrentView("WEBSITES_CONFIG");
-                        setSingleAuditPageUrl(null);
-                      }}
-                      style={{ padding: '8px 16px' }}
-                    >
-                      Back To Configuration
-                    </button>
                   </div>
                 </div>
 
