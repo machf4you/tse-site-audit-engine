@@ -13,8 +13,7 @@ const {
   savePageConfig,
   saveAllPagesForSite,
   getArchitectureNotes,
-  saveArchitectureNotes,
-  getDiagnostics
+  saveArchitectureNotes
 } = require('./db');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -110,16 +109,6 @@ app.post('/api/audit', async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: error.message });
-  }
-});
-
-// GET Database Diagnostics
-app.get('/api/diag/db', async (req, res) => {
-  try {
-    const diag = await getDiagnostics();
-    res.json(diag);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
   }
 });
 
