@@ -904,28 +904,52 @@ export default function App() {
         throw new Error("Invalid exporter records data received.");
       }
 
+      const prevPages = pagesData[siteId] || [];
+      const syncedUrls = new Set();
+
       const formattedPages = parsedRecords.map(record => {
         const pageUrl = getRelativeUrl(record.url, cleanUrl);
-        return {
-          pageUrl: pageUrl,
-          pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
-          targetPhrase: record.seo?.focus_keywords?.[0] || "",
-          parentPage: record.parent_id ? String(record.parent_id) : "/",
-          assignedType: getPageAuditorAssignedType(pageUrl),
-          status: "Unconfigured",
-          lastModifiedDate: record.modified_at || "",
-          crawlData: {
-            h1: record.content?.h1 || "",
-            wordCount: record.content?.word_count || 0,
-            metaDescription: record.seo?.description || ""
-          }
-        };
+        syncedUrls.add(pageUrl);
+
+        const existingPage = prevPages.find(p => p.pageUrl === pageUrl);
+        if (existingPage) {
+          return {
+            ...existingPage,
+            pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
+            lastModifiedDate: record.modified_at || "",
+            crawlData: {
+              ...existingPage.crawlData,
+              h1: record.content?.h1 || "",
+              wordCount: record.content?.word_count || 0,
+              metaDescription: record.seo?.description || ""
+            }
+          };
+        } else {
+          return {
+            pageUrl: pageUrl,
+            pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
+            targetPhrase: record.seo?.focus_keywords?.[0] || "",
+            parentPage: record.parent_id ? String(record.parent_id) : "/",
+            assignedType: getPageAuditorAssignedType(pageUrl),
+            status: "Unconfigured",
+            lastModifiedDate: record.modified_at || "",
+            crawlData: {
+              h1: record.content?.h1 || "",
+              wordCount: record.content?.word_count || 0,
+              metaDescription: record.seo?.description || ""
+            }
+          };
+        }
       });
+
+      // Preserve planned pages that are not yet live on WordPress
+      const plannedPages = prevPages.filter(p => p.status === "Planned" && !syncedUrls.has(p.pageUrl));
+      const finalPages = [...formattedPages, ...plannedPages];
 
       const saveResponse = await fetch(`${API_BASE}/pages-data/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ siteId, pages: formattedPages })
+        body: JSON.stringify({ siteId, pages: finalPages })
       });
 
       if (!saveResponse.ok) {
@@ -934,7 +958,7 @@ export default function App() {
 
       setPagesData(prev => ({
         ...prev,
-        [siteId]: formattedPages
+        [siteId]: finalPages
       }));
 
       showNotification(`Successfully synchronized ${formattedPages.length} pages from WordPress.`);
