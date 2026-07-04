@@ -539,6 +539,46 @@ async function saveArchitectureNotes(content) {
   fs.writeFileSync(notesPath, content, 'utf8');
 }
 
+async function getDiagnostics() {
+  let dbSites = [];
+  let dbError = null;
+  if (useDb) {
+    try {
+      const { rows } = await pool.query("SELECT * FROM websites");
+      dbSites = rows;
+    } catch (err) {
+      dbError = err.message;
+    }
+  }
+  let fallbackData = null;
+  if (fs.existsSync(fallbackFilePath)) {
+    try {
+      fallbackData = JSON.parse(fs.readFileSync(fallbackFilePath, 'utf8'));
+    } catch (e) {
+      fallbackData = { error: e.message };
+    }
+  }
+  return {
+    useDb,
+    databaseUrlDefined: !!process.env.DATABASE_URL,
+    fallbackExists: fs.existsSync(fallbackFilePath),
+    fallbackPath: fallbackFilePath,
+    dbError,
+    dbSitesCount: dbSites.length,
+    dbSites: dbSites.map(s => ({
+      id: s.id,
+      name: s.name,
+      wp_username: s.wp_username,
+      wp_password: s.wp_password ? (s.wp_password.substring(0, 3) + "...") : null
+    })),
+    fallbackSites: fallbackData ? (fallbackData.sites || []).map(s => ({
+      id: s.id,
+      name: s.name,
+      credentials: s.credentials
+    })) : null
+  };
+}
+
 module.exports = {
   initDb,
   getSites,
@@ -548,5 +588,6 @@ module.exports = {
   savePageConfig,
   saveAllPagesForSite,
   getArchitectureNotes,
-  saveArchitectureNotes
+  saveArchitectureNotes,
+  getDiagnostics
 };
