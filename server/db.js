@@ -314,8 +314,11 @@ async function initDb() {
         await pool.query(
           `UPDATE websites 
            SET wp_username = COALESCE(NULLIF(wp_username, ''), $2),
-               wp_password = COALESCE(NULLIF(wp_password, ''), $3)
-           WHERE id = $1 AND (wp_username IS NULL OR wp_username = '' OR wp_password IS NULL OR wp_password = '')`,
+               wp_password = CASE 
+                 WHEN wp_password = 'Bathroom@2025#' THEN $3
+                 ELSE COALESCE(NULLIF(wp_password, ''), $3)
+               END
+           WHERE id = $1 AND (wp_username IS NULL OR wp_username = '' OR wp_password IS NULL OR wp_password = '' OR wp_password = 'Bathroom@2025#')`,
           [site.id, creds.username, creds.password]
         );
       }
