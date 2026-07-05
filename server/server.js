@@ -441,18 +441,6 @@ app.post('/api/github/check-updates', async (req, res) => {
   }
 });
 
-// POST Hotfix Remote Env
-app.post('/api/hotfix-env', async (req, res) => {
-  try {
-    const envPath = path.join(__dirname, '.env');
-    const newEnvContent = `OPENAI_API_KEY=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\nDATABASE_URL=postgresql://postgres.arnqpmwedvwhjyqxcmmo:SIstLtRukWdFCjhH@aws-1-eu-central-1.pooler.supabase.com:5432/postgres\n`;
-    fs.writeFileSync(envPath, newEnvContent, 'utf8');
-    res.json({ success: true, message: "Remote .env updated successfully!" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // POST Generate AI Suggested Sentence
 app.post('/api/generate-sentence', async (req, res) => {
   const {
