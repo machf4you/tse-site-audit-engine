@@ -5126,15 +5126,20 @@ export default function App() {
                       </div>
                     ) : (
                       <>
-                        {activeTask.assignee !== "Sarah" && (
-                          <button 
-                            className="btn-secondary"
-                            onClick={() => handleAssignToMe(activeTask.id)}
-                            style={{ color: '#fbbf24', borderColor: '#fbbf24' }}
-                          >
-                            Assign To Me
-                          </button>
-                        )}
+                        <button 
+                          className="btn-secondary"
+                          onClick={() => {
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(activeTask.requiredVersion || "");
+                              showNotification("Required version copied to clipboard!");
+                            } else {
+                              showNotification("Clipboard copy not supported in this browser.");
+                            }
+                          }}
+                          style={{ color: '#fbbf24', borderColor: '#fbbf24' }}
+                        >
+                          Copy Suggestion
+                        </button>
                         
                         <button 
                           className="btn-primary" 
