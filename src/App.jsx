@@ -2061,7 +2061,7 @@ export default function App() {
     } else {
       // All tasks complete for this site
       showNotification(`All tasks completed for ${selectedSite.name}!`);
-      setCurrentView("WEBSITES");
+      setCurrentView("CONNECTED_SITES");
     }
   };
 
