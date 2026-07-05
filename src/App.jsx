@@ -690,6 +690,22 @@ const isPageExcluded = (page) => {
 
 
 
+const getRelativeUrl = (url, siteUrl) => {
+  if (!url) return "/";
+  if (url.startsWith("/")) return url;
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname;
+  } catch (e) {
+    if (siteUrl) {
+      let rel = url.replace(siteUrl, "");
+      if (!rel.startsWith("/")) rel = "/" + rel;
+      return rel;
+    }
+    return url;
+  }
+};
+
 const getComparisonContent = (task, pageObj) => {
   const issue = task.taskTitle || "";
   const targetPhrase = task.targetPhrase || pageObj?.targetPhrase || "keyword";
@@ -1515,22 +1531,7 @@ export default function App() {
   const [simVerification, setSimVerification] = useState("Search Console API verifies impressions recover above threshold");
 
 
-  // Helper to resolve relative path from absolute URL
-  const getRelativeUrl = (url, siteUrl) => {
-    if (!url) return "/";
-    if (url.startsWith("/")) return url;
-    try {
-      const parsed = new URL(url);
-      return parsed.pathname;
-    } catch (e) {
-      if (siteUrl) {
-        let rel = url.replace(siteUrl, "");
-        if (!rel.startsWith("/")) rel = "/" + rel;
-        return rel;
-      }
-      return url;
-    }
-  };
+
 
   const getGroupedPageType = (page) => {
     if (!page) return "Unassigned Pages";
