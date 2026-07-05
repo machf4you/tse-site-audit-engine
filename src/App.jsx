@@ -5052,9 +5052,11 @@ export default function App() {
                           Staff Action Required: Fix the following issues in the WordPress editor to optimize the page.
                         </p>
                         {auditResults.filter(r => r.status === "Fail").map((failItem, idx) => {
-                          const matchingTask = site?.tasks.find(t => 
-                            t.pageUrl.includes(currentReviewUrl) && t.taskTitle.toLowerCase().includes(failItem.item.toLowerCase().replace(" count", "").replace(" tag", ""))
-                          );
+                          const relUrl = getRelativeUrl(currentReviewUrl, site.url);
+                          const matchingTask = site?.tasks.find(t => {
+                            const tRel = getRelativeUrl(t.pageUrl, site.url);
+                            return tRel === relUrl && t.taskTitle.toLowerCase().includes(failItem.item.toLowerCase());
+                          });
                           
                           return (
                             <div 
@@ -5077,15 +5079,54 @@ export default function App() {
                                   {failItem.action}
                                 </span>
                               </div>
-                              {matchingTask && (
-                                <button 
-                                  className="btn-primary btn-sm"
-                                  onClick={() => handleStartTask(matchingTask.id)}
-                                  style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'auto' }}
-                                >
-                                  Fix Issue <ChevronRight size={14} />
-                                </button>
-                              )}
+                              <button 
+                                className="btn-primary btn-sm"
+                                onClick={() => {
+                                  if (matchingTask) {
+                                    handleStartTask(matchingTask.id);
+                                  } else {
+                                    // Generate and append the task dynamically on the fly
+                                    const nextTaskId = `t-${site.id}-dyn-${Date.now()}-${idx + 1}`;
+                                    const newTask = {
+                                      id: nextTaskId,
+                                      taskId: nextTaskId,
+                                      website: site.name,
+                                      pageUrl: site.url.replace(/\/+$/, "") + relUrl,
+                                      pageTitle: pageTitle || "Page Details",
+                                      targetPhrase: currentTargetPhrase || "None",
+                                      keyword: currentTargetPhrase || "None",
+                                      taskSource: "Page Auditor",
+                                      source: "Page Auditor",
+                                      issueType: "Content Audit",
+                                      issueDescription: failItem.action,
+                                      issueFound: failItem.action,
+                                      priority: failItem.item === "H1" || failItem.item === "Title Tag" ? "High" : "Medium",
+                                      status: "Open",
+                                      state: "backlog",
+                                      assignedTo: null,
+                                      assignee: null,
+                                      verificationMethod: "Page Auditor verifies page structure",
+                                      successCheck: "Page Auditor will verify automatically.",
+                                      createdDate: new Date().toISOString().split('T')[0],
+                                      completedDate: null,
+                                      taskTitle: `Missing/Optimizable ${failItem.item}`,
+                                      currentVersion: "Standard",
+                                      requiredVersion: "Optimized",
+                                      whyItMatters: "General on-page SEO improvement."
+                                    };
+                                    
+                                    const updatedTasks = [...site.tasks, newTask];
+                                    setSites(prev => prev.map(s => s.id === site.id ? { ...s, tasks: updatedTasks } : s));
+                                    
+                                    setTimeout(() => {
+                                      handleStartTask(newTask.id);
+                                    }, 100);
+                                  }
+                                }}
+                                style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'auto' }}
+                              >
+                                Fix Issue <ChevronRight size={14} />
+                              </button>
                             </div>
                           );
                         })}
