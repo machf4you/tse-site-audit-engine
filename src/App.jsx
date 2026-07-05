@@ -5172,26 +5172,28 @@ export default function App() {
               <div className="report-section" style={{ padding: '2.5rem' }}>
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>WordPress CMS Sync Editor</span>
+                  <div>
+                    <div style={{
+                      fontFamily: 'Inter, sans-serif',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: 'rgba(16, 185, 129, 0.85)',
+                      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.15)',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      display: 'inline-block',
+                      marginTop: '6px',
+                      marginBottom: '6px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em'
+                    }}>
+                      W5 | WORDPRESS EDITOR
+                    </div>
+                  </div>
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                     Editing: {activeTask.pageUrl}
                   </h2>
-                  <div style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: '0.7rem',
-                    fontWeight: 700,
-                    color: 'rgba(16, 185, 129, 0.85)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                    border: '1px solid rgba(16, 185, 129, 0.15)',
-                    padding: '2px 8px',
-                    borderRadius: '4px',
-                    display: 'inline-block',
-                    marginTop: '6px',
-                    marginBottom: '6px',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}>
-                    W4 | Fix Issues
-                  </div>
                 </div>
 
                 <div className="editing-workspace-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '2.5rem' }}>
