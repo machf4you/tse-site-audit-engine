@@ -1073,7 +1073,8 @@ export default function App() {
               ...existingPage.crawlData,
               h1: record.content?.h1 || "",
               wordCount: record.content?.word_count || 0,
-              metaDescription: record.seo?.description || ""
+              metaDescription: record.seo?.description || "",
+              bodyContent: record.content?.body_content || record.content?.plain_text || ""
             }
           };
         } else {
@@ -1089,7 +1090,8 @@ export default function App() {
             crawlData: {
               h1: record.content?.h1 || "",
               wordCount: record.content?.word_count || 0,
-              metaDescription: record.seo?.description || ""
+              metaDescription: record.seo?.description || "",
+              bodyContent: record.content?.body_content || record.content?.plain_text || ""
             }
           };
         }
@@ -2257,7 +2259,8 @@ export default function App() {
       const updatedCrawlData = {
         h1: record.content?.h1 || "",
         wordCount: record.content?.word_count || 0,
-        metaDescription: record.seo?.description || ""
+        metaDescription: record.seo?.description || "",
+        bodyContent: record.content?.body_content || record.content?.plain_text || ""
       };
       
       const updatedPageObj = {
