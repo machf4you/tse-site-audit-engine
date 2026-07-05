@@ -727,6 +727,7 @@ export default function App() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isBackHovered, setIsBackHovered] = useState(false);
   const [isW3BackHovered, setIsW3BackHovered] = useState(false);
+  const [isW4BackHovered, setIsW4BackHovered] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
   const [inputTargetPhrase, setInputTargetPhrase] = useState("");
   const [inputPageUrl, setInputPageUrl] = useState("");
@@ -5128,14 +5129,29 @@ export default function App() {
           )}
           {currentView === "TASK_FOCUS" && activeTask && selectedSite && (
             <div>
-              <div className="mb-4">
-                <span 
-                  className="flex align-center gap-2 text-secondary cursor-pointer"
-                  onClick={() => setCurrentView("WEBSITES")}
-                  style={{ fontSize: '0.9rem' }}
+              <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+                <button
+                  onClick={() => setCurrentView("AUDIT_RESULTS")}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '1.35rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    color: 'var(--accent-color)',
+                    padding: '8px 16px',
+                    marginLeft: '-16px',
+                    textDecoration: isW4BackHovered ? 'underline' : 'none',
+                    opacity: isW4BackHovered ? 0.95 : 1,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={() => setIsW4BackHovered(true)}
+                  onMouseLeave={() => setIsW4BackHovered(false)}
                 >
-                  <ArrowLeft size={16} /> Back to Backlog
-                </span>
+                  ← Back to Latest Page Audit Results
+                </button>
               </div>
 
               <div className="report-section" style={{ padding: '2.5rem' }}>
