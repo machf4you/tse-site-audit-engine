@@ -748,10 +748,11 @@ export default function App() {
   const instantParam = params ? params.get('instant') === 'true' : false;
   const findingParam = params ? params.get('findingId') : null;
   
-   const savedView = typeof window !== 'undefined' ? localStorage.getItem("tse_current_view") : null;
+   const rawSavedView = typeof window !== 'undefined' ? localStorage.getItem("tse_current_view") : null;
+   const savedView = rawSavedView === "WEBSITES" ? null : rawSavedView;
    const initialView = savedView || ((viewParam === 'detail') ? 'TASK_FOCUS' : 
                        (viewParam === 'edit') ? 'EDIT' : 
-                       (viewParam === 'tasklist') ? 'WEBSITES' : 
+                       (viewParam === 'tasklist') ? 'CONNECTED_SITES' : 
                        (viewParam === 'config_manage') ? 'WEBSITES_CONFIG' :
                        (viewParam === 'config') ? 'AUDIT_CONFIG' :
                        (viewParam === 'running') ? 'AUDIT_RUNNING' :
