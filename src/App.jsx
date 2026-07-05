@@ -2301,6 +2301,8 @@ export default function App() {
       } else {
         setVerificationStatus("fail");
         setVerificationError(`Verification Failed. The page content still does not meet the Page Audit requirements for "${activeTask.taskTitle}".`);
+        showNotification(`Verification Failed. Issue is still unresolved.`);
+        setCurrentView("TASK_FOCUS");
       }
     } catch (err) {
       console.error("Verification failed:", err);
@@ -5325,7 +5327,7 @@ export default function App() {
               <div className="mb-4">
                 <button 
                   className="flex align-center gap-2 text-secondary cursor-pointer"
-                  disabled={verificationStatus === "loading" || verificationStatus === "success"}
+                  disabled={verificationStatus === "loading"}
                   onClick={() => setCurrentView("TASK_FOCUS")}
                   style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-secondary)' }}
                 >
