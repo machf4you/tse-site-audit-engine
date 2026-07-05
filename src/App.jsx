@@ -3398,6 +3398,44 @@ export default function App() {
                               return scored.map(s => s.page);
                             };
 
+                            const getAnchorVariation = (targetPhrase, sourcePage, destPage, index) => {
+                              if (!targetPhrase) return "click here";
+                              
+                              const tp = targetPhrase.trim().toLowerCase();
+                              if (index === 0) return tp;
+                              
+                              const seed = (sourcePage?.pageUrl || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) + index;
+                              
+                              const wordVariations = {
+                                "upgrades": ["renovations", "refurbishments", "improvements", "upgrade services"],
+                                "fitters": ["installers", "specialists", "experts", "fitting services"],
+                                "installation": ["installations", "fitting", "setup", "services", "installers"],
+                                "refurbishment": ["refurbishments", "renovations", "remodeling", "upgrades"],
+                                "renovations": ["renovation", "makeovers", "refurbishments", "projects", "upgrades"]
+                              };
+                              
+                              for (const [key, options] of Object.entries(wordVariations)) {
+                                if (tp.includes(key)) {
+                                  const option = options[seed % options.length];
+                                  const variedPhrase = tp.replace(key, option);
+                                  if (variedPhrase.split(" ").length <= 5) {
+                                    return variedPhrase;
+                                  }
+                                }
+                              }
+                              
+                              const prefixes = ["professional", "expert", "complete", "reliable", "quality", "local", "modern", "affordable"];
+                              const suffixes = ["services", "specialists", "experts", "solutions", "work", "projects"];
+                              
+                              if (seed % 2 === 0) {
+                                const prefix = prefixes[seed % prefixes.length];
+                                return `${prefix} ${tp}`;
+                              } else {
+                                const suffix = suffixes[seed % suffixes.length];
+                                return `${tp} ${suffix}`;
+                              }
+                            };
+
                             const linkResults = configuredPagesList.map(page => {
                               const audit = runPageAudit(page.pageUrl, page.targetPhrase, page.pageTitle, site.id, page);
                               const linkCheck = audit.find(r => r.item === "Internal Link Count") || {
@@ -3684,7 +3722,7 @@ export default function App() {
                                                     for (let i = 0; i < needed; i++) {
                                                       const srcPage = sources[i % sources.length];
                                                       recs.push({
-                                                        recommendedAnchor: (page.targetPhrase || "keyword").toLowerCase(),
+                                                        recommendedAnchor: getAnchorVariation(page.targetPhrase, srcPage, page, i),
                                                         sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
                                                         sourceUrl: srcPage ? srcPage.pageUrl : "/"
                                                       });
