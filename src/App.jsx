@@ -834,7 +834,9 @@ export default function App() {
   
    const rawSavedView = typeof window !== 'undefined' ? localStorage.getItem("tse_current_view") : null;
    const savedView = rawSavedView === "WEBSITES" ? "CONNECTED_SITES" : rawSavedView;
-   const initialView = savedView || ((viewParam === 'detail') ? 'TASK_FOCUS' : 
+   const initialTaskId = (viewParam === 'detail' || viewParam === 'edit') ? INITIAL_SITES[0].tasks[0].id : null;
+
+   let resolvedView = savedView || ((viewParam === 'detail') ? 'TASK_FOCUS' : 
                        (viewParam === 'edit') ? 'EDIT' : 
                        (viewParam === 'tasklist') ? 'CONNECTED_SITES' : 
                        (viewParam === 'config_manage') ? 'WEBSITES_CONFIG' :
@@ -843,11 +845,17 @@ export default function App() {
                        (viewParam === 'results') ? 'AUDIT_RESULTS' :
                        (viewParam === 'settings' || viewParam === 'architecture') ? 'SETTINGS' :
                        'CONNECTED_SITES');
+
+   // Graceful fallback for invalid W4 states on startup
+   if ((resolvedView === "TASK_FOCUS" || resolvedView === "EDIT") && !initialTaskId) {
+     resolvedView = "CONNECTED_SITES";
+   }
+
+   const initialView = resolvedView;
    const savedSiteId = typeof window !== 'undefined' ? localStorage.getItem("tse_selected_site_id") : null;
    const initialSiteId = savedSiteId || ((viewParam === 'dashboard') ? null : 
                          (viewParam === 'config' || viewParam === 'running' || viewParam === 'results' || viewParam === 'config_manage') ? 'bathroom-upgrades' : 
                          INITIAL_SITES[0].id);
-   const initialTaskId = (viewParam === 'detail' || viewParam === 'edit') ? INITIAL_SITES[0].tasks[0].id : null;
  
    const [currentView, setCurrentView] = useState(initialView);
    const [selectedSiteId, setSelectedSiteId] = useState(initialSiteId);
