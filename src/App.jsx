@@ -5000,12 +5000,6 @@ export default function App() {
                   <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ display: 'none', float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
                     {activeTask.priority} Priority
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Website: {selectedSite.name}</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                      Source: {activeTask.source || "Site Auditor"}
-                    </span>
-                  </div>
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                     {activeTask.taskTitle}
                   </h2>
@@ -5025,6 +5019,9 @@ export default function App() {
                     letterSpacing: '0.05em'
                   }}>
                     W4 | Fix Issues
+                  </div>
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                    Website: {selectedSite.name}
                   </div>
                 </div>
 
@@ -5161,12 +5158,6 @@ export default function App() {
                   <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ display: 'none', float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
                     {activeTask.priority} Priority
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Website: {selectedSite.name}</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#34d399', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                      Source: {activeTask.source || "Site Auditor"}
-                    </span>
-                  </div>
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)', marginBottom: 0 }}>
                     {activeTask.taskTitle}
                   </h2>
@@ -5186,6 +5177,9 @@ export default function App() {
                     letterSpacing: '0.05em'
                   }}>
                     W4 | Fix Issues
+                  </div>
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>
+                    Website: {selectedSite.name}
                   </div>
                 </div>
 
