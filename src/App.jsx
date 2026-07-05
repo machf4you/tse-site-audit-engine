@@ -2017,6 +2017,7 @@ export default function App() {
     const relUrl = getRelativeUrl(task.pageUrl, selectedSite.url);
     const pageObj = sitePages.find(p => p.pageUrl === relUrl);
     const { current, required } = getComparisonContent(task, pageObj);
+    console.log("[DIAGNOSTIC] taskTitle:", task.taskTitle, "pageUrl:", task.pageUrl, "relUrl:", relUrl, "pageObj:", !!pageObj, "current:", current, "required:", required);
     return {
       ...task,
       currentVersion: task.state === "completed" ? (task.currentVersion || current) : current,
