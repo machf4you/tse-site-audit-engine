@@ -3700,8 +3700,9 @@ export default function App() {
                                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
                                                 <thead>
                                                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Recommended Anchor Text</th>
-                                                    <th style={{ padding: '10px 14px', width: '75%' }}>Suggested Source Page</th>
+                                                    <th style={{ padding: '10px 14px', width: '20%' }}>Recommended Anchor Text</th>
+                                                     <th style={{ padding: '10px 14px', width: '35%' }}>Suggested Source Page</th>
+                                                     <th style={{ padding: '10px 14px', width: '45%' }}>Suggested Sentence</th>
                                                   </tr>
                                                 </thead>
                                                 <tbody>
@@ -3710,7 +3711,7 @@ export default function App() {
                                                     if (needed <= 0) {
                                                       return (
                                                         <tr>
-                                                          <td colSpan={2} style={{ padding: '12px 14px', fontStyle: 'italic', color: '#34d399', textAlign: 'center', fontWeight: 600 }}>
+                                                          <td colSpan={3} style={{ padding: '12px 14px', fontStyle: 'italic', color: '#34d399', textAlign: 'center', fontWeight: 600 }}>
                                                             No new links required. Sufficient internal links exist.
                                                           </td>
                                                         </tr>
@@ -3739,7 +3740,27 @@ export default function App() {
                                                             ({rec.sourceUrl})
                                                           </span>
                                                         </td>
-                                                      </tr>
+                                                        <td style={{ padding: '10px 14px' }}>
+                                                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                                                             <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                                               "AI sentence will appear here."
+                                                             </span>
+                                                             <button
+                                                               className="btn-secondary"
+                                                               style={{
+                                                                 padding: '4px 10px',
+                                                                 fontSize: '0.75rem',
+                                                                 fontWeight: 600,
+                                                                 border: '1px solid rgba(59, 130, 246, 0.25)',
+                                                                 color: '#60a5fa',
+                                                                 backgroundColor: 'rgba(59, 130, 246, 0.08)'
+                                                               }}
+                                                             >
+                                                               Generate
+                                                             </button>
+                                                           </div>
+                                                         </td>
+                                                       </tr>
                                                     ));
                                                   })()}
                                                 </tbody>
