@@ -876,6 +876,25 @@ export default function App() {
     UnassignedPages: true
   });
   const [selectedTaskId, setSelectedTaskId] = useState(initialTaskId);
+
+  const selectedSite = sites.find(s => s.id === selectedSiteId) || null;
+  
+  const getEnrichedTask = (task) => {
+    if (!task || !selectedSite) return task;
+    const sitePages = pagesData[selectedSite.id] || [];
+    const relUrl = getRelativeUrl(task.pageUrl, selectedSite.url);
+    const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+    const { current, required } = getComparisonContent(task, pageObj);
+    console.log("[DIAGNOSTIC] taskTitle:", task.taskTitle, "pageUrl:", task.pageUrl, "relUrl:", relUrl, "pageObj:", !!pageObj, "current:", current, "required:", required);
+    return {
+      ...task,
+      currentVersion: task.state === "completed" ? (task.currentVersion || current) : current,
+      requiredVersion: required
+    };
+  };
+
+  const rawActiveTask = selectedSite ? selectedSite.tasks.find(t => t.id === selectedTaskId) : null;
+  const activeTask = getEnrichedTask(rawActiveTask);
   
   const toggleSection = (sectionName) => {
     setExpandedSections(prev => ({
@@ -2010,24 +2029,7 @@ export default function App() {
     }
   };
 
-  const selectedSite = sites.find(s => s.id === selectedSiteId) || null;
-  
-  const getEnrichedTask = (task) => {
-    if (!task || !selectedSite) return task;
-    const sitePages = pagesData[selectedSite.id] || [];
-    const relUrl = getRelativeUrl(task.pageUrl, selectedSite.url);
-    const pageObj = sitePages.find(p => p.pageUrl === relUrl);
-    const { current, required } = getComparisonContent(task, pageObj);
-    console.log("[DIAGNOSTIC] taskTitle:", task.taskTitle, "pageUrl:", task.pageUrl, "relUrl:", relUrl, "pageObj:", !!pageObj, "current:", current, "required:", required);
-    return {
-      ...task,
-      currentVersion: task.state === "completed" ? (task.currentVersion || current) : current,
-      requiredVersion: required
-    };
-  };
 
-  const rawActiveTask = selectedSite ? selectedSite.tasks.find(t => t.id === selectedTaskId) : null;
-  const activeTask = getEnrichedTask(rawActiveTask);
 
   const handleStartTask = (taskId) => {
     const rawTask = selectedSite.tasks.find(t => t.id === taskId);
