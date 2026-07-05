@@ -3808,7 +3808,7 @@ export default function App() {
                       onClick={() => {
                         if (isAudited) {
                           setSelectedSiteId(site.id);
-                          setCurrentView("WEBSITES");
+                          setCurrentView("WEBSITES_CONFIG");
                         }
                       }}
                     >
