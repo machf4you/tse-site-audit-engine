@@ -4996,7 +4996,7 @@ export default function App() {
                 })()}
 
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-                  <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
+                  <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ display: 'none', float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
                     {activeTask.priority} Priority
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.25rem' }}>
@@ -5051,7 +5051,7 @@ export default function App() {
                         );
                       })()}
                     </div>
-                    <div style={{ textAlign: 'left' }}>
+                    <div style={{ textAlign: 'left', display: 'none' }}>
                       <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>Assigned To</label>
                       <select 
                         value={activeTask.assignee || ""} 
@@ -5079,7 +5079,7 @@ export default function App() {
                         <option value="Alex">Alex</option>
                       </select>
                     </div>
-                    <div style={{ textAlign: 'left' }}>
+                    <div style={{ textAlign: 'left', display: 'none' }}>
                       <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>Task Status</label>
                       {(() => {
                         const isCompleted = activeTask.state === "completed";
@@ -5142,7 +5142,7 @@ export default function App() {
 
 
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem', marginBottom: '2rem' }}>
-                  <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
+                  <span className={`task-priority-badge priority-${activeTask.priority}`} style={{ display: 'none', float: 'right', fontSize: '0.75rem', padding: '0.25rem 0.65rem' }}>
                     {activeTask.priority} Priority
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.25rem' }}>
@@ -5197,7 +5197,7 @@ export default function App() {
                         );
                       })()}
                     </div>
-                    <div style={{ textAlign: 'left' }}>
+                    <div style={{ textAlign: 'left', display: 'none' }}>
                       <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>Assigned To</label>
                       <select 
                         value={activeTask.assignee || ""} 
@@ -5225,7 +5225,7 @@ export default function App() {
                         <option value="Alex">Alex</option>
                       </select>
                     </div>
-                    <div style={{ textAlign: 'left' }}>
+                    <div style={{ textAlign: 'left', display: 'none' }}>
                       <label style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.4rem' }}>Task Status</label>
                       {(() => {
                         const isCompleted = activeTask.state === "completed";
