@@ -1358,6 +1358,31 @@ export default function App() {
     }
   }, [currentView, initialView]);
 
+  useEffect(() => {
+    if (currentView === "AUDIT_RESULTS" && selectedSiteId) {
+      console.log(`[REFRESH] Refreshing pagesData for site ${selectedSiteId} from database...`);
+      fetch(`${API_BASE}/pages-data`)
+        .then(res => {
+          if (!res.ok) throw new Error("Failed to fetch pages configurations from database");
+          return res.json();
+        })
+        .then(pagesJson => {
+          setPagesData(prevPages => {
+            const merged = { ...prevPages };
+            Object.keys(pagesJson).forEach(siteId => {
+              merged[siteId] = pagesJson[siteId];
+            });
+            initialPagesDataRef.current = merged;
+            return merged;
+          });
+          console.log("[REFRESH] pagesData refreshed successfully from database.");
+        })
+        .catch(err => {
+          console.warn("[REFRESH] Failed to refresh pagesData:", err.message);
+        });
+    }
+  }, [currentView, selectedSiteId]);
+
   const [auditFindings, setAuditFindings] = useState(() => {
     const targetSiteId = initialSiteId || "bathroom-upgrades";
     if (targetSiteId === "bathroom-upgrades") {
