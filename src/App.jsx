@@ -690,6 +690,75 @@ const isPageExcluded = (page) => {
 
 
 
+const getComparisonContent = (task, pageObj) => {
+  const issue = task.taskTitle || "";
+  const targetPhrase = task.targetPhrase || pageObj?.targetPhrase || "keyword";
+  const capitalizedTarget = targetPhrase.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+  if (issue.toLowerCase().includes("title tag")) {
+    const current = pageObj?.crawlData?.title || pageObj?.pageTitle || "";
+    const required = current 
+      ? (current.toLowerCase().includes(targetPhrase.toLowerCase()) 
+          ? current 
+          : `${capitalizedTarget} | ${current.includes("|") ? current.split("|").slice(1).join("|").trim() : current}`) 
+      : `${capitalizedTarget} | Page`;
+    return { current: current || "No title tag found.", required };
+  }
+  
+  if (issue.toLowerCase().includes("meta description")) {
+    const current = pageObj?.crawlData?.metaDescription || pageObj?.crawlData?.description || "";
+    const required = `Looking for professional ${targetPhrase} in South East London? We provide high-quality, reliable solutions tailored to your needs. Get your free quote today!`;
+    return { current: current || "No meta description found.", required };
+  }
+  
+  if (issue.toLowerCase().includes("h1")) {
+    const current = pageObj?.crawlData?.h1 || "";
+    const required = capitalizedTarget;
+    return { current: current || "No H1 heading found.", required };
+  }
+  
+  if (issue.toLowerCase().includes("h2 count")) {
+    const h2List = pageObj?.crawlData?.h2List || [];
+    const current = h2List.length > 0 
+      ? h2List.map(h => `- ${h}`).join("\n") 
+      : "No H2 headings found on this page.";
+    const required = h2List.length > 0
+      ? `${h2List.map((h, idx) => idx === 0 ? `- ${capitalizedTarget} & ${h}` : `- ${h}`).join("\n")}`
+      : `- Professional ${capitalizedTarget}\n- Our Services\n- Why Choose Us`;
+    return { current, required };
+  }
+  
+  if (issue.toLowerCase().includes("word count")) {
+    const wordCount = pageObj?.crawlData?.wordCount || 0;
+    const current = `Word count: ${wordCount} words.\n\nContent:\n${pageObj?.crawlData?.plainText || ""}`;
+    const required = `Word count: 500+ words.\n\nRecommended additions:\nAdd a detailed section about ${targetPhrase} services, including benefits, pricing factors, and service process to increase content depth and naturally integrate the target phrase "${targetPhrase}".`;
+    return { current: current || "No content found.", required };
+  }
+  
+  if (issue.toLowerCase().includes("internal link count")) {
+    const current = `Current internal link count: ${pageObj?.crawlData?.internalLinkCount || 0}`;
+    const required = `At least 3 incoming internal links optimized with the target phrase "${targetPhrase}" as the anchor text.`;
+    return { current, required };
+  }
+  
+  if (issue.toLowerCase().includes("image count")) {
+    const current = `Current image count: ${pageObj?.crawlData?.imageCount || 0}`;
+    const required = `Optimize image filenames (e.g. ${targetPhrase.toLowerCase().replace(/\s+/g, "-")}.jpg) and add target phrase "${targetPhrase}" into image alt text attributes.`;
+    return { current, required };
+  }
+  
+  if (issue.toLowerCase().includes("images missing alt text")) {
+    const current = `Images missing alt text count: ${pageObj?.crawlData?.imagesMissingAltText || 0}`;
+    const required = `Provide descriptive alt text for all images on the page to improve accessibility and image SEO.`;
+    return { current, required };
+  }
+
+  return {
+    current: task.currentVersion || "",
+    required: task.requiredVersion || ""
+  };
+};
+
 export default function App() {
   console.log("[TSE BUILD TEST 2026-07-02 11:02]");
   const [sites, setSites] = useState(() => {
@@ -805,6 +874,14 @@ export default function App() {
   const [verificationStatus, setVerificationStatus] = useState("idle"); // idle, loading, success, fail
   const [verificationError, setVerificationError] = useState("");
   const [notification, setNotification] = useState("");
+  
+  const hasInitializedEditorRef = useRef(false);
+  useEffect(() => {
+    if (isInitialLoadComplete && viewParam === 'edit' && activeTask && !hasInitializedEditorRef.current) {
+      setEditingContent(activeTask.currentVersion);
+      hasInitializedEditorRef.current = true;
+    }
+  }, [isInitialLoadComplete, viewParam, activeTask]);
   
   // Audit run states
   const [auditProgress, setAuditProgress] = useState(0);
@@ -1933,11 +2010,27 @@ export default function App() {
   };
 
   const selectedSite = sites.find(s => s.id === selectedSiteId) || null;
-  const activeTask = selectedSite ? selectedSite.tasks.find(t => t.id === selectedTaskId) : null;
+  
+  const getEnrichedTask = (task) => {
+    if (!task || !selectedSite) return task;
+    const sitePages = pagesData[selectedSite.id] || [];
+    const relUrl = getRelativeUrl(task.pageUrl, selectedSite.url);
+    const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+    const { current, required } = getComparisonContent(task, pageObj);
+    return {
+      ...task,
+      currentVersion: task.state === "completed" ? (task.currentVersion || current) : current,
+      requiredVersion: required
+    };
+  };
+
+  const rawActiveTask = selectedSite ? selectedSite.tasks.find(t => t.id === selectedTaskId) : null;
+  const activeTask = getEnrichedTask(rawActiveTask);
 
   const handleStartTask = (taskId) => {
-    const task = selectedSite.tasks.find(t => t.id === taskId);
-    if (task) {
+    const rawTask = selectedSite.tasks.find(t => t.id === taskId);
+    if (rawTask) {
+      const task = getEnrichedTask(rawTask);
       setSelectedTaskId(taskId);
       setEditingContent(task.currentVersion);
       setVerificationStatus("idle");
@@ -2051,7 +2144,8 @@ export default function App() {
       const priorityOrder = { high: 1, medium: 2, low: 3 };
       incompleteTasks.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
       
-      const nextTask = incompleteTasks[0];
+      const rawNextTask = incompleteTasks[0];
+      const nextTask = getEnrichedTask(rawNextTask);
       setSelectedTaskId(nextTask.id);
       setEditingContent(nextTask.currentVersion);
       setVerificationStatus("idle");
