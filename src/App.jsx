@@ -813,6 +813,8 @@ export default function App() {
   const [isW3BackHovered, setIsW3BackHovered] = useState(false);
   const [isW4BackHovered, setIsW4BackHovered] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
+  const [generatedSentences, setGeneratedSentences] = useState({});
+  const [isGenerating, setIsGenerating] = useState({});
   const [inputTargetPhrase, setInputTargetPhrase] = useState("");
   const [inputPageUrl, setInputPageUrl] = useState("");
   const [inputPageTitle, setInputPageTitle] = useState("");
@@ -1017,6 +1019,46 @@ export default function App() {
       setConnectionTestStatus("failed");
       setConnectionTestMessage("❌ Connection Failed: Network error or CORS block. Ensure the WordPress REST API is reachable.");
     });
+  };
+
+  const handleGenerateSentence = async (destPage, rec, srcPage) => {
+    const key = `${destPage.pageUrl}-${rec.sourceUrl}-${rec.recommendedAnchor}`;
+    setIsGenerating(prev => ({ ...prev, [key]: true }));
+
+    try {
+      const response = await fetch('/api/generate-sentence', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sourceTitle: rec.sourceTitle,
+          sourceUrl: rec.sourceUrl,
+          sourceContent: srcPage?.crawlData?.bodyContent || srcPage?.crawlData?.plain_text || "",
+          destinationTitle: destPage.pageTitle,
+          destinationUrl: destPage.pageUrl,
+          destinationTargetPhrase: destPage.targetPhrase,
+          recommendedAnchor: rec.recommendedAnchor
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server returned status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.sentence) {
+        setGeneratedSentences(prev => ({ ...prev, [key]: data.sentence }));
+        showNotification("Suggested sentence generated!");
+      } else {
+        throw new Error(data.error || "Failed to generate sentence.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Error generating sentence: ${err.message}`);
+    } finally {
+      setIsGenerating(prev => ({ ...prev, [key]: false }));
+    }
   };
 
   const handleSyncWebsitePages = async (siteId, siteUrl, username, password) => {
@@ -3728,43 +3770,75 @@ export default function App() {
                                                       recs.push({
                                                         recommendedAnchor: getAnchorVariation(page.targetPhrase, srcPage, page, i),
                                                         sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
-                                                        sourceUrl: srcPage ? srcPage.pageUrl : "/"
+                                                        sourceUrl: srcPage ? srcPage.pageUrl : "/",
+                                                         srcPageObject: srcPage
                                                       });
                                                     }
 
-                                                    return recs.map((rec, rIdx) => (
-                                                      <tr key={rIdx} style={{ borderBottom: rIdx < recs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                                                        <td style={{ padding: '10px 14px', color: '#fbbf24', fontWeight: 600 }}>
-                                                          {rec.recommendedAnchor}
-                                                        </td>
-                                                        <td style={{ padding: '10px 14px' }}>
-                                                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rec.sourceTitle}</span>
-                                                          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginLeft: '6px' }}>
-                                                            ({rec.sourceUrl})
-                                                          </span>
-                                                        </td>
-                                                        <td style={{ padding: '10px 14px' }}>
-                                                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                                             <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                                               "AI sentence will appear here."
+                                                                                                         return recs.map((rec, rIdx) => {
+                                                       const key = `${page.pageUrl}-${rec.sourceUrl}-${rec.recommendedAnchor}`;
+                                                       const isGen = isGenerating[key];
+                                                       const sentence = generatedSentences[key];
+                                                       const srcPage = rec.srcPageObject;
+
+                                                       return (
+                                                         <tr key={rIdx} style={{ borderBottom: rIdx < recs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                           <td style={{ padding: '10px 14px', color: '#fbbf24', fontWeight: 600 }}>
+                                                             {rec.recommendedAnchor}
+                                                           </td>
+                                                           <td style={{ padding: '10px 14px' }}>
+                                                             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rec.sourceTitle}</span>
+                                                             <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginLeft: '6px' }}>
+                                                               ({rec.sourceUrl})
                                                              </span>
-                                                             <button
-                                                               className="btn-secondary"
-                                                               style={{
-                                                                 padding: '4px 10px',
-                                                                 fontSize: '0.75rem',
-                                                                 fontWeight: 600,
-                                                                 border: '1px solid rgba(59, 130, 246, 0.25)',
-                                                                 color: '#60a5fa',
-                                                                 backgroundColor: 'rgba(59, 130, 246, 0.08)'
-                                                               }}
-                                                             >
-                                                               Generate
-                                                             </button>
-                                                           </div>
-                                                         </td>
-                                                       </tr>
-                                                    ));
+                                                           </td>
+                                                           <td style={{ padding: '10px 14px' }}>
+                                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                                                               <span style={{ color: sentence ? 'var(--text-primary)' : 'var(--text-secondary)', fontStyle: sentence ? 'normal' : 'italic' }}>
+                                                                 {isGen ? "Generating AI sentence..." : (sentence || '"AI sentence will appear here."')}
+                                                               </span>
+                                                               {sentence ? (
+                                                                 <button
+                                                                   className="btn-secondary"
+                                                                   onClick={() => {
+                                                                     navigator.clipboard.writeText(sentence);
+                                                                     showNotification("Copied to clipboard!");
+                                                                   }}
+                                                                   style={{
+                                                                     padding: '4px 10px',
+                                                                     fontSize: '0.75rem',
+                                                                     fontWeight: 600,
+                                                                     border: '1px solid rgba(16, 185, 129, 0.25)',
+                                                                     color: '#34d399',
+                                                                     backgroundColor: 'rgba(16, 185, 129, 0.08)'
+                                                                   }}
+                                                                 >
+                                                                   Copy
+                                                                 </button>
+                                                               ) : (
+                                                                 <button
+                                                                   className="btn-secondary"
+                                                                   disabled={isGen}
+                                                                   onClick={() => handleGenerateSentence(page, rec, srcPage)}
+                                                                   style={{
+                                                                     padding: '4px 10px',
+                                                                     fontSize: '0.75rem',
+                                                                     fontWeight: 600,
+                                                                     border: '1px solid rgba(59, 130, 246, 0.25)',
+                                                                     color: '#60a5fa',
+                                                                     backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                                     opacity: isGen ? 0.5 : 1,
+                                                                     cursor: isGen ? 'not-allowed' : 'pointer'
+                                                                   }}
+                                                                 >
+                                                                   {isGen ? "Generating..." : "Generate"}
+                                                                 </button>
+                                                               )}
+                                                             </div>
+                                                           </td>
+                                                         </tr>
+                                                       );
+                                                     });
                                                   })()}
                                                 </tbody>
                                               </table>

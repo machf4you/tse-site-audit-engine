@@ -441,6 +441,57 @@ app.post('/api/github/check-updates', async (req, res) => {
   }
 });
 
+// POST Generate AI Suggested Sentence
+app.post('/api/generate-sentence', async (req, res) => {
+  const {
+    sourceTitle,
+    sourceUrl,
+    sourceContent,
+    destinationTitle,
+    destinationUrl,
+    destinationTargetPhrase,
+    recommendedAnchor
+  } = req.body;
+
+  try {
+    const prompt = `You are an experienced SEO copywriter. Generate ONE natural sentence to insert into a source page that links to a destination page.
+
+Source Page Title: ${sourceTitle}
+Source Page URL: ${sourceUrl}
+Source Page Body Content snippet: ${sourceContent ? sourceContent.substring(0, 3000) : ""}
+
+Destination Page Title: ${destinationTitle}
+Destination Page URL: ${destinationUrl}
+Destination Target Phrase: ${destinationTargetPhrase}
+Recommended Anchor Text: ${recommendedAnchor}
+
+Requirements:
+- The sentence MUST contain the recommended anchor text: "${recommendedAnchor}".
+- The sentence must fit naturally into the source page's content and flow.
+- The sentence must link naturally to the destination page.
+- Sounds like an experienced SEO copywriter.
+- Max 35 words.
+- Not promotional.
+- Reads naturally.
+- Output ONLY the final sentence. Do not include any quotes, markdown formatting, or extra text.`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: 'system', content: 'You are an SEO copywriting assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.5
+    });
+
+    const sentence = response.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+    res.json({ sentence });
+  } catch (error) {
+    console.error("AI Sentence generation error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Backend server listening at http://localhost:${port}`);
 });
