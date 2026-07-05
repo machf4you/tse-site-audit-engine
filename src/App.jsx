@@ -3477,7 +3477,8 @@ export default function App() {
                                           
                                           {/* Badge and action button */}
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <span style={{
+                                            {labelText !== "Add Links" && (
+                                              <span style={{
                                               color: badgeColor,
                                               backgroundColor: badgeBg,
                                               padding: '4px 12px',
@@ -3489,6 +3490,7 @@ export default function App() {
                                             }}>
                                               {labelText}
                                             </span>
+                                            )}
 
                                             {labelText !== "No Action Required" && (
                                               <button
