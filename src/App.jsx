@@ -2153,7 +2153,9 @@ export default function App() {
       
       // 1. Resolve WordPress Post ID (fallback to dynamic fetching if missing from page model)
       let wpPostId = targetPage ? targetPage.wpPostId : null;
-      const credentials = window.btoa(selectedSite.wp_username.trim() + ":" + selectedSite.wp_password.trim());
+      const wpUsername = selectedSite.credentials?.username || "";
+      const wpPassword = selectedSite.credentials?.password || "";
+      const credentials = window.btoa(wpUsername.trim() + ":" + wpPassword.trim());
       
       if (!wpPostId) {
         console.log("wpPostId not found in page object. Fetching export to resolve ID...");
