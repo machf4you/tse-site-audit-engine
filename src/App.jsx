@@ -813,6 +813,9 @@ export default function App() {
   const [isW3BackHovered, setIsW3BackHovered] = useState(false);
   const [isW4BackHovered, setIsW4BackHovered] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
+  const [editingAnchorKey, setEditingAnchorKey] = useState(null);
+  const [editingAnchorText, setEditingAnchorText] = useState("");
+  const [editedAnchors, setEditedAnchors] = useState({});
   const [generatedSentences, setGeneratedSentences] = useState({});
   const [isGenerating, setIsGenerating] = useState({});
   const [inputTargetPhrase, setInputTargetPhrase] = useState("");
@@ -1021,8 +1024,7 @@ export default function App() {
     });
   };
 
-  const handleGenerateSentence = async (destPage, rec, srcPage) => {
-    const key = `${destPage.pageUrl}-${rec.sourceUrl}-${rec.recommendedAnchor}`;
+  const handleGenerateSentence = async (destPage, rec, srcPage, key, anchorText) => {
     setIsGenerating(prev => ({ ...prev, [key]: true }));
 
     try {
@@ -1038,7 +1040,7 @@ export default function App() {
           destinationTitle: destPage.pageTitle,
           destinationUrl: destPage.pageUrl,
           destinationTargetPhrase: destPage.targetPhrase,
-          recommendedAnchor: rec.recommendedAnchor
+          recommendedAnchor: anchorText
         })
       });
 
@@ -3783,15 +3785,90 @@ export default function App() {
                                                     }
 
                                                                                                          return recs.map((rec, rIdx) => {
-                                                       const key = `${page.pageUrl}-${rec.sourceUrl}-${rec.recommendedAnchor}`;
+                                                       const key = `${page.pageUrl}-${rec.sourceUrl}-${rIdx}`;
                                                        const isGen = isGenerating[key];
                                                        const sentence = generatedSentences[key];
                                                        const srcPage = rec.srcPageObject;
+                                                       const displayAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                       const isEditingThis = editingAnchorKey === key;
 
                                                        return (
                                                          <tr key={rIdx} style={{ borderBottom: rIdx < recs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                                                           <td style={{ padding: '10px 14px', color: '#fbbf24', fontWeight: 600 }}>
-                                                             {rec.recommendedAnchor}
+                                                           <td style={{ padding: '10px 14px', width: '25%' }}>
+                                                             {isEditingThis ? (
+                                                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                 <input
+                                                                   type="text"
+                                                                   value={editingAnchorText}
+                                                                   onChange={(e) => setEditingAnchorText(e.target.value)}
+                                                                   onKeyDown={(e) => {
+                                                                     if (e.key === 'Enter') {
+                                                                       const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                                       const newAnchor = editingAnchorText.trim();
+                                                                       if (newAnchor && newAnchor !== prevAnchor) {
+                                                                         setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
+                                                                         setGeneratedSentences(prev => {
+                                                                           const next = { ...prev };
+                                                                           delete next[key];
+                                                                           return next;
+                                                                         });
+                                                                       }
+                                                                       setEditingAnchorKey(null);
+                                                                     } else if (e.key === 'Escape') {
+                                                                       setEditingAnchorKey(null);
+                                                                     }
+                                                                   }}
+                                                                   autoFocus
+                                                                   style={{
+                                                                     backgroundColor: '#1e293b',
+                                                                     border: '1px solid #3b82f6',
+                                                                     borderRadius: '4px',
+                                                                     color: 'var(--text-primary)',
+                                                                     padding: '2px 6px',
+                                                                     fontSize: '0.8rem',
+                                                                     width: '100%',
+                                                                     outline: 'none'
+                                                                   }}
+                                                                 />
+                                                                 <button
+                                                                   onClick={() => {
+                                                                     const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                                     const newAnchor = editingAnchorText.trim();
+                                                                     if (newAnchor && newAnchor !== prevAnchor) {
+                                                                       setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
+                                                                       setGeneratedSentences(prev => {
+                                                                         const next = { ...prev };
+                                                                         delete next[key];
+                                                                         return next;
+                                                                       });
+                                                                     }
+                                                                     setEditingAnchorKey(null);
+                                                                   }}
+                                                                   style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0 }}
+                                                                   title="Save"
+                                                                 >
+                                                                   ✓
+                                                                 </button>
+                                                               </div>
+                                                             ) : (
+                                                               <div 
+                                                                 style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                                                 onClick={() => {
+                                                                   setEditingAnchorKey(key);
+                                                                   setEditingAnchorText(displayAnchor);
+                                                                 }}
+                                                               >
+                                                                 <span style={{ color: '#fbbf24', fontWeight: 600 }}>
+                                                                   {displayAnchor}
+                                                                 </span>
+                                                                 <span 
+                                                                   style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
+                                                                   title="Edit anchor text"
+                                                                 >
+                                                                   ✏️
+                                                                 </span>
+                                                               </div>
+                                                             )}
                                                            </td>
                                                            <td style={{ padding: '10px 14px' }}>
                                                              <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rec.sourceTitle}</span>
@@ -3826,7 +3903,7 @@ export default function App() {
                                                                  <button
                                                                    className="btn-secondary"
                                                                    disabled={isGen}
-                                                                   onClick={() => handleGenerateSentence(page, rec, srcPage)}
+                                                                   onClick={() => handleGenerateSentence(page, rec, srcPage, key, displayAnchor)}
                                                                    style={{
                                                                      padding: '4px 10px',
                                                                      fontSize: '0.75rem',
