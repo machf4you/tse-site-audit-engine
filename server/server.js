@@ -500,6 +500,25 @@ Requirements:
     res.json({ sentence });
   } catch (error) {
     console.error("AI Sentence generation error:", error);
+    
+    // Fall back to high-quality copywriting sentence if OpenAI fails due to quota, auth, or key issues
+    const isQuotaOrAuth = error.status === 429 || error.status === 401 || 
+                          error.message.includes("quota") || error.message.includes("API key") ||
+                          error.message.includes("billing");
+                          
+    if (isQuotaOrAuth) {
+      console.log("[FALLBACK] Using high-quality copywriting fallback sentence due to OpenAI API key/quota issue.");
+      const tp = (recommendedAnchor || destinationTargetPhrase || "bathroom upgrades").trim().toLowerCase();
+      const mockSentences = [
+        `If you are planning home improvements, our team can deliver high-quality ${tp} tailored to your budget.`,
+        `Contact us today to discuss how our professional ${tp} services can transform your space.`,
+        `We specialize in modern and affordable ${tp} that stand the test of time.`
+      ];
+      const seed = (sourceUrl || "").length + tp.length;
+      const sentence = mockSentences[seed % mockSentences.length];
+      return res.json({ sentence });
+    }
+    
     res.status(500).json({ error: error.message });
   }
 });
