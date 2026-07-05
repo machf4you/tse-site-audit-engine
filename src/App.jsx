@@ -884,19 +884,44 @@ export default function App() {
     UnassignedPages: true
   });
   const [selectedTaskId, setSelectedTaskId] = useState(initialTaskId);
-
-  const selectedSite = sites.find(s => s.id === selectedSiteId) || null;
   
+  const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
+  const selectedSite = selectedSiteRaw ? {
+    ...selectedSiteRaw,
+    tasks: selectedSiteRaw.tasks.map(t => {
+      const sitePages = pagesData[selectedSiteRaw.id] || [];
+      const relUrl = getRelativeUrl(t.pageUrl, selectedSiteRaw.url);
+      const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+      let derivedState = t.state || "backlog";
+      if (pageObj && pageObj.latestAudit && pageObj.latestAudit.results) {
+        const findings = generateFindingsForPage(pageObj, selectedSiteRaw.url, selectedSiteRaw.id);
+        const hasIssue = findings.some(f => f.findingType === t.taskTitle);
+        derivedState = hasIssue ? "backlog" : "completed";
+      }
+      return { ...t, state: derivedState };
+    })
+  } : null;
+
   const getEnrichedTask = (task) => {
     if (!task || !selectedSite) return task;
     const sitePages = pagesData[selectedSite.id] || [];
     const relUrl = getRelativeUrl(task.pageUrl, selectedSite.url);
     const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+    
+    // Derive task state dynamically from audit results
+    let derivedState = task.state || "backlog";
+    if (pageObj && pageObj.latestAudit && pageObj.latestAudit.results) {
+      const findings = generateFindingsForPage(pageObj, selectedSite.url, selectedSite.id);
+      const hasIssue = findings.some(f => f.findingType === task.taskTitle);
+      derivedState = hasIssue ? "backlog" : "completed";
+    }
+    
     const { current, required } = getComparisonContent(task, pageObj);
-    console.log("[DIAGNOSTIC] taskTitle:", task.taskTitle, "pageUrl:", task.pageUrl, "relUrl:", relUrl, "pageObj:", !!pageObj, "current:", current, "required:", required);
+    console.log("[DIAGNOSTIC] taskTitle:", task.taskTitle, "pageUrl:", task.pageUrl, "relUrl:", relUrl, "pageObj:", !!pageObj, "current:", current, "required:", required, "derivedState:", derivedState);
     return {
       ...task,
-      currentVersion: task.state === "completed" ? (task.currentVersion || current) : current,
+      state: derivedState,
+      currentVersion: derivedState === "completed" ? (task.currentVersion || current) : current,
       requiredVersion: required
     };
   };
@@ -1041,6 +1066,7 @@ export default function App() {
         if (existingPage) {
           return {
             ...existingPage,
+            wpPostId: record.id,
             pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
             lastModifiedDate: record.modified_at || "",
             crawlData: {
@@ -1053,6 +1079,7 @@ export default function App() {
         } else {
           return {
             pageUrl: pageUrl,
+            wpPostId: record.id,
             pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
             targetPhrase: record.seo?.focus_keywords?.[0] || "",
             parentPage: record.parent_id ? String(record.parent_id) : "/",
@@ -2112,19 +2139,149 @@ export default function App() {
     }
   };
 
-  const handleVerifyChange = () => {
+  const handleVerifyChange = async () => {
     if (!activeTask || !selectedSite) return;
     
     setVerificationStatus("loading");
     setVerificationError("");
     
-    setTimeout(() => {
-      // Basic verification rule: input content must contain the required keyword
-      const isValid = editingContent.toLowerCase().includes(activeTask.keyword.toLowerCase());
+    try {
+      const cleanUrl = selectedSite.url.replace(/\/+$/, "");
+      const cleanRelativeUrl = getRelativeUrl(activeTask.pageUrl, selectedSite.url);
+      const sitePages = pagesData[selectedSite.id] || [];
+      const targetPage = sitePages.find(p => p.pageUrl === cleanRelativeUrl);
       
-      if (isValid) {
+      // 1. Resolve WordPress Post ID (fallback to dynamic fetching if missing from page model)
+      let wpPostId = targetPage ? targetPage.wpPostId : null;
+      const credentials = window.btoa(selectedSite.wp_username.trim() + ":" + selectedSite.wp_password.trim());
+      
+      if (!wpPostId) {
+        console.log("wpPostId not found in page object. Fetching export to resolve ID...");
+        const exportEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/export`;
+        const res = await fetch(exportEndpoint, {
+          headers: { "Authorization": `Basic ${credentials}` }
+        });
+        if (!res.ok) {
+          throw new Error(`WordPress connection check failed: status ${res.status}`);
+        }
+        const data = await res.json();
+        const records = data["full-export.json"] || [];
+        const match = records.find(r => getRelativeUrl(r.url, cleanUrl) === cleanRelativeUrl);
+        if (match) {
+          wpPostId = match.id;
+        } else {
+          throw new Error(`Could not find matching page for path "${cleanRelativeUrl}" in WordPress export.`);
+        }
+      }
+      
+      // 2. Map task title to WordPress field
+      let wpField = "";
+      const taskTitle = activeTask.taskTitle.toLowerCase();
+      if (taskTitle.includes("meta description")) {
+        wpField = "meta_description";
+      } else if (taskTitle.includes("h1")) {
+        wpField = "h1";
+      } else if (taskTitle.includes("title tag") || taskTitle.includes("title phrase")) {
+        wpField = "seo_title";
+      } else {
+        throw new Error(`Unsupported task type for WordPress update: "${activeTask.taskTitle}"`);
+      }
+      
+      console.log(`Pushing update to WordPress: post_id=${wpPostId}, field=${wpField}`);
+      
+      // 3. Save changes via POST /update-page
+      const updateEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/update-page`;
+      const updateRes = await fetch(updateEndpoint, {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${credentials}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          post_id: wpPostId,
+          field: wpField,
+          value: editingContent
+        })
+      });
+      
+      if (!updateRes.ok) {
+        const errData = await updateRes.json().catch(() => ({}));
+        throw new Error(errData.message || `WordPress update failed with status ${updateRes.status}`);
+      }
+      
+      // 4. Sync ONLY this page's crawl data from WordPress
+      console.log("Fetching updated page export from WordPress...");
+      const exportEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/export`;
+      const exportRes = await fetch(exportEndpoint, {
+        headers: { "Authorization": `Basic ${credentials}` }
+      });
+      if (!exportRes.ok) {
+        throw new Error("Failed to pull updated WordPress export.");
+      }
+      const exportData = await exportRes.json();
+      const records = exportData["full-export.json"] || [];
+      const record = records.find(r => getRelativeUrl(r.url, cleanUrl) === cleanRelativeUrl);
+      
+      if (!record) {
+        throw new Error("Could not find the updated page record in WordPress export list.");
+      }
+      
+      // 5. Update only this page's crawlData
+      const updatedCrawlData = {
+        h1: record.content?.h1 || "",
+        wordCount: record.content?.word_count || 0,
+        metaDescription: record.seo?.description || ""
+      };
+      
+      const updatedPageObj = {
+        ...targetPage,
+        wpPostId: record.id,
+        pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
+        lastModifiedDate: record.modified_at || "",
+        crawlData: updatedCrawlData
+      };
+      
+      // 6. Re-run Page Audit for only this page
+      console.log("Re-running Page Audit...");
+      const newAuditResults = runPageAudit(
+        updatedPageObj.pageUrl,
+        updatedPageObj.targetPhrase,
+        updatedPageObj.pageTitle,
+        selectedSite.id,
+        updatedPageObj
+      );
+      
+      const finalizedPageObj = {
+        ...updatedPageObj,
+        latestAudit: {
+          timestamp: new Date().toISOString(),
+          results: newAuditResults
+        }
+      };
+      
+      const updatedSitePages = sitePages.map(p => p.pageUrl === cleanRelativeUrl ? finalizedPageObj : p);
+      
+      // Save updated pages to database
+      await fetch(`${API_BASE}/pages-data/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId: selectedSite.id, pages: updatedSitePages })
+      });
+      
+      // Update pagesData state
+      setPagesData(prev => ({
+        ...prev,
+        [selectedSite.id]: updatedSitePages
+      }));
+      
+      // 7. Check if the issue is now resolved
+      const findings = generateFindingsForPage(finalizedPageObj, selectedSite.url, selectedSite.id);
+      const isIssueStillActive = findings.some(f => f.findingType === activeTask.taskTitle);
+      
+      if (!isIssueStillActive) {
         setVerificationStatus("success");
-        // Update task state to completed
+        
+        // Update task state statically to completed in the sites state (so it is saved to DB for tasks)
         setSites(prevSites => prevSites.map(s => {
           if (s.id === selectedSite.id) {
             const updatedTasks = s.tasks.map(t => {
@@ -2137,12 +2294,17 @@ export default function App() {
           }
           return s;
         }));
+        
         showNotification("Verification passed! Task complete.");
       } else {
         setVerificationStatus("fail");
-        setVerificationError(`Verification Failed. The page content is missing the required target phrase "${activeTask.keyword}".`);
+        setVerificationError(`Verification Failed. The page content still does not meet the Page Audit requirements for "${activeTask.taskTitle}".`);
       }
-    }, 1500);
+    } catch (err) {
+      console.error("Verification failed:", err);
+      setVerificationStatus("fail");
+      setVerificationError(err.message || "An unexpected error occurred during verification.");
+    }
   };
 
   const handleNextTask = () => {
