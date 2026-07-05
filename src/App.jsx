@@ -1043,7 +1043,14 @@ export default function App() {
       });
 
       if (!response.ok) {
-        throw new Error(`Server returned status: ${response.status}`);
+        let errMsg = `Server returned status: ${response.status}`;
+        try {
+          const errData = await response.json();
+          if (errData && errData.error) {
+            errMsg = errData.error;
+          }
+        } catch (e) {}
+        throw new Error(errMsg);
       }
 
       const data = await response.json();
