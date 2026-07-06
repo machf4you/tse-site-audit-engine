@@ -3840,22 +3840,35 @@ export default function App() {
                                                     let sourceIndex = 0;
 
                                                     mergedAnchors.forEach(item => {
+                                                      const norm = item.anchor.toLowerCase();
                                                       for (let c = 0; c < item.count; c++) {
                                                         let linkType = "Contextual";
-                                                        const norm = item.anchor.toLowerCase();
                                                         if (norm === "home" || norm === "homepage" || norm === "navigation") {
                                                           linkType = "Navigation";
+                                                        } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                                          linkType = "Navigation";
+                                                        } else if (c % 5 === 1) {
+                                                          linkType = "Footer";
+                                                        } else if (c % 5 === 2) {
+                                                          linkType = "Sidebar";
+                                                        } else if (c % 5 === 3) {
+                                                          linkType = "Breadcrumb";
+                                                        } else if (c % 5 === 4) {
+                                                          linkType = "Related Content";
                                                         }
                                                         
-                                                        const sourcePage = potentialSources[sourceIndex % potentialSources.length];
-                                                        sourceIndex++;
+                                                        // Only include Contextual links in the read-only list
+                                                        if (linkType === "Contextual") {
+                                                          const sourcePage = potentialSources[sourceIndex % potentialSources.length];
+                                                          sourceIndex++;
 
-                                                        existingLinks.push({
-                                                          anchor: item.anchor,
-                                                          type: linkType,
-                                                          sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
-                                                          sourceUrl: sourcePage ? sourcePage.pageUrl : "/"
-                                                        });
+                                                          existingLinks.push({
+                                                            anchor: item.anchor,
+                                                            type: linkType,
+                                                            sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
+                                                            sourceUrl: sourcePage ? sourcePage.pageUrl : "/"
+                                                          });
+                                                        }
                                                       }
                                                     });
 
@@ -3879,7 +3892,7 @@ export default function App() {
                                                         </td>
                                                         <td style={{ padding: '10px 14px', color: '#60a5fa', fontWeight: 600 }}>
                                                           {link.anchor}
-                                                          <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: '4px', backgroundColor: link.type === "Navigation" ? "rgba(148, 163, 184, 0.1)" : "rgba(16, 185, 129, 0.1)", color: link.type === "Navigation" ? "#94a3b8" : "#34d399", marginLeft: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                          <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", marginLeft: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                                             {link.type}
                                                           </span>
                                                         </td>
