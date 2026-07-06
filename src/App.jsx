@@ -3705,6 +3705,84 @@ export default function App() {
                                         {isExpanded && (
                                           <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1.25rem', marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                                             
+                                            {/* Priority-aware Linking Targets Section */}
+                                            <div style={{ 
+                                              backgroundColor: 'rgba(255,255,255,0.02)', 
+                                              border: '1px solid var(--border-color)', 
+                                              borderRadius: '8px', 
+                                              padding: '1.25rem',
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              gap: '0.75rem'
+                                            }}>
+                                              <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>SEO Linking Target Details</h4>
+                                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                                                <div>
+                                                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Priority</span>
+                                                  <span id="linkingPriorityDisplay" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#3b82f6' }}>Priority {page.priority || 3}</span>
+                                                </div>
+                                                <div>
+                                                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Page Type</span>
+                                                  <span id="linkingPageTypeDisplay" style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{(() => {
+                                                    const type = getPageType(page);
+                                                    return type;
+                                                  })()}</span>
+                                                </div>
+                                                <div>
+                                                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Recommended Target</span>
+                                                  <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                    {(() => {
+                                                      const p = page.priority || 3;
+                                                      if (p === 1) return "10–15 contextual links";
+                                                      if (p === 2) return "7–10 contextual links";
+                                                      if (p === 3) return "4–6 contextual links";
+                                                      if (p === 4) return "2–4 contextual links";
+                                                      return "4–6 contextual links";
+                                                    })()}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                              <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center' }}>
+                                                <div>
+                                                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Current Contextual Links</span>
+                                                  <span id="linkingCurrentLinksDisplay" style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{currentCount}</span>
+                                                </div>
+                                                <div>
+                                                  <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Status</span>
+                                                  <span id="linkingStatusDisplay">
+                                                    {(() => {
+                                                      const p = page.priority || 3;
+                                                      let min = 4, max = 6;
+                                                      if (p === 1) { min = 10; max = 15; }
+                                                      else if (p === 2) { min = 7; max = 10; }
+                                                      else if (p === 3) { min = 4; max = 6; }
+                                                      else if (p === 4) { min = 2; max = 4; }
+                                                      
+                                                      if (currentCount < min) {
+                                                        return (
+                                                          <span style={{ fontSize: '0.9rem', color: '#fbbf24', fontWeight: 600 }}>
+                                                            ⚠️ {min - currentCount}–{max - currentCount} additional contextual links recommended.
+                                                          </span>
+                                                        );
+                                                      } else if (currentCount <= max) {
+                                                        return (
+                                                          <span style={{ fontSize: '0.9rem', color: '#34d399', fontWeight: 600 }}>
+                                                            ✓ Internal linking target achieved.
+                                                          </span>
+                                                        );
+                                                      } else {
+                                                        return (
+                                                          <span style={{ fontSize: '0.9rem', color: '#60a5fa', fontWeight: 600 }}>
+                                                            ℹ️ Internal linking target exceeded.
+                                                          </span>
+                                                        );
+                                                      }
+                                                    })()}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                            
                                             {/* Anchor Text Improvement details */}
                                             {isWarning && (
                                               <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.04)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '8px', padding: '1rem' }}>
