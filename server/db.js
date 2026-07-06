@@ -535,7 +535,7 @@ async function getPagesData() {
 }
 
 async function savePageConfig(siteId, page) {
-  const validTypes = ["Hub", "Landing", "Supporting", "Topical", "Excluded", "Hub Page", "Landing Page", "Supporting Page", "Topical Page"];
+  const validTypes = ["Hub", "Landing", "Supporting", "Topical", "Excluded", "Hub Page", "Landing Page", "Supporting Page", "Topical Page", "Primary Landing Page"];
   const type = validTypes.includes(page.assignedType)
     ? page.assignedType
     : getPageAuditorAssignedType(page.pageUrl);

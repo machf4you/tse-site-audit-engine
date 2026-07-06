@@ -824,6 +824,7 @@ export default function App() {
   const [inputPageUrl, setInputPageUrl] = useState("");
   const [inputPageTitle, setInputPageTitle] = useState("");
   const [inputProposedPageTitle, setInputProposedPageTitle] = useState("");
+  const [inputPageType, setInputPageType] = useState("Supporting Page");
   const [inputParentPage, setInputParentPage] = useState("");
   const [modalMode, setModalMode] = useState("edit"); // edit, add
   const [currentFilter, setCurrentFilter] = useState("all"); // all, configured, unconfigured, planned
@@ -1673,7 +1674,7 @@ export default function App() {
     if (page.assignedType) {
       if (page.assignedType === "Homepage") return "Homepage";
       if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
-      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
       if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
       if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
       return "Unassigned Pages";
@@ -1974,6 +1975,23 @@ export default function App() {
     setInputProposedPageTitle(page.proposedPageTitle || page.pageTitle || "");
     setInputTargetPhrase(page.targetPhrase || "");
     
+    // Normalize and set inputPageType from page.assignedType
+    const importedType = page.assignedType || "";
+    let pageTypeVal = "Supporting Page";
+    if (importedType) {
+      const lower = importedType.toLowerCase();
+      if (lower.includes("hub")) {
+        pageTypeVal = "Hub Page";
+      } else if (lower.includes("primary") || lower.includes("landing")) {
+        pageTypeVal = "Primary Landing Page";
+      } else if (lower.includes("supporting")) {
+        pageTypeVal = "Supporting Page";
+      } else if (lower.includes("topical")) {
+        pageTypeVal = "Topical Page";
+      }
+    }
+    setInputPageType(pageTypeVal);
+    
     // Set parent page input state
     if (page.parentPage !== undefined) {
       setInputParentPage(page.parentPage);
@@ -1995,6 +2013,7 @@ export default function App() {
     setInputPageTitle("");
     setInputProposedPageTitle("");
     setInputTargetPhrase("");
+    setInputPageType("Supporting Page");
     setInputParentPage("/"); // Default to Homepage
     setIsConfigModalOpen(true);
   };
@@ -2024,6 +2043,7 @@ export default function App() {
           pageTitle: inputPageTitle.trim() || "Untitled Page",
           proposedPageTitle: inputProposedPageTitle.trim() || inputPageTitle.trim() || "Untitled Page",
           targetPhrase: inputTargetPhrase.trim(),
+          assignedType: inputPageType,
           parentPage: formattedUrl === "/" ? "" : inputParentPage,
           assignedType: getPageAuditorAssignedType(formattedUrl),
           status: "Planned",
@@ -2050,6 +2070,7 @@ export default function App() {
               pageTitle: p.pageTitle, // Keep existing imported Page Title
               proposedPageTitle: inputProposedPageTitle.trim() || p.pageTitle,
               targetPhrase: inputTargetPhrase.trim(),
+              assignedType: inputPageType,
               parentPage: p.pageUrl === "/" ? "" : inputParentPage,
               status: updatedStatus
             };
@@ -2738,7 +2759,7 @@ export default function App() {
                         if (page.assignedType) {
                           if (page.assignedType === "Homepage") return "Homepage";
                           if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
-                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
                           if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
                           if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
                           return "Unassigned Pages";
@@ -3075,7 +3096,7 @@ export default function App() {
                       if (page.pageUrl === "/") return "Homepage";
                       if (page.assignedType === "Homepage") return "Homepage";
                       if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
-                      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+                      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
                       if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
                       if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
                       return "Unassigned Pages";
@@ -3230,7 +3251,7 @@ export default function App() {
                               if (page.assignedType) {
                                 if (page.assignedType === "Homepage") return "Homepage";
                                 if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
-                                if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing") return "Landing Pages";
+                                if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
                                 if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
                                 if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
                                 return "Unassigned Pages";
@@ -4814,7 +4835,6 @@ export default function App() {
                       <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}>Page</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}>Type</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '20%', minWidth: '180px' }}>Parent</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}>Target</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}>Status</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
@@ -4877,15 +4897,7 @@ export default function App() {
                               <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
                                 {(() => {
                                   const type = getPageType(page);
-                                  return type.replace(/\s*Page(s)?/gi, "");
-                                })()}
-                              </td>
-                              <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
-                                {(() => {
-                                  if (page.pageUrl === "/") return "—";
-                                  if (!page.parentPage) return "—";
-                                  const parent = (pagesData[selectedSiteId] || []).find(p => p.pageUrl === page.parentPage);
-                                  return parent ? `${parent.pageTitle} (${page.parentPage})` : page.parentPage;
+                                  return type;
                                 })()}
                               </td>
                               <td style={{ padding: '16px 20px', fontStyle: isConfigured && page.targetPhrase ? 'normal' : 'italic', color: isConfigured && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isConfigured && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
@@ -6867,43 +6879,26 @@ export default function App() {
                     />
                   </div>
 
-                  {/* Parent Page dropdown */}
-                  {(modalMode === "add" ? inputPageUrl !== "/" : editingPage?.pageUrl !== "/") ? (
-                    <div>
-                      <label htmlFor="modalParentInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Parent Page</label>
-                      <select 
-                        id="modalParentInput"
-                        value={inputParentPage}
-                        onChange={(e) => setInputParentPage(e.target.value)}
-                        style={{
-                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      >
-                        {(() => {
-                          const sitePages = pagesData[selectedSiteId] || [];
-                          const hierarchy = buildHierarchyOptions(sitePages, editingPage?.pageUrl || inputPageUrl);
-                          return hierarchy.map(item => {
-                            const indent = "\u00a0\u00a0\u00a0\u00a0".repeat(item.depth);
-                            return (
-                              <option key={item.url} value={item.url}>
-                                {indent}{item.title} ({item.url})
-                              </option>
-                            );
-                          });
-                        })()}
-                      </select>
-                    </div>
-                  ) : (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Parent Page</label>
-                      <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic', padding: '0.25rem 0' }}>
-                        Homepage has no parent
-                      </div>
-                    </div>
-                  )}
+                  {/* Page Type dropdown */}
+                  <div>
+                    <label htmlFor="modalPageTypeInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Page Type</label>
+                    <select 
+                      id="modalPageTypeInput"
+                      value={inputPageType}
+                      onChange={(e) => setInputPageType(e.target.value)}
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="Hub Page">Hub Page</option>
+                      <option value="Primary Landing Page">Primary Landing Page</option>
+                      <option value="Supporting Page">Supporting Page</option>
+                      <option value="Topical Page">Topical Page</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
