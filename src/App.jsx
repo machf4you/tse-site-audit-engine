@@ -813,6 +813,8 @@ export default function App() {
   const [isW3BackHovered, setIsW3BackHovered] = useState(false);
   const [isW4BackHovered, setIsW4BackHovered] = useState(false);
   const [editingPage, setEditingPage] = useState(null);
+  const [editingSentenceKey, setEditingSentenceKey] = useState(null);
+  const [editingSentenceText, setEditingSentenceText] = useState("");
   const [editingAnchorKey, setEditingAnchorKey] = useState(null);
   const [editingAnchorText, setEditingAnchorText] = useState("");
   const [editedAnchors, setEditedAnchors] = useState({});
@@ -3878,45 +3880,112 @@ export default function App() {
                                                            </td>
                                                            <td style={{ padding: '10px 14px' }}>
                                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                                               <span style={{ color: sentence ? 'var(--text-primary)' : 'var(--text-secondary)', fontStyle: sentence ? 'normal' : 'italic' }}>
-                                                                 {isGen ? "Generating AI sentence..." : (sentence || '"AI sentence will appear here."')}
-                                                               </span>
                                                                {sentence ? (
-                                                                 <button
-                                                                   className="btn-secondary"
-                                                                   onClick={() => {
-                                                                     navigator.clipboard.writeText(sentence);
-                                                                     showNotification("Copied to clipboard!");
-                                                                   }}
-                                                                   style={{
-                                                                     padding: '4px 10px',
-                                                                     fontSize: '0.75rem',
-                                                                     fontWeight: 600,
-                                                                     border: '1px solid rgba(16, 185, 129, 0.25)',
-                                                                     color: '#34d399',
-                                                                     backgroundColor: 'rgba(16, 185, 129, 0.08)'
-                                                                   }}
-                                                                 >
-                                                                   Copy
-                                                                 </button>
+                                                                 <>
+                                                                   {editingSentenceKey === key ? (
+                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
+                                                                       <input
+                                                                         type="text"
+                                                                         value={editingSentenceText}
+                                                                         onChange={(e) => setEditingSentenceText(e.target.value)}
+                                                                         onKeyDown={(e) => {
+                                                                           if (e.key === 'Enter') {
+                                                                             const newSentence = editingSentenceText.trim();
+                                                                             if (newSentence) {
+                                                                               setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
+                                                                             }
+                                                                             setEditingSentenceKey(null);
+                                                                           } else if (e.key === 'Escape') {
+                                                                             setEditingSentenceKey(null);
+                                                                           }
+                                                                         }}
+                                                                         autoFocus
+                                                                         style={{
+                                                                           backgroundColor: '#1e293b',
+                                                                           border: '1px solid #3b82f6',
+                                                                           borderRadius: '4px',
+                                                                           color: 'var(--text-primary)',
+                                                                           padding: '2px 6px',
+                                                                           fontSize: '0.8rem',
+                                                                           flexGrow: 1,
+                                                                           outline: 'none'
+                                                                         }}
+                                                                       />
+                                                                       <button
+                                                                         onClick={() => {
+                                                                           const newSentence = editingSentenceText.trim();
+                                                                           if (newSentence) {
+                                                                             setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
+                                                                           }
+                                                                           setEditingSentenceKey(null);
+                                                                         }}
+                                                                         style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0, fontWeight: 'bold' }}
+                                                                         title="Save"
+                                                                       >
+                                                                         ✓
+                                                                       </button>
+                                                                     </div>
+                                                                   ) : (
+                                                                     <div 
+                                                                       style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexGrow: 1 }}
+                                                                       onClick={() => {
+                                                                         setEditingSentenceKey(key);
+                                                                         setEditingSentenceText(sentence);
+                                                                       }}
+                                                                     >
+                                                                       <span style={{ color: 'var(--text-primary)', fontStyle: 'normal' }}>
+                                                                         {sentence}
+                                                                       </span>
+                                                                       <span 
+                                                                         style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
+                                                                         title="Edit sentence text"
+                                                                       >
+                                                                         ✏️
+                                                                       </span>
+                                                                     </div>
+                                                                   )}
+                                                                   <button
+                                                                     className="btn-secondary"
+                                                                     onClick={() => {
+                                                                       navigator.clipboard.writeText(sentence);
+                                                                       showNotification("Copied to clipboard!");
+                                                                     }}
+                                                                     style={{
+                                                                       padding: '4px 10px',
+                                                                       fontSize: '0.75rem',
+                                                                       fontWeight: 600,
+                                                                       border: '1px solid rgba(16, 185, 129, 0.25)',
+                                                                       color: '#34d399',
+                                                                       backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                                                       marginLeft: '12px'
+                                                                     }}
+                                                                   >
+                                                                     Copy
+                                                                   </button>
+                                                                 </>
                                                                ) : (
-                                                                 <button
-                                                                   className="btn-secondary"
-                                                                   disabled={isGen}
-                                                                   onClick={() => handleGenerateSentence(page, rec, srcPage, key, displayAnchor)}
-                                                                   style={{
-                                                                     padding: '4px 10px',
-                                                                     fontSize: '0.75rem',
-                                                                     fontWeight: 600,
-                                                                     border: '1px solid rgba(59, 130, 246, 0.25)',
-                                                                     color: '#60a5fa',
-                                                                     backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                                                                     opacity: isGen ? 0.5 : 1,
-                                                                     cursor: isGen ? 'not-allowed' : 'pointer'
-                                                                   }}
-                                                                 >
-                                                                   {isGen ? "Generating..." : "Generate"}
-                                                                 </button>
+                                                                 <>
+                                                                   <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                                                     {isGen ? "Generating AI sentence..." : '"AI sentence will appear here."'}
+                                                                   </span>
+                                                                   <button
+                                                                     className="btn-secondary"
+                                                                     disabled={isGen}
+                                                                     onClick={() => handleGenerateSentence(page, rec, srcPage, key, displayAnchor)}
+                                                                     style={{
+                                                                       padding: '4px 10px',
+                                                                       fontSize: '0.75rem',
+                                                                       fontWeight: 600,
+                                                                       border: '1px solid rgba(59, 130, 246, 0.25)',
+                                                                       color: '#60a5fa',
+                                                                       backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                                       opacity: isGen ? 0.5 : 1,
+                                                                       cursor: isGen ? 'not-allowed' : 'pointer'
+                                                                     }}
+                                                                   >
+                                                                     {isGen ? "Generating..." : "Generate"}
+                                                                   </button>
+                                                                 </>
                                                                )}
                                                              </div>
                                                            </td>
