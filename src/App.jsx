@@ -1296,6 +1296,7 @@ export default function App() {
                         targetPhrase: localPage.targetPhrase,
                         status: localPage.status,
                         assignedType: localPage.assignedType,
+                        priority: localPage.priority,
                         parentPage: localPage.parentPage
                       };
                     }
