@@ -3825,8 +3825,10 @@ export default function App() {
                                               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
                                                 <thead>
                                                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Current Anchor Text</th>
-                                                    <th style={{ padding: '10px 14px', width: '75%' }}>Source Page</th>
+                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Source Page Title</th>
+                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Source Page URL</th>
+                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Anchor Text</th>
+                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Destination URL</th>
                                                   </tr>
                                                 </thead>
                                                 <tbody>
@@ -3860,7 +3862,7 @@ export default function App() {
                                                     if (existingLinks.length === 0) {
                                                       return (
                                                         <tr>
-                                                          <td colSpan={2} style={{ padding: '12px 14px', fontStyle: 'italic', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                                          <td colSpan={4} style={{ padding: '12px 14px', fontStyle: 'italic', color: 'var(--text-secondary)', textAlign: 'center' }}>
                                                             No existing links crawled.
                                                           </td>
                                                         </tr>
@@ -3869,17 +3871,20 @@ export default function App() {
 
                                                     return existingLinks.map((link, lIdx) => (
                                                       <tr key={lIdx} style={{ borderBottom: lIdx < existingLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                          {link.sourceTitle}
+                                                        </td>
+                                                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                          {link.sourceUrl}
+                                                        </td>
                                                         <td style={{ padding: '10px 14px', color: '#60a5fa', fontWeight: 600 }}>
                                                           {link.anchor}
                                                           <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: '4px', backgroundColor: link.type === "Navigation" ? "rgba(148, 163, 184, 0.1)" : "rgba(16, 185, 129, 0.1)", color: link.type === "Navigation" ? "#94a3b8" : "#34d399", marginLeft: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
                                                             {link.type}
                                                           </span>
                                                         </td>
-                                                        <td style={{ padding: '10px 14px' }}>
-                                                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{link.sourceTitle}</span>
-                                                          <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#94a3b8', marginLeft: '6px' }}>
-                                                            ({link.sourceUrl})
-                                                          </span>
+                                                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                          {page.pageUrl}
                                                         </td>
                                                       </tr>
                                                     ));
