@@ -612,13 +612,6 @@ async function saveAllPagesForSite(siteId, pages) {
 
   if (useDb) {
     try {
-      const currentUrls = pages.map(p => p.pageUrl);
-      if (currentUrls.length > 0) {
-        await pool.query("DELETE FROM page_configurations WHERE site_id = $1 AND page_url NOT IN (" + currentUrls.map((_, i) => `$${i + 2}`).join(',') + ")", [siteId, ...currentUrls]);
-      } else {
-        await pool.query("DELETE FROM page_configurations WHERE site_id = $1", [siteId]);
-      }
-      
       for (const page of pages) {
         if (!validTypes.includes(page.assignedType)) {
           page.assignedType = getPageAuditorAssignedType(page.pageUrl);
@@ -631,13 +624,21 @@ async function saveAllPagesForSite(siteId, pages) {
     }
   }
   const data = loadFallback();
-  const classifiedPages = pages.map(p => {
+  if (!data.pagesData[siteId]) {
+    data.pagesData[siteId] = [];
+  }
+  const pagesMap = new Map(data.pagesData[siteId].map(p => [p.pageUrl, p]));
+  pages.forEach(p => {
     const type = validTypes.includes(p.assignedType)
       ? p.assignedType
       : getPageAuditorAssignedType(p.pageUrl);
-    return { ...p, assignedType: type };
+    pagesMap.set(p.pageUrl, { 
+      ...p, 
+      assignedType: type,
+      proposedPageTitle: p.proposedPageTitle || p.pageTitle || ""
+    });
   });
-  data.pagesData[siteId] = classifiedPages;
+  data.pagesData[siteId] = Array.from(pagesMap.values());
   saveFallback(data);
 }
 
