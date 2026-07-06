@@ -592,7 +592,7 @@ const getPageType = (page) => {
   const type = page.assignedType || "Excluded";
   const lower = type.toLowerCase();
   if (lower === "hub" || lower === "hub page") return "Hub Page";
-  if (lower === "landing" || lower === "landing page" || lower === "primary landing page") return "Primary Landing Page";
+  if (lower === "landing" || lower === "landing page" || lower === "primary landing page") return "Landing Page";
   if (lower === "supporting" || lower === "supporting page") return "Supporting Page";
   if (lower === "topical" || lower === "topical page") return "Topical Page";
   return type;
@@ -1989,7 +1989,7 @@ export default function App() {
       if (lower.includes("hub")) {
         pageTypeVal = "Hub Page";
       } else if (lower.includes("primary") || lower.includes("landing")) {
-        pageTypeVal = "Primary Landing Page";
+        pageTypeVal = "Landing Page";
       } else if (lower.includes("supporting")) {
         pageTypeVal = "Supporting Page";
       } else if (lower.includes("topical")) {
@@ -6900,7 +6900,7 @@ export default function App() {
                       }}
                     >
                       <option value="Hub Page">Hub Page</option>
-                      <option value="Primary Landing Page">Primary Landing Page</option>
+                      <option value="Landing Page">Landing Page</option>
                       <option value="Supporting Page">Supporting Page</option>
                       <option value="Topical Page">Topical Page</option>
                     </select>
