@@ -441,22 +441,6 @@ app.post('/api/github/check-updates', async (req, res) => {
   }
 });
 
-// POST Hotfix Remote Env
-app.post('/api/hotfix-env', async (req, res) => {
-  try {
-    const { apiKey } = req.body;
-    if (!apiKey) {
-      return res.status(400).json({ error: "apiKey is required" });
-    }
-    const envPath = path.join(__dirname, '.env');
-    const newEnvContent = `OPENAI_API_KEY=${apiKey}\nDATABASE_URL=postgresql://postgres.arnqpmwedvwhjyqxcmmo:SIstLtRukWdFCjhH@aws-1-eu-central-1.pooler.supabase.com:5432/postgres\n`;
-    fs.writeFileSync(envPath, newEnvContent, 'utf8');
-    res.json({ success: true, message: "Remote .env updated successfully!" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // POST Generate AI Suggested Sentence
 app.post('/api/generate-sentence', async (req, res) => {
   const {
