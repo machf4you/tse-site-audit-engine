@@ -500,6 +500,7 @@ async function getPagesData() {
           pc.status, 
           pc.last_modified_date, 
           pc.crawl_data,
+          pc.priority,
           c.assigned_type as page_auditor_assigned_type
         FROM page_configurations pc
         LEFT JOIN page_classifications c ON pc.site_id = c.site_id AND pc.page_url = c.page_url

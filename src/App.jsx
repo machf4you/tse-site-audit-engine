@@ -4920,7 +4920,6 @@ export default function App() {
                               </td>
                               <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap', fontWeight: 600 }}>
                                 {(() => {
-                                  if (page.priority) return page.priority;
                                   const type = getPageType(page);
                                   if (type === "Hub Page") return 1;
                                   if (type === "Landing Page") return 2;
