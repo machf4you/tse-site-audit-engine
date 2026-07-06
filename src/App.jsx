@@ -614,6 +614,13 @@ const BU_PAGES = exporterData["bathroom-upgrades"].pages.map(p => {
       mapped = { ...mapped, targetPhrase: "bathroom installation", status: "Configured" };
     }
   }
+  const lower = (mapped.assignedType || "").toLowerCase();
+  const calculatedPriority = lower.includes("hub") ? 1
+                           : lower.includes("landing") ? 2
+                           : lower.includes("supporting") ? 3
+                           : lower.includes("topical") ? 4
+                           : 3;
+  mapped = { ...mapped, priority: calculatedPriority };
   return mapped;
 });
 
@@ -4919,14 +4926,7 @@ export default function App() {
                                 })()}
                               </td>
                               <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                                {(() => {
-                                  const type = getPageType(page);
-                                  if (type === "Hub Page") return 1;
-                                  if (type === "Landing Page") return 2;
-                                  if (type === "Supporting Page") return 3;
-                                  if (type === "Topical Page") return 4;
-                                  return "—";
-                                })()}
+                                {page.priority || "—"}
                               </td>
                               <td style={{ padding: '16px 20px', fontStyle: isConfigured && page.targetPhrase ? 'normal' : 'italic', color: isConfigured && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isConfigured && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
                                 {isExcluded ? "Excluded" : page.targetPhrase || "No Target Assigned"}

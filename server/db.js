@@ -521,6 +521,16 @@ async function getPagesData() {
           assignedType = getPageAuditorAssignedType(r.page_url);
         }
 
+        let calculatedPriority = r.priority;
+        if (calculatedPriority === null || calculatedPriority === undefined) {
+          const lower = assignedType.toLowerCase();
+          if (lower.includes("hub")) calculatedPriority = 1;
+          else if (lower.includes("landing")) calculatedPriority = 2;
+          else if (lower.includes("supporting")) calculatedPriority = 3;
+          else if (lower.includes("topical")) calculatedPriority = 4;
+          else calculatedPriority = 3;
+        }
+
         pagesData[r.site_id].push({
           pageUrl: r.page_url,
           pageTitle: r.page_title,
@@ -529,7 +539,7 @@ async function getPagesData() {
           parentPage: r.parent_page || "/",
           assignedType: assignedType,
           status: r.status,
-          priority: r.priority || null,
+          priority: calculatedPriority,
           lastModifiedDate: r.last_modified_date || "",
           crawlData: typeof r.crawl_data === 'string' ? JSON.parse(r.crawl_data) : (r.crawl_data || {})
         });
