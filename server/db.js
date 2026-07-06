@@ -221,6 +221,12 @@ async function initDb() {
       ADD COLUMN IF NOT EXISTS proposed_page_title TEXT
     `);
 
+    // Migration: Add priority column if it doesn't exist
+    await pool.query(`
+      ALTER TABLE page_configurations 
+      ADD COLUMN IF NOT EXISTS priority INTEGER
+    `);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS page_classifications (
         site_id VARCHAR(100) REFERENCES websites(id) ON DELETE CASCADE,
@@ -522,6 +528,7 @@ async function getPagesData() {
           parentPage: r.parent_page || "/",
           assignedType: assignedType,
           status: r.status,
+          priority: r.priority || null,
           lastModifiedDate: r.last_modified_date || "",
           crawlData: typeof r.crawl_data === 'string' ? JSON.parse(r.crawl_data) : (r.crawl_data || {})
         });
@@ -544,14 +551,14 @@ async function savePageConfig(siteId, page) {
     try {
       await pool.query(
         `INSERT INTO page_configurations 
-          (site_id, page_url, page_title, proposed_page_title, target_phrase, parent_page, assigned_type, status, last_modified_date, crawl_data)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          (site_id, page_url, page_title, proposed_page_title, target_phrase, parent_page, assigned_type, status, last_modified_date, crawl_data, priority)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           ON CONFLICT (site_id, page_url) DO UPDATE 
           SET page_title = EXCLUDED.page_title, 
               proposed_page_title = EXCLUDED.proposed_page_title,
               target_phrase = EXCLUDED.target_phrase, parent_page = EXCLUDED.parent_page, 
               assigned_type = EXCLUDED.assigned_type, status = EXCLUDED.status, last_modified_date = EXCLUDED.last_modified_date, 
-              crawl_data = EXCLUDED.crawl_data, updated_at = NOW()`,
+              crawl_data = EXCLUDED.crawl_data, priority = EXCLUDED.priority, updated_at = NOW()`,
         [
           siteId,
           page.pageUrl,
@@ -562,7 +569,8 @@ async function savePageConfig(siteId, page) {
           type,
           page.status || "Unconfigured",
           page.lastModifiedDate || "",
-          JSON.stringify(page.crawlData || {})
+          JSON.stringify(page.crawlData || {}),
+          page.priority || null
         ]
       );
       return;

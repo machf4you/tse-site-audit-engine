@@ -2044,15 +2044,20 @@ export default function App() {
           return prev;
         }
 
+        const calculatedPriority = inputPageType === "Hub Page" ? 1
+                                 : inputPageType === "Landing Page" ? 2
+                                 : inputPageType === "Supporting Page" ? 3
+                                 : inputPageType === "Topical Page" ? 4
+                                 : 3;
         const newPage = {
           pageUrl: formattedUrl,
           pageTitle: inputPageTitle.trim() || "Untitled Page",
           proposedPageTitle: inputProposedPageTitle.trim() || inputPageTitle.trim() || "Untitled Page",
           targetPhrase: inputTargetPhrase.trim(),
           assignedType: inputPageType,
-          parentPage: formattedUrl === "/" ? "" : inputParentPage,
-          assignedType: getPageAuditorAssignedType(formattedUrl),
+          parentPage: "/",
           status: "Planned",
+          priority: calculatedPriority,
           lastModifiedDate: new Date().toISOString().split('T')[0]
         };
 
@@ -2071,13 +2076,19 @@ export default function App() {
             const hasTarget = !!inputTargetPhrase.trim();
             // If it was Planned, it remains Planned. If it was Configured/Unconfigured, update based on TargetPhrase presence.
             const updatedStatus = p.status === "Planned" ? "Planned" : (hasTarget ? "Configured" : "Unconfigured");
+            const calculatedPriority = inputPageType === "Hub Page" ? 1
+                                     : inputPageType === "Landing Page" ? 2
+                                     : inputPageType === "Supporting Page" ? 3
+                                     : inputPageType === "Topical Page" ? 4
+                                     : 3;
             return {
               ...p,
               pageTitle: p.pageTitle, // Keep existing imported Page Title
               proposedPageTitle: inputProposedPageTitle.trim() || p.pageTitle,
               targetPhrase: inputTargetPhrase.trim(),
               assignedType: inputPageType,
-              parentPage: p.pageUrl === "/" ? "" : inputParentPage,
+              parentPage: "/",
+              priority: calculatedPriority,
               status: updatedStatus
             };
           }
@@ -6904,6 +6915,25 @@ export default function App() {
                       <option value="Supporting Page">Supporting Page</option>
                       <option value="Topical Page">Topical Page</option>
                     </select>
+                  </div>
+
+                  {/* Priority (read-only) */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Priority</label>
+                    <div style={{
+                      backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)',
+                      borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-secondary)',
+                      fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                      boxSizing: 'border-box'
+                    }}>
+                      {(() => {
+                        if (inputPageType === "Hub Page") return "Priority 1";
+                        if (inputPageType === "Landing Page") return "Priority 2";
+                        if (inputPageType === "Supporting Page") return "Priority 3";
+                        if (inputPageType === "Topical Page") return "Priority 4";
+                        return "Priority 3";
+                      })()}
+                    </div>
                   </div>
                 </div>
 
