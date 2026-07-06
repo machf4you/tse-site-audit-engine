@@ -3465,7 +3465,7 @@ export default function App() {
                               if (!incomingAnchors) return [];
                               const mergedMap = {};
                               incomingAnchors.forEach(anc => {
-                                let str = anc.anchorText || "";
+                                let str = anc.anchorText || anc.anchor || "";
                                 str = str.replace(/<[^>]*>/g, "").trim();
                                 if (!str) return;
                                 const norm = str.toLowerCase();
@@ -3485,7 +3485,7 @@ export default function App() {
                             };
 
                             const getSuggestedSources = (targetPage, allConfiguredPages, currentAnchors) => {
-                              const existingAnchors = (currentAnchors || []).map(a => (a.anchorText || "").toLowerCase().trim());
+                              const existingAnchors = (currentAnchors || []).map(a => (a.anchorText || a.anchor || "").toLowerCase().trim());
                               
                               const candidates = allConfiguredPages.filter(p => {
                                 if (p.pageUrl === targetPage.pageUrl) return false;
