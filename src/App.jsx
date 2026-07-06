@@ -4852,6 +4852,7 @@ export default function App() {
                       <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}>Page</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}>Type</th>
+                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '100px' }}>Priority</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}>Target</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}>Status</th>
                         <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
@@ -4874,7 +4875,7 @@ export default function App() {
                         if (filteredPages.length === 0) {
                           return (
                             <tr>
-                              <td colSpan="6" style={{ padding: '3rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                              <td colSpan="7" style={{ padding: '3rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                 No pages found matching the active filter.
                               </td>
                             </tr>
@@ -4915,6 +4916,17 @@ export default function App() {
                                 {(() => {
                                   const type = getPageType(page);
                                   return type;
+                                })()}
+                              </td>
+                              <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap', fontWeight: 600 }}>
+                                {(() => {
+                                  if (page.priority) return page.priority;
+                                  const type = getPageType(page);
+                                  if (type === "Hub Page") return 1;
+                                  if (type === "Landing Page") return 2;
+                                  if (type === "Supporting Page") return 3;
+                                  if (type === "Topical Page") return 4;
+                                  return "—";
                                 })()}
                               </td>
                               <td style={{ padding: '16px 20px', fontStyle: isConfigured && page.targetPhrase ? 'normal' : 'italic', color: isConfigured && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isConfigured && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
