@@ -549,7 +549,25 @@ async function getPagesData() {
       console.error("Database query pagesData failed, using fallback:", err.message);
     }
   }
-  return loadFallback().pagesData;
+  const fallbackData = loadFallback().pagesData;
+  for (const siteId of Object.keys(fallbackData)) {
+    fallbackData[siteId] = fallbackData[siteId].map(p => {
+      let calculatedPriority = p.priority;
+      if (calculatedPriority === null || calculatedPriority === undefined) {
+        const lower = (p.assignedType || "").toLowerCase();
+        if (lower.includes("hub")) calculatedPriority = 1;
+        else if (lower.includes("landing")) calculatedPriority = 2;
+        else if (lower.includes("supporting")) calculatedPriority = 3;
+        else if (lower.includes("topical")) calculatedPriority = 4;
+        else calculatedPriority = 3;
+      }
+      return {
+        ...p,
+        priority: calculatedPriority
+      };
+    });
+  }
+  return fallbackData;
 }
 
 async function savePageConfig(siteId, page) {
