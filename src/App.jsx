@@ -823,6 +823,7 @@ export default function App() {
   const [inputTargetPhrase, setInputTargetPhrase] = useState("");
   const [inputPageUrl, setInputPageUrl] = useState("");
   const [inputPageTitle, setInputPageTitle] = useState("");
+  const [inputProposedPageTitle, setInputProposedPageTitle] = useState("");
   const [inputParentPage, setInputParentPage] = useState("");
   const [modalMode, setModalMode] = useState("edit"); // edit, add
   const [currentFilter, setCurrentFilter] = useState("all"); // all, configured, unconfigured, planned
@@ -1970,6 +1971,7 @@ export default function App() {
     setEditingPage(page);
     setInputPageUrl(page.pageUrl);
     setInputPageTitle(page.pageTitle);
+    setInputProposedPageTitle(page.proposedPageTitle || page.pageTitle || "");
     setInputTargetPhrase(page.targetPhrase || "");
     
     // Set parent page input state
@@ -1991,6 +1993,7 @@ export default function App() {
     setEditingPage(null);
     setInputPageUrl("");
     setInputPageTitle("");
+    setInputProposedPageTitle("");
     setInputTargetPhrase("");
     setInputParentPage("/"); // Default to Homepage
     setIsConfigModalOpen(true);
@@ -2019,6 +2022,7 @@ export default function App() {
         const newPage = {
           pageUrl: formattedUrl,
           pageTitle: inputPageTitle.trim() || "Untitled Page",
+          proposedPageTitle: inputProposedPageTitle.trim() || inputPageTitle.trim() || "Untitled Page",
           targetPhrase: inputTargetPhrase.trim(),
           parentPage: formattedUrl === "/" ? "" : inputParentPage,
           assignedType: getPageAuditorAssignedType(formattedUrl),
@@ -2043,7 +2047,8 @@ export default function App() {
             const updatedStatus = p.status === "Planned" ? "Planned" : (hasTarget ? "Configured" : "Unconfigured");
             return {
               ...p,
-              pageTitle: inputPageTitle.trim() || p.pageTitle,
+              pageTitle: p.pageTitle, // Keep existing imported Page Title
+              proposedPageTitle: inputProposedPageTitle.trim() || p.pageTitle,
               targetPhrase: inputTargetPhrase.trim(),
               parentPage: p.pageUrl === "/" ? "" : inputParentPage,
               status: updatedStatus
@@ -6801,12 +6806,39 @@ export default function App() {
                   {/* Page Title input */}
                   <div>
                     <label htmlFor="modalTitleInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Page Title</label>
+                    {modalMode === "add" ? (
+                      <input 
+                        id="modalTitleInput"
+                        type="text" 
+                        value={inputPageTitle}
+                        onChange={(e) => {
+                          setInputPageTitle(e.target.value);
+                          setInputProposedPageTitle(e.target.value);
+                        }}
+                        placeholder="e.g. Accessible Bathrooms"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    ) : (
+                      <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600, padding: '0.25rem 0' }}>
+                        {editingPage?.pageTitle || "Untitled Page"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Proposed Page Title input */}
+                  <div>
+                    <label htmlFor="modalProposedTitleInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Proposed Page Title</label>
                     <input 
-                      id="modalTitleInput"
+                      id="modalProposedTitleInput"
                       type="text" 
-                      value={inputPageTitle}
-                      onChange={(e) => setInputPageTitle(e.target.value)}
-                      placeholder="e.g. Accessible Bathrooms"
+                      value={inputProposedPageTitle}
+                      onChange={(e) => setInputProposedPageTitle(e.target.value)}
+                      placeholder="e.g. Proposed Title"
                       style={{
                         width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                         borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',

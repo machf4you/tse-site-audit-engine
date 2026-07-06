@@ -84,13 +84,13 @@ function loadFallback() {
     const buPages = (exporterData["bathroom-upgrades"]?.pages || []).map(p => {
       // Default target phrases
       if (p.pageUrl === "/") {
-        return { ...p, targetPhrase: "bathroom upgrades", status: "Configured" };
+        return { ...p, targetPhrase: "bathroom upgrades", status: "Configured", proposedPageTitle: p.pageTitle };
       } else if (p.pageUrl === "/bathroom-renovations/") {
-        return { ...p, targetPhrase: "bathroom renovations", status: "Configured" };
+        return { ...p, targetPhrase: "bathroom renovations", status: "Configured", proposedPageTitle: p.pageTitle };
       } else if (p.pageUrl === "/bathroom-installation/") {
-        return { ...p, targetPhrase: "bathroom installation", status: "Configured" };
+        return { ...p, targetPhrase: "bathroom installation", status: "Configured", proposedPageTitle: p.pageTitle };
       }
-      return p;
+      return { ...p, proposedPageTitle: p.proposedPageTitle || p.pageTitle || "" };
     });
 
     const tsePages = exporterData["the-search-equation"]?.pages || [];
@@ -213,6 +213,12 @@ async function initDb() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (site_id, page_url)
       );
+    `);
+
+    // Migration: Add proposed_page_title column if it doesn't exist
+    await pool.query(`
+      ALTER TABLE page_configurations 
+      ADD COLUMN IF NOT EXISTS proposed_page_title TEXT
     `);
 
     await pool.query(`
@@ -481,6 +487,7 @@ async function getPagesData() {
           pc.site_id, 
           pc.page_url, 
           pc.page_title, 
+          pc.proposed_page_title,
           pc.target_phrase, 
           pc.parent_page, 
           pc.assigned_type as page_config_assigned_type,
@@ -510,6 +517,7 @@ async function getPagesData() {
         pagesData[r.site_id].push({
           pageUrl: r.page_url,
           pageTitle: r.page_title,
+          proposedPageTitle: r.proposed_page_title || r.page_title || "",
           targetPhrase: r.target_phrase || "",
           parentPage: r.parent_page || "/",
           assignedType: assignedType,
@@ -536,16 +544,19 @@ async function savePageConfig(siteId, page) {
     try {
       await pool.query(
         `INSERT INTO page_configurations 
-         (site_id, page_url, page_title, target_phrase, parent_page, assigned_type, status, last_modified_date, crawl_data)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         ON CONFLICT (site_id, page_url) DO UPDATE 
-         SET page_title = EXCLUDED.page_title, target_phrase = EXCLUDED.target_phrase, parent_page = EXCLUDED.parent_page, 
-             assigned_type = EXCLUDED.assigned_type, status = EXCLUDED.status, last_modified_date = EXCLUDED.last_modified_date, 
-             crawl_data = EXCLUDED.crawl_data, updated_at = NOW()`,
+          (site_id, page_url, page_title, proposed_page_title, target_phrase, parent_page, assigned_type, status, last_modified_date, crawl_data)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          ON CONFLICT (site_id, page_url) DO UPDATE 
+          SET page_title = EXCLUDED.page_title, 
+              proposed_page_title = EXCLUDED.proposed_page_title,
+              target_phrase = EXCLUDED.target_phrase, parent_page = EXCLUDED.parent_page, 
+              assigned_type = EXCLUDED.assigned_type, status = EXCLUDED.status, last_modified_date = EXCLUDED.last_modified_date, 
+              crawl_data = EXCLUDED.crawl_data, updated_at = NOW()`,
         [
           siteId,
           page.pageUrl,
           page.pageTitle || "",
+          page.proposedPageTitle || page.pageTitle || "",
           page.targetPhrase || "",
           page.parentPage || "/",
           type,
@@ -564,10 +575,14 @@ async function savePageConfig(siteId, page) {
     data.pagesData[siteId] = [];
   }
   const index = data.pagesData[siteId].findIndex(p => p.pageUrl === page.pageUrl);
+  const mappedPage = {
+    ...page,
+    proposedPageTitle: page.proposedPageTitle || page.pageTitle || ""
+  };
   if (index !== -1) {
-    data.pagesData[siteId][index] = page;
+    data.pagesData[siteId][index] = mappedPage;
   } else {
-    data.pagesData[siteId].push(page);
+    data.pagesData[siteId].push(mappedPage);
   }
   saveFallback(data);
 }
