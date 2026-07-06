@@ -6920,7 +6920,7 @@ export default function App() {
                   {/* Priority (read-only) */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Priority</label>
-                    <div style={{
+                    <div id="modalPriorityDisplay" style={{
                       backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-color)',
                       borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-secondary)',
                       fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
