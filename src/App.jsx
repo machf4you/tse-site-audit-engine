@@ -589,7 +589,13 @@ const getFindingsAndTasksForSite = (siteId, pages, siteUrl, siteName) => {
 
 const getPageType = (page) => {
   if (!page) return "Excluded";
-  return page.assignedType || "Excluded";
+  const type = page.assignedType || "Excluded";
+  const lower = type.toLowerCase();
+  if (lower === "hub" || lower === "hub page") return "Hub Page";
+  if (lower === "landing" || lower === "landing page" || lower === "primary landing page") return "Primary Landing Page";
+  if (lower === "supporting" || lower === "supporting page") return "Supporting Page";
+  if (lower === "topical" || lower === "topical page") return "Topical Page";
+  return type;
 };
 
 const paramsTemp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -4892,7 +4898,7 @@ export default function App() {
                             >
                               <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
                                 <div style={{ fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600 }}>{page.pageUrl}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '350px' }}>{page.pageTitle}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '350px' }}>{page.proposedPageTitle || page.pageTitle}</div>
                               </td>
                               <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
                                 {(() => {
