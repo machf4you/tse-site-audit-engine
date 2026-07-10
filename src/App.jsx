@@ -882,6 +882,17 @@ export default function App() {
  
    const [currentView, setCurrentView] = useState(initialView);
    const [selectedSiteId, setSelectedSiteId] = useState(initialSiteId);
+   
+   // Platform App selection (Milestone M005)
+   const savedApp = typeof window !== 'undefined' ? localStorage.getItem("tse_active_app") : null;
+   const initialApp = savedApp || "DASHBOARD";
+   const [activeApp, setActiveApp] = useState(initialApp);
+
+   useEffect(() => {
+     if (activeApp) {
+       localStorage.setItem("tse_active_app", activeApp);
+     }
+   }, [activeApp]);
 
    useEffect(() => {
      if (currentView) {
@@ -1000,8 +1011,7 @@ export default function App() {
   const [newSitePortfolio, setNewSitePortfolio] = useState("TSE");
   const [newSitePlatform, setNewSitePlatform] = useState("WordPress");
   
-  // Platform App selection (Milestone M005)
-  const [activeApp, setActiveApp] = useState("DASHBOARD");
+  // Platform App selection (Milestone M005 - Moved to top-level state)
 
   // Portfolio and Platform states (Milestone M003)
   const [sitePortfolio, setSitePortfolio] = useState("Other");
@@ -3031,21 +3041,24 @@ export default function App() {
     const badgeBorder = isLive ? `1px solid ${accentColor}25` : '1px solid rgba(245, 158, 11, 0.2)';
     
     return (
-      <div style={{
-        backgroundColor: '#0c101b',
-        border: `1px solid rgba(255, 255, 255, 0.05)`,
-        borderTop: `3px solid ${accentColor}`,
-        borderRadius: '12px',
-        padding: '1.75rem',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        minHeight: '260px',
-        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
+      <div 
+        onClick={() => setActiveApp(appId)}
+        style={{
+          backgroundColor: '#0c101b',
+          border: `1px solid rgba(255, 255, 255, 0.05)`,
+          borderTop: `3px solid ${accentColor}`,
+          borderRadius: '12px',
+          padding: '1.75rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '260px',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'pointer'
+        }}
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = 'translateY(-4px)';
         e.currentTarget.style.borderColor = `${accentColor}40`;
