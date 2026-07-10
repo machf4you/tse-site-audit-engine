@@ -889,15 +889,15 @@ export default function App() {
    }, [currentView]);
 
    useEffect(() => {
-      if (selectedSiteId) {
-        localStorage.setItem("tse_selected_site_id", selectedSiteId);
-        const site = sites.find(s => s.id === selectedSiteId);
-        if (site) {
-          setSitePortfolio(site.portfolio || "Other");
-          setSitePlatform(site.platform || "Other");
-        }
-      }
-    }, [selectedSiteId, sites]);
+     if (selectedSiteId) {
+       localStorage.setItem("tse_selected_site_id", selectedSiteId);
+       const site = sites.find(s => s.id === selectedSiteId);
+       if (site) {
+         setSitePortfolio(site.portfolio === "Chili" ? "Smoking Chili" : (site.portfolio || "Other"));
+         setSitePlatform(site.platform || "Other");
+       }
+     }
+   }, [selectedSiteId, sites]);
   const [selectedAnalysisSiteId, setSelectedAnalysisSiteId] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
   const [expandedLinkRows, setExpandedLinkRows] = useState({});
@@ -994,6 +994,10 @@ export default function App() {
   const [newSitePassword, setNewSitePassword] = useState("");
   const [connectionTestStatus, setConnectionTestStatus] = useState("idle"); // "idle", "testing", "success", "failed"
   const [connectionTestMessage, setConnectionTestMessage] = useState("");
+  
+  // Onboarding site classification (Milestone M004)
+  const [newSitePortfolio, setNewSitePortfolio] = useState("TSE");
+  const [newSitePlatform, setNewSitePlatform] = useState("WordPress");
 
   // Portfolio and Platform states (Milestone M003)
   const [sitePortfolio, setSitePortfolio] = useState("Other");
@@ -1232,8 +1236,8 @@ export default function App() {
         username: newSiteUsername.trim(),
         password: newSitePassword.trim()
       },
-      portfolio: "Other",
-      platform: "WordPress"
+      portfolio: newSitePortfolio,
+      platform: newSitePlatform
     };
 
     setSites(prev => [...prev, newSite]);
@@ -1247,6 +1251,8 @@ export default function App() {
     setNewSiteUrl("");
     setNewSiteUsername("");
     setNewSitePassword("");
+    setNewSitePortfolio("TSE");
+    setNewSitePlatform("WordPress");
     setConnectionTestStatus("idle");
     setConnectionTestMessage("");
     showNotification(`Website "${newSite.name}" connected successfully!`);
@@ -4608,7 +4614,7 @@ export default function App() {
 
               {(() => {
                 const filteredSites = sites.filter(site => {
-                  const matchesPortfolio = portfolioFilter === "All" || (site.portfolio || "Other") === portfolioFilter;
+                  const matchesPortfolio = portfolioFilter === "All" || (site.portfolio || "Other") === portfolioFilter || (portfolioFilter === "Smoking Chili" && site.portfolio === "Chili");
                   const matchesPlatform = platformFilter === "All" || (site.platform || "Other") === platformFilter;
                   return matchesPortfolio && matchesPlatform;
                 });
@@ -6973,6 +6979,50 @@ export default function App() {
                       }}
                     />
                   </div>
+
+                  {/* Portfolio Select (Milestone M004) */}
+                  <div>
+                    <label htmlFor="newSitePortfolioInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                      Portfolio
+                    </label>
+                    <select
+                      id="newSitePortfolioInput"
+                      value={newSitePortfolio}
+                      onChange={(e) => setNewSitePortfolio(e.target.value)}
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="TSE">TSE</option>
+                      <option value="Chili">Chili</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Platform Select (Milestone M004) */}
+                  <div>
+                    <label htmlFor="newSitePlatformInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                      Platform
+                    </label>
+                    <select
+                      id="newSitePlatformInput"
+                      value={newSitePlatform}
+                      onChange={(e) => setNewSitePlatform(e.target.value)}
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="WordPress">WordPress</option>
+                      <option value="Magento">Magento</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Connection Test Message Banner */}
@@ -7036,6 +7086,8 @@ export default function App() {
                       setNewSiteUrl("");
                       setNewSiteUsername("");
                       setNewSitePassword("");
+                      setNewSitePortfolio("TSE");
+                      setNewSitePlatform("WordPress");
                       setConnectionTestStatus("idle");
                       setConnectionTestMessage("");
                     }}
