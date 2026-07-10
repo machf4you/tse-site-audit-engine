@@ -4922,12 +4922,25 @@ export default function App() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '12px',
-                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                      border: '1px solid var(--border-color)',
+                      backgroundColor: '#0c101b',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
                       borderRadius: '8px',
-                      padding: '6px 12px',
-                      marginRight: '4px'
+                      padding: '8px 16px',
+                      marginRight: '4px',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
                     }}>
+                      {/* Label */}
+                      <span style={{
+                        fontSize: '0.725rem',
+                        textTransform: 'uppercase',
+                        fontWeight: 800,
+                        color: 'rgba(16, 185, 129, 0.95)',
+                        letterSpacing: '0.05em',
+                        marginRight: '6px'
+                      }}>
+                        Website Classification
+                      </span>
+
                       {/* Portfolio Select */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Portfolio:</span>
@@ -4983,7 +4996,9 @@ export default function App() {
                           fontSize: '0.85rem',
                           fontWeight: 600,
                           borderRadius: '6px',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          borderColor: 'rgba(255, 255, 255, 0.15)'
                         }}
                       >
                         Save Settings
