@@ -4923,7 +4923,7 @@ export default function App() {
                       alignItems: 'center',
                       gap: '12px',
                       backgroundColor: '#0c101b',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      border: '2px solid rgba(255, 255, 255, 0.28)',
                       borderRadius: '8px',
                       padding: '8px 16px',
                       marginRight: '4px',
