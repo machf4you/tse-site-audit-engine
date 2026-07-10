@@ -148,6 +148,10 @@ function loadFallback() {
           site.portfolio = site.id === "the-search-equation" ? "TSE" : "Other";
           siteChanged = true;
         }
+        if (site.portfolio === "Smoking Chili") {
+          site.portfolio = "Chili";
+          siteChanged = true;
+        }
         if (!site.platform) {
           site.platform = "WordPress";
           siteChanged = true;
@@ -225,6 +229,9 @@ async function initDb() {
     await pool.query("UPDATE websites SET portfolio = 'TSE' WHERE id = 'the-search-equation' AND (portfolio IS NULL OR portfolio = 'Other')");
     await pool.query("UPDATE websites SET portfolio = 'Other' WHERE id = 'bathroom-upgrades' AND portfolio IS NULL");
     await pool.query("UPDATE websites SET platform = 'WordPress' WHERE id IN ('the-search-equation', 'bathroom-upgrades') AND platform IS NULL");
+    
+    // Standardize 'Smoking Chili' to 'Chili'
+    await pool.query("UPDATE websites SET portfolio = 'Chili' WHERE portfolio = 'Smoking Chili'");
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS page_configurations (

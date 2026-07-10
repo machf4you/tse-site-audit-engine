@@ -889,15 +889,15 @@ export default function App() {
    }, [currentView]);
 
    useEffect(() => {
-     if (selectedSiteId) {
-       localStorage.setItem("tse_selected_site_id", selectedSiteId);
-       const site = sites.find(s => s.id === selectedSiteId);
-       if (site) {
-         setSitePortfolio(site.portfolio === "Chili" ? "Smoking Chili" : (site.portfolio || "Other"));
-         setSitePlatform(site.platform || "Other");
-       }
-     }
-   }, [selectedSiteId, sites]);
+      if (selectedSiteId) {
+        localStorage.setItem("tse_selected_site_id", selectedSiteId);
+        const site = sites.find(s => s.id === selectedSiteId);
+        if (site) {
+          setSitePortfolio(site.portfolio || "Other");
+          setSitePlatform(site.platform || "Other");
+        }
+      }
+    }, [selectedSiteId, sites]);
   const [selectedAnalysisSiteId, setSelectedAnalysisSiteId] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
   const [expandedLinkRows, setExpandedLinkRows] = useState({});
@@ -4562,7 +4562,7 @@ export default function App() {
                     >
                       <option value="All">All</option>
                       <option value="TSE">TSE</option>
-                      <option value="Smoking Chili">Smoking Chili</option>
+                      <option value="Chili">Chili</option>
                       <option value="Other">Other</option>
                     </select>
                   </div>
@@ -4614,7 +4614,7 @@ export default function App() {
 
               {(() => {
                 const filteredSites = sites.filter(site => {
-                  const matchesPortfolio = portfolioFilter === "All" || (site.portfolio || "Other") === portfolioFilter || (portfolioFilter === "Smoking Chili" && site.portfolio === "Chili");
+                  const matchesPortfolio = portfolioFilter === "All" || (site.portfolio || "Other") === portfolioFilter;
                   const matchesPlatform = platformFilter === "All" || (site.platform || "Other") === platformFilter;
                   return matchesPortfolio && matchesPlatform;
                 });
@@ -4965,7 +4965,7 @@ export default function App() {
                           }}
                         >
                           <option value="TSE">TSE</option>
-                          <option value="Smoking Chili">Smoking Chili</option>
+                          <option value="Chili">Chili</option>
                           <option value="Other">Other</option>
                         </select>
                       </div>
