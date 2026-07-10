@@ -2725,7 +2725,10 @@ export default function App() {
 
             {/* Settings */}
             <button
-              onClick={() => setActiveApp("SETTINGS_PLATFORM")}
+              onClick={() => {
+                setActiveApp("WEBSITE_MANAGEMENT");
+                setCurrentView("SETTINGS");
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -3045,37 +3048,38 @@ export default function App() {
         onClick={() => setActiveApp(appId)}
         style={{
           backgroundColor: '#0c101b',
-          border: `1px solid rgba(255, 255, 255, 0.05)`,
-          borderTop: `3px solid ${accentColor}`,
+          border: `1px solid rgba(255, 255, 255, 0.06)`,
           borderRadius: '12px',
-          padding: '1.75rem',
+          padding: '2rem',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          minHeight: '260px',
+          minHeight: '270px',
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           position: 'relative',
           overflow: 'hidden',
           cursor: 'pointer'
         }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.borderColor = `${accentColor}40`;
-        e.currentTarget.style.boxShadow = `0 12px 30px -10px ${accentColor}15, 0 4px 20px rgba(0,0,0,0.2)`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'none';
-        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
-        e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
-      }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+          e.currentTarget.style.boxShadow = `0 12px 24px -8px ${accentColor}25, 0 4px 20px rgba(0,0,0,0.2)`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'none';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+        }}
       >
-        <div style={{ textAlign: 'left', marginBottom: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1rem' }}>
+        <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+          {/* Header Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '1.25rem' }}>
+            {/* Icon Wrapper (Increased from 42px to 48px) */}
             <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '10px',
+              width: '48px',
+              height: '48px',
+              borderRadius: '12px',
               backgroundColor: `${accentColor}10`,
               border: `1px solid ${accentColor}25`,
               display: 'flex',
@@ -3084,14 +3088,16 @@ export default function App() {
               color: accentColor,
               flexShrink: 0
             }}>
-              <IconComponent size={20} />
+              {/* Increased Lucide Icon size from 20 to 22 */}
+              <IconComponent size={22} />
             </div>
 
+            {/* Title & Badge */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
                 <h3 style={{
                   fontFamily: 'Outfit, sans-serif',
-                  fontSize: '1.15rem',
+                  fontSize: '1.2rem',
                   fontWeight: 800,
                   color: 'var(--text-primary)',
                   margin: 0,
@@ -3103,7 +3109,7 @@ export default function App() {
                 </h3>
                 <span style={{
                   fontWeight: 700,
-                  padding: '2px 8px',
+                  padding: '3px 8px',
                   borderRadius: '4px',
                   fontSize: '0.65rem',
                   textTransform: 'uppercase',
@@ -3119,27 +3125,29 @@ export default function App() {
             </div>
           </div>
 
+          {/* Description */}
           <p style={{
-            fontSize: '0.85rem',
+            fontSize: '0.875rem',
             color: 'var(--text-secondary)',
-            lineHeight: 1.5,
+            lineHeight: 1.6,
             margin: 0,
             display: '-webkit-box',
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
-            height: '3.85rem'
+            height: '4.2rem'
           }}>
             {description}
           </p>
         </div>
 
+        {/* Footer */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           borderTop: '1px solid rgba(255,255,255,0.04)',
-          paddingTop: '1rem',
+          paddingTop: '1.25rem',
           marginTop: 'auto'
         }}>
           <span style={{ fontSize: '0.725rem', color: 'rgba(255, 255, 255, 0.35)', fontFamily: 'monospace' }}>
