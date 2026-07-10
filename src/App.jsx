@@ -4917,68 +4917,78 @@ export default function App() {
                   
                   {/* Action Buttons Toolbar */}
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {/* Portfolio Select (Milestone M003) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Portfolio:</span>
-                      <select
-                        id="sitePortfolioInput"
-                        value={sitePortfolio}
-                        onChange={(e) => setSitePortfolio(e.target.value)}
+                    {/* Website Classification Settings Container (Milestone M003) */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '6px 12px',
+                      marginRight: '4px'
+                    }}>
+                      {/* Portfolio Select */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Portfolio:</span>
+                        <select
+                          id="sitePortfolioInput"
+                          value={sitePortfolio}
+                          onChange={(e) => setSitePortfolio(e.target.value)}
+                          style={{
+                            backgroundColor: '#07090b',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.85rem',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="TSE">TSE</option>
+                          <option value="Smoking Chili">Smoking Chili</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      {/* Platform Select */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Platform:</span>
+                        <select
+                          id="sitePlatformInput"
+                          value={sitePlatform}
+                          onChange={(e) => setSitePlatform(e.target.value)}
+                          style={{
+                            backgroundColor: '#07090b',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            color: 'var(--text-primary)',
+                            fontSize: '0.85rem',
+                            outline: 'none'
+                          }}
+                        >
+                          <option value="WordPress">WordPress</option>
+                          <option value="Magento">Magento</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      {/* Save Settings Button */}
+                      <button
+                        className="btn-secondary"
+                        onClick={handleSaveWebsiteConfig}
                         style={{
-                          backgroundColor: '#07090b',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '6px',
                           padding: '6px 12px',
-                          color: 'var(--text-primary)',
                           fontSize: '0.85rem',
-                          outline: 'none'
+                          fontWeight: 600,
+                          borderRadius: '6px',
+                          cursor: 'pointer'
                         }}
                       >
-                        <option value="TSE">TSE</option>
-                        <option value="Smoking Chili">Smoking Chili</option>
-                        <option value="Other">Other</option>
-                      </select>
+                        Save Settings
+                      </button>
                     </div>
-
-                    {/* Platform Select (Milestone M003) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Platform:</span>
-                      <select
-                        id="sitePlatformInput"
-                        value={sitePlatform}
-                        onChange={(e) => setSitePlatform(e.target.value)}
-                        style={{
-                          backgroundColor: '#07090b',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '6px',
-                          padding: '6px 12px',
-                          color: 'var(--text-primary)',
-                          fontSize: '0.85rem',
-                          outline: 'none'
-                        }}
-                      >
-                        <option value="WordPress">WordPress</option>
-                        <option value="Magento">Magento</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-
-                    {/* Save Settings Button (Milestone M003) */}
-                    <button
-                      className="btn-secondary"
-                      onClick={handleSaveWebsiteConfig}
-                      style={{
-                        padding: '6px 12px',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Save Settings
-                    </button>
-
-                    <div style={{ width: '1px', height: '24px', backgroundColor: 'var(--border-color)', margin: '0 8px' }}></div>
                     {/* Temporarily hidden from UI until workflows are implemented */}
                     {/*
                     <button 
