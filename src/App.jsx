@@ -998,6 +998,9 @@ export default function App() {
   // Onboarding site classification (Milestone M004)
   const [newSitePortfolio, setNewSitePortfolio] = useState("TSE");
   const [newSitePlatform, setNewSitePlatform] = useState("WordPress");
+  
+  // Platform App selection (Milestone M005)
+  const [activeApp, setActiveApp] = useState("DASHBOARD");
 
   // Portfolio and Platform states (Milestone M003)
   const [sitePortfolio, setSitePortfolio] = useState("Other");
@@ -2592,6 +2595,243 @@ export default function App() {
     return "website";
   };
 
+  const renderAppCard = ({ name, description, status, version, appId }) => {
+    const isLive = status === "Live";
+    const isDev = status === "Development";
+    
+    // Status color configurations
+    const badgeColor = isLive ? '#34d399' : isDev ? '#fbbf24' : '#9ca3af';
+    const badgeBg = isLive ? 'rgba(16, 185, 129, 0.08)' : isDev ? 'rgba(245, 158, 11, 0.08)' : 'rgba(156, 163, 175, 0.08)';
+    const badgeBorder = isLive ? '1px solid rgba(16, 185, 129, 0.15)' : isDev ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(156, 163, 175, 0.15)';
+
+    return (
+      <div style={{
+        backgroundColor: '#0c101b',
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        borderRadius: '12px',
+        padding: '1.75rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        minHeight: '260px',
+        transition: 'all 0.2s ease',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'none';
+        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+      }}
+      >
+        <div style={{ textAlign: 'left' }}>
+          {/* Header Row: Name & Status */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              {name}
+            </h3>
+            <span style={{
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '0.7rem',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              backgroundColor: badgeBg,
+              color: badgeColor,
+              border: badgeBorder
+            }}>
+              {status}
+            </span>
+          </div>
+
+          {/* Description */}
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>
+            {description}
+          </p>
+        </div>
+
+        {/* Footer Row: Version & Open Button */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '1rem' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+            {version}
+          </span>
+          <button
+            className={isLive ? "btn-primary" : "btn-secondary"}
+            onClick={() => setActiveApp(appId)}
+            style={{
+              padding: '6px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            {isLive ? "Open App" : "Coming Soon"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  if (activeApp === "DASHBOARD") {
+    return (
+      <div className="hub-container">
+        {notification && (
+          <div style={{
+            position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+            backgroundColor: "#10b981", color: "white", padding: "10px 20px",
+            borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
+            zIndex: 2000, fontWeight: "600", fontSize: "0.9rem", display: "flex",
+            alignItems: "center", gap: "8px"
+          }}>
+            <CheckCircle size={16} /> {notification}
+          </div>
+        )}
+
+        <div style={{ padding: '4rem 2rem', maxWidth: '1200px', margin: '0 auto', textAlign: 'left', minHeight: '100vh' }}>
+          {/* Header */}
+          <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem', marginBottom: '3rem' }}>
+            <h1 style={{ fontFamily: 'Outfit', fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              TSE Apps Platform
+            </h1>
+            <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: 500 }}>
+              Launch and manage your active marketing and auditing applications.
+            </p>
+          </div>
+
+          {/* Apps Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '24px'
+          }}>
+            {/* Website Management */}
+            {renderAppCard({
+              name: "Website Management",
+              description: "Manage connected websites, crawl pages, run phrase fits, and track SEO audits.",
+              status: "Live",
+              version: "v1.0.4",
+              appId: "WEBSITE_MANAGEMENT"
+            })}
+
+            {/* Chatza */}
+            {renderAppCard({
+              name: "Chatza",
+              description: "Real-time communication and video collaboration client.",
+              status: "Live",
+              version: "v1.0.0",
+              appId: "CHATZA"
+            })}
+
+            {/* WP Exporter */}
+            {renderAppCard({
+              name: "WP Exporter",
+              description: "WordPress site exporter plugin data manager and sync agent.",
+              status: "Live",
+              version: "v1.0.0",
+              appId: "WP_EXPORTER"
+            })}
+
+            {/* Page Auditor */}
+            {renderAppCard({
+              name: "Page Auditor",
+              description: "Intelligent page-level SEO auditing and fitment engine.",
+              status: "Development",
+              version: "v0.8.0-dev",
+              appId: "PAGE_AUDITOR"
+            })}
+
+            {/* Site Auditor */}
+            {renderAppCard({
+              name: "Site Auditor",
+              description: "Comprehensive site-wide link, layout, and structure auditor.",
+              status: "Development",
+              version: "v0.5.0-dev",
+              appId: "SITE_AUDITOR"
+            })}
+
+            {/* Social Automation */}
+            {renderAppCard({
+              name: "Social Automation",
+              description: "Automated social media posting, scheduling, and analytics agent.",
+              status: "Development",
+              version: "v0.1.0-dev",
+              appId: "SOCIAL_AUTOMATION"
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (activeApp !== "WEBSITE_MANAGEMENT") {
+    return (
+      <div className="hub-container">
+        {notification && (
+          <div style={{
+            position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+            backgroundColor: "#10b981", color: "white", padding: "10px 20px",
+            borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
+            zIndex: 2000, fontWeight: "600", fontSize: "0.9rem", display: "flex",
+            alignItems: "center", gap: "8px"
+          }}>
+            <CheckCircle size={16} /> {notification}
+          </div>
+        )}
+
+        <div style={{
+          padding: '4rem 2rem',
+          maxWidth: '800px',
+          margin: '0 auto',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '80vh',
+          gap: '20px'
+        }}>
+          <div style={{
+            fontSize: '1.25rem',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            color: 'rgba(251, 191, 36, 0.95)',
+            backgroundColor: 'rgba(251, 191, 36, 0.08)',
+            border: '1px solid rgba(251, 191, 36, 0.15)',
+            padding: '4px 12px',
+            borderRadius: '6px'
+          }}>
+            {activeApp === "CHATZA" || activeApp === "WP_EXPORTER" ? "Application Portal" : "Under Development"}
+          </div>
+          <h2 style={{ fontFamily: 'Outfit', fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '10px 0 0 0' }}>
+            {activeApp === "CHATZA" ? "Chatza" :
+             activeApp === "WP_EXPORTER" ? "WP Exporter" :
+             activeApp === "PAGE_AUDITOR" ? "Page Auditor" :
+             activeApp === "SITE_AUDITOR" ? "Site Auditor" :
+             activeApp === "SOCIAL_AUTOMATION" ? "Social Automation" : "TSE Application"}
+          </h2>
+          <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 0 1.5rem 0', lineHeight: 1.6 }}>
+            {activeApp === "CHATZA" ? "The Chatza real-time communication and video collaboration client is coming soon to the TSE Platform." :
+             activeApp === "WP_EXPORTER" ? "The WP Exporter plugin data sync agent is coming soon to the TSE Platform." :
+             activeApp === "PAGE_AUDITOR" ? "The intelligent page-level SEO auditing and fitment engine is currently under development." :
+             activeApp === "SITE_AUDITOR" ? "The site-wide link, layout, and structure auditor is currently under development." :
+             "This TSE application is currently under development and will be available soon."}
+          </p>
+          <button 
+            className="btn-secondary" 
+            onClick={() => setActiveApp("DASHBOARD")}
+            style={{ padding: '12px 24px', fontSize: '0.95rem', fontWeight: 600 }}
+          >
+            ← Back to Apps Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="hub-container">
       {/* Toast Notification Banner */}
@@ -2608,6 +2848,28 @@ export default function App() {
       )}
 
       <header className="hub-header">
+        <button 
+          onClick={() => setActiveApp("DASHBOARD")}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-secondary)',
+            fontWeight: 700,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            padding: '8px 12px',
+            transition: 'all 0.2s ease',
+            outline: 'none',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginRight: '12px'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+        >
+          ← Back to Apps
+        </button>
         <div className="hub-brand" onClick={() => { setCurrentView("CONNECTED_SITES"); setSelectedTaskId(null); }} style={{ cursor: 'pointer' }}>
           <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
           <span>TSE Website Management</span>
