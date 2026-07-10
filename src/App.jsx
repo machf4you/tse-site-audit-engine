@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
   ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, ChevronDown, Globe, FileText,
-  Lock, AlertTriangle, Sliders, Database
+  Lock, AlertTriangle, Sliders, Database,
+  Home, MessageSquare, Download, Search, Network, Megaphone, Bell, HelpCircle, Activity, Plus, Rocket, Code, Calendar, LayoutGrid, List, LogOut
 } from 'lucide-react';
 import './App.css';
 import exporterData from './exporter-data.json';
@@ -2595,239 +2596,790 @@ export default function App() {
     return "website";
   };
 
-  const renderAppCard = ({ name, description, status, version, appId }) => {
-    const isLive = status === "Live";
-    const isDev = status === "Development";
-    
-    // Status color configurations
-    const badgeColor = isLive ? '#34d399' : isDev ? '#fbbf24' : '#9ca3af';
-    const badgeBg = isLive ? 'rgba(16, 185, 129, 0.08)' : isDev ? 'rgba(245, 158, 11, 0.08)' : 'rgba(156, 163, 175, 0.08)';
-    const badgeBorder = isLive ? '1px solid rgba(16, 185, 129, 0.15)' : isDev ? '1px solid rgba(245, 158, 11, 0.15)' : '1px solid rgba(156, 163, 175, 0.15)';
+  const renderPlatformSidebar = (currentActiveMenu) => {
+    return (
+      <aside style={{
+        width: '280px',
+        backgroundColor: '#0c101b',
+        borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+        padding: '2.5rem 1.75rem',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        boxSizing: 'border-box',
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        textAlign: 'left',
+        flexShrink: 0
+      }}>
+        <div>
+          {/* Logo Brand */}
+          <div 
+            onClick={() => setActiveApp("DASHBOARD")}
+            style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '2px', 
+              cursor: 'pointer',
+              marginBottom: '2.5rem'
+            }}
+          >
+            <h1 style={{ 
+              fontFamily: 'Outfit, sans-serif', 
+              fontSize: '2rem', 
+              fontWeight: 900, 
+              color: 'var(--text-primary)', 
+              margin: 0,
+              letterSpacing: '0.05em',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              TSE
+            </h1>
+            <span style={{ 
+              fontSize: '0.7rem', 
+              fontWeight: 800, 
+              color: '#34d399', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.15em' 
+            }}>
+              Apps Platform
+            </span>
+          </div>
 
+          {/* Navigation Menu */}
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '2.5rem' }}>
+            {/* Apps Dashboard */}
+            <button
+              onClick={() => setActiveApp("DASHBOARD")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                background: currentActiveMenu === "DASHBOARD" ? 'rgba(16, 185, 129, 0.08)' : 'none',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                color: currentActiveMenu === "DASHBOARD" ? '#34d399' : 'var(--text-secondary)',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (currentActiveMenu !== "DASHBOARD") e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                if (currentActiveMenu !== "DASHBOARD") e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <Home size={18} />
+              Apps Dashboard
+            </button>
+
+            {/* Website Management */}
+            <button
+              onClick={() => setActiveApp("WEBSITE_MANAGEMENT")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                background: currentActiveMenu === "WEBSITE_MANAGEMENT" ? 'rgba(16, 185, 129, 0.08)' : 'none',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                color: currentActiveMenu === "WEBSITE_MANAGEMENT" ? '#34d399' : 'var(--text-secondary)',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (currentActiveMenu !== "WEBSITE_MANAGEMENT") e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                if (currentActiveMenu !== "WEBSITE_MANAGEMENT") e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <Globe size={18} />
+              Website Management
+            </button>
+
+            {/* Settings */}
+            <button
+              onClick={() => setActiveApp("SETTINGS_PLATFORM")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                background: currentActiveMenu === "SETTINGS" ? 'rgba(16, 185, 129, 0.08)' : 'none',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                color: currentActiveMenu === "SETTINGS" ? '#34d399' : 'var(--text-secondary)',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (currentActiveMenu !== "SETTINGS") e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                if (currentActiveMenu !== "SETTINGS") e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <Sliders size={18} />
+              Settings
+            </button>
+
+            {/* Activity Log */}
+            <button
+              onClick={() => setActiveApp("ACTIVITY_LOG_PLATFORM")}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                background: currentActiveMenu === "ACTIVITY_LOG" ? 'rgba(16, 185, 129, 0.08)' : 'none',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                color: currentActiveMenu === "ACTIVITY_LOG" ? '#34d399' : 'var(--text-secondary)',
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (currentActiveMenu !== "ACTIVITY_LOG") e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                if (currentActiveMenu !== "ACTIVITY_LOG") e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              <Activity size={18} />
+              Activity Log
+            </button>
+          </nav>
+
+          {/* Quick Actions */}
+          <div style={{ marginBottom: '2rem' }}>
+            <span style={{ 
+              display: 'block', 
+              fontSize: '0.7rem', 
+              fontWeight: 800, 
+              color: 'rgba(255, 255, 255, 0.3)', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.1em',
+              marginBottom: '10px',
+              paddingLeft: '14px'
+            }}>
+              Quick Actions
+            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <button
+                onClick={() => {
+                  setActiveApp("WEBSITE_MANAGEMENT");
+                  setIsAddWebsiteModalOpen(true);
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+              >
+                <Plus size={16} />
+                Add Website
+              </button>
+              <button
+                onClick={() => {
+                  setActiveApp("WEBSITE_MANAGEMENT");
+                  setCurrentView("CONNECTED_SITES");
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  color: 'var(--text-secondary)',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+              >
+                <Play size={16} />
+                Run New Audit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Sidebar Footer */}
+        <div>
+          {/* Help Card */}
+          <div 
+            onClick={() => setActiveApp("HELP_PLATFORM")}
+            style={{
+              backgroundColor: '#07090b',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              borderRadius: '8px',
+              padding: '12px',
+              cursor: 'pointer',
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '10px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)'}
+          >
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+              <HelpCircle size={18} style={{ color: '#10b981', marginTop: '2px', flexShrink: 0 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>Need Help?</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: 1.3 }}>View docs or contact support.</span>
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+          </div>
+
+          {/* User Profile */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+            paddingTop: '1rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#10b981',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.85rem'
+              }}>
+                MM
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>Mac McCarthy</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>Administrator</span>
+              </div>
+            </div>
+            <ChevronDown size={16} style={{ color: 'var(--text-secondary)' }} />
+          </div>
+        </div>
+      </aside>
+    );
+  };
+
+  const renderStatsPanel = () => {
     return (
       <div style={{
         backgroundColor: '#0c101b',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: '12px',
+        padding: '1.25rem 2rem',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: '24px',
+        marginBottom: '3rem',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+      }}>
+        {/* Stat 1: Total Apps */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', textAlign: 'left' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            border: '1px solid rgba(16, 185, 129, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#34d399'
+          }}>
+            <LayoutGrid size={20} />
+          </div>
+          <div>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Total Apps</span>
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>6</span>
+            <span style={{ fontSize: '0.7rem', color: '#34d399', fontWeight: 700 }}>All systems</span>
+          </div>
+        </div>
+
+        {/* Stat 2: Live Apps */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid rgba(255, 255, 255, 0.06)', paddingLeft: '24px', textAlign: 'left' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            border: '1px solid rgba(59, 130, 246, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#60a5fa'
+          }}>
+            <Rocket size={20} />
+          </div>
+          <div>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Live Apps</span>
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>3</span>
+            <span style={{ fontSize: '0.7rem', color: '#60a5fa', fontWeight: 700 }}>Ready to use</span>
+          </div>
+        </div>
+
+        {/* Stat 3: In Development */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid rgba(255, 255, 255, 0.06)', paddingLeft: '24px', textAlign: 'left' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            border: '1px solid rgba(245, 158, 11, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fbbf24'
+          }}>
+            <Code size={20} />
+          </div>
+          <div>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>In Development</span>
+            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>3</span>
+            <span style={{ fontSize: '0.7rem', color: '#fbbf24', fontWeight: 700 }}>Building</span>
+          </div>
+        </div>
+
+        {/* Stat 4: Last Updated */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', borderLeft: '1px solid rgba(255, 255, 255, 0.06)', paddingLeft: '24px', textAlign: 'left' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            border: '1px solid rgba(139, 92, 246, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#a78bfa'
+          }}>
+            <Calendar size={20} />
+          </div>
+          <div>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Last Updated</span>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', display: 'block', lineHeight: 1.2 }}>Today</span>
+            <span style={{ fontSize: '0.7rem', color: '#a78bfa', fontWeight: 700 }}>10:24 AM</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAppCard = ({ name, description, status, version, appId, accentColor, IconComponent }) => {
+    const isLive = status === "Live";
+    const isDev = status === "Development";
+    
+    // Accent-specific colors
+    const badgeColor = isLive ? accentColor : '#fbbf24';
+    const badgeBg = isLive ? `${accentColor}0a` : 'rgba(245, 158, 11, 0.08)';
+    const badgeBorder = isLive ? `1px solid ${accentColor}25` : '1px solid rgba(245, 158, 11, 0.2)';
+    
+    return (
+      <div style={{
+        backgroundColor: '#0c101b',
+        border: `1px solid rgba(255, 255, 255, 0.05)`,
+        borderTop: `3px solid ${accentColor}`,
         borderRadius: '12px',
         padding: '1.75rem',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         minHeight: '260px',
-        transition: 'all 0.2s ease',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+        position: 'relative',
+        overflow: 'hidden'
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-2px)';
-        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+        e.currentTarget.style.borderColor = `${accentColor}40`;
+        e.currentTarget.style.boxShadow = `0 12px 30px -10px ${accentColor}15, 0 4px 20px rgba(0,0,0,0.2)`;
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = 'none';
-        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+        e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+        e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
       }}
       >
-        <div style={{ textAlign: 'left' }}>
-          {/* Header Row: Name & Status */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              {name}
-            </h3>
-            <span style={{
-              fontWeight: 700,
-              padding: '3px 8px',
-              borderRadius: '4px',
-              fontSize: '0.7rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              backgroundColor: badgeBg,
-              color: badgeColor,
-              border: badgeBorder
+        <div style={{ textAlign: 'left', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1rem' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              backgroundColor: `${accentColor}10`,
+              border: `1px solid ${accentColor}25`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: accentColor,
+              flexShrink: 0
             }}>
-              {status}
-            </span>
+              <IconComponent size={20} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+                <h3 style={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontSize: '1.15rem',
+                  fontWeight: 800,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {name}
+                </h3>
+                <span style={{
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  fontSize: '0.65rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  backgroundColor: badgeBg,
+                  color: badgeColor,
+                  border: badgeBorder,
+                  flexShrink: 0
+                }}>
+                  {status}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Description */}
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 1.25rem 0' }}>
+          <p style={{
+            fontSize: '0.85rem',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
+            margin: 0,
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            height: '3.85rem'
+          }}>
             {description}
           </p>
         </div>
 
-        {/* Footer Row: Version & Open Button */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '1rem' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          paddingTop: '1rem',
+          marginTop: 'auto'
+        }}>
+          <span style={{ fontSize: '0.725rem', color: 'rgba(255, 255, 255, 0.35)', fontFamily: 'monospace' }}>
             {version}
           </span>
           <button
-            className={isLive ? "btn-primary" : "btn-secondary"}
             onClick={() => setActiveApp(appId)}
             style={{
-              padding: '6px 16px',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              cursor: 'pointer'
+              backgroundColor: isLive ? accentColor : 'rgba(255,255,255,0.04)',
+              color: isLive ? '#ffffff' : 'rgba(255,255,255,0.25)',
+              border: isLive ? 'none' : '1px solid rgba(255,255,255,0.05)',
+              borderRadius: '8px',
+              padding: '6px 14px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              outline: 'none'
+            }}
+            onMouseEnter={(e) => {
+              if (isLive) {
+                e.currentTarget.style.filter = 'brightness(1.1)';
+              } else {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (isLive) {
+                e.currentTarget.style.filter = 'none';
+              } else {
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)';
+                e.currentTarget.style.color = 'rgba(255,255,255,0.25)';
+              }
             }}
           >
-            {isLive ? "Open App" : "Coming Soon"}
+            {isLive ? (
+              <>
+                Open App
+                <ChevronRight size={14} />
+              </>
+            ) : "Coming Soon"}
           </button>
         </div>
       </div>
     );
   };
 
-  if (activeApp === "DASHBOARD") {
+  const renderPlatformLayout = (activeMenu, contentJSX) => {
     return (
-      <div className="hub-container">
-        {notification && (
-          <div style={{
-            position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
-            backgroundColor: "#10b981", color: "white", padding: "10px 20px",
-            borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
-            zIndex: 2000, fontWeight: "600", fontSize: "0.9rem", display: "flex",
-            alignItems: "center", gap: "8px"
-          }}>
-            <CheckCircle size={16} /> {notification}
-          </div>
-        )}
+      <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#07090e', color: 'var(--text-primary)', width: '100vw' }}>
+        {renderPlatformSidebar(activeMenu)}
+        <main style={{ flexGrow: 1, height: '100vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          {contentJSX}
+        </main>
+      </div>
+    );
+  };
 
-        <div style={{ padding: '4rem 2rem', maxWidth: '1200px', margin: '0 auto', textAlign: 'left', minHeight: '100vh' }}>
-          {/* Header */}
-          <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem', marginBottom: '3rem' }}>
-            <h1 style={{ fontFamily: 'Outfit', fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-              TSE Apps Platform
-            </h1>
-            <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: 500 }}>
-              Launch and manage your active marketing and auditing applications.
+  if (activeApp === "DASHBOARD") {
+    return renderPlatformLayout(
+      "DASHBOARD",
+      <div style={{ padding: '3.5rem 3rem', maxWidth: '1200px', margin: '0 auto', textAlign: 'left' }}>
+        {/* Welcome Row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+          <div>
+            <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              Welcome back, Mac 👋
+            </h2>
+            <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginTop: '0.4rem', fontWeight: 500 }}>
+              Launch and manage your marketing and auditing applications.
             </p>
           </div>
+          <button
+            className="btn-secondary"
+            onClick={() => showNotification("App request submitted successfully!")}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}
+          >
+            <Plus size={16} /> Request New App
+          </button>
+        </div>
 
-          {/* Apps Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '24px'
-          }}>
-            {/* Website Management */}
-            {renderAppCard({
-              name: "Website Management",
-              description: "Manage connected websites, crawl pages, run phrase fits, and track SEO audits.",
-              status: "Live",
-              version: "v1.0.4",
-              appId: "WEBSITE_MANAGEMENT"
-            })}
+        {/* Stats Row */}
+        {renderStatsPanel()}
 
-            {/* Chatza */}
-            {renderAppCard({
-              name: "Chatza",
-              description: "Real-time communication and video collaboration client.",
-              status: "Live",
-              version: "v1.0.0",
-              appId: "CHATZA"
-            })}
-
-            {/* WP Exporter */}
-            {renderAppCard({
-              name: "WP Exporter",
-              description: "WordPress site exporter plugin data manager and sync agent.",
-              status: "Live",
-              version: "v1.0.0",
-              appId: "WP_EXPORTER"
-            })}
-
-            {/* Page Auditor */}
-            {renderAppCard({
-              name: "Page Auditor",
-              description: "Intelligent page-level SEO auditing and fitment engine.",
-              status: "Development",
-              version: "v0.8.0-dev",
-              appId: "PAGE_AUDITOR"
-            })}
-
-            {/* Site Auditor */}
-            {renderAppCard({
-              name: "Site Auditor",
-              description: "Comprehensive site-wide link, layout, and structure auditor.",
-              status: "Development",
-              version: "v0.5.0-dev",
-              appId: "SITE_AUDITOR"
-            })}
-
-            {/* Social Automation */}
-            {renderAppCard({
-              name: "Social Automation",
-              description: "Automated social media posting, scheduling, and analytics agent.",
-              status: "Development",
-              version: "v0.1.0-dev",
-              appId: "SOCIAL_AUTOMATION"
-            })}
+        {/* Apps Header Row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '12px' }}>
+          <div>
+            <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+              Your Applications
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+              Access all your TSE applications from one place.
+            </p>
           </div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginRight: '6px', fontWeight: 600 }}>View:</span>
+            <button style={{ backgroundColor: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '6px', borderRadius: '6px', color: '#34d399', cursor: 'pointer', outline: 'none' }}>
+              <LayoutGrid size={16} />
+            </button>
+            <button style={{ backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.05)', padding: '6px', borderRadius: '6px', color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none' }} onClick={() => showNotification("List view coming soon!")}>
+              <List size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Apps Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '24px',
+          paddingBottom: '2rem'
+        }}>
+          {renderAppCard({
+            name: "Website Management",
+            description: "Manage connected websites, crawl pages, run phrase fits, and track SEO audits.",
+            status: "Live",
+            version: "v1.0.4",
+            appId: "WEBSITE_MANAGEMENT",
+            accentColor: "#10b981",
+            IconComponent: Globe
+          })}
+
+          {renderAppCard({
+            name: "Chatza",
+            description: "Real-time communication and video collaboration client.",
+            status: "Live",
+            version: "v1.0.0",
+            appId: "CHATZA",
+            accentColor: "#3b82f6",
+            IconComponent: MessageSquare
+          })}
+
+          {renderAppCard({
+            name: "WP Exporter",
+            description: "WordPress site exporter plugin data manager and sync agent.",
+            status: "Live",
+            version: "v1.0.0",
+            appId: "WP_EXPORTER",
+            accentColor: "#8b5cf6",
+            IconComponent: Download
+          })}
+
+          {renderAppCard({
+            name: "Page Auditor",
+            description: "Intelligent page-level SEO auditing and fitment engine.",
+            status: "Development",
+            version: "v0.8.0-dev",
+            appId: "PAGE_AUDITOR",
+            accentColor: "#f59e0b",
+            IconComponent: Search
+          })}
+
+          {renderAppCard({
+            name: "Site Auditor",
+            description: "Comprehensive site-wide link, layout, and structure auditor.",
+            status: "Development",
+            version: "v0.5.0-dev",
+            appId: "SITE_AUDITOR",
+            accentColor: "#06b6d4",
+            IconComponent: Network
+          })}
+
+          {renderAppCard({
+            name: "Social Automation",
+            description: "Automated social media posting, scheduling, and analytics agent.",
+            status: "Development",
+            version: "v0.1.0-dev",
+            appId: "SOCIAL_AUTOMATION",
+            accentColor: "#ec4899",
+            IconComponent: Megaphone
+          })}
         </div>
       </div>
     );
   }
 
   if (activeApp !== "WEBSITE_MANAGEMENT") {
-    return (
-      <div className="hub-container">
-        {notification && (
-          <div style={{
-            position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
-            backgroundColor: "#10b981", color: "white", padding: "10px 20px",
-            borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
-            zIndex: 2000, fontWeight: "600", fontSize: "0.9rem", display: "flex",
-            alignItems: "center", gap: "8px"
-          }}>
-            <CheckCircle size={16} /> {notification}
-          </div>
-        )}
+    const getPlaceholderParams = () => {
+      switch (activeApp) {
+        case "CHATZA":
+          return { activeMenu: "DASHBOARD", title: "Chatza", accent: "#3b82f6", icon: MessageSquare, description: "Real-time communication and video collaboration client.", statusText: "Coming Soon" };
+        case "WP_EXPORTER":
+          return { activeMenu: "DASHBOARD", title: "WP Exporter", accent: "#8b5cf6", icon: Download, description: "WordPress site exporter plugin data manager and sync agent.", statusText: "Coming Soon" };
+        case "PAGE_AUDITOR":
+          return { activeMenu: "DASHBOARD", title: "Page Auditor", accent: "#f59e0b", icon: Search, description: "Intelligent page-level SEO auditing and fitment engine.", statusText: "Under Development" };
+        case "SITE_AUDITOR":
+          return { activeMenu: "DASHBOARD", title: "Site Auditor", accent: "#06b6d4", icon: Network, description: "Comprehensive site-wide link, layout, and structure auditor.", statusText: "Under Development" };
+        case "SOCIAL_AUTOMATION":
+          return { activeMenu: "DASHBOARD", title: "Social Automation", accent: "#ec4899", icon: Megaphone, description: "Automated social media posting, scheduling, and analytics agent.", statusText: "Under Development" };
+        case "SETTINGS_PLATFORM":
+          return { activeMenu: "SETTINGS", title: "Platform Settings", accent: "#10b981", icon: Sliders, description: "Configure global TSE Apps Platform options and access keys.", statusText: "Settings Portal" };
+        case "ACTIVITY_LOG_PLATFORM":
+          return { activeMenu: "ACTIVITY_LOG", title: "Platform Activity Log", accent: "#10b981", icon: Activity, description: "Audit trail of user logins, application launches, and system operations.", statusText: "Activity Tracker" };
+        case "HELP_PLATFORM":
+          return { activeMenu: "DASHBOARD", title: "Help & Documentation", accent: "#10b981", icon: HelpCircle, description: "Search user guides, API definitions, and contact customer support.", statusText: "Support Center" };
+        default:
+          return { activeMenu: "DASHBOARD", title: "TSE Application", accent: "#10b981", icon: Globe, description: "This application is currently not active on this environment.", statusText: "System Warning" };
+      }
+    };
 
+    const { activeMenu, title, accent, icon: PlaceholderIcon, description, statusText } = getPlaceholderParams();
+
+    return renderPlatformLayout(
+      activeMenu,
+      <div style={{
+        padding: '6rem 3rem',
+        maxWidth: '800px',
+        margin: '0 auto',
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '80vh',
+        gap: '24px'
+      }}>
         <div style={{
-          padding: '4rem 2rem',
-          maxWidth: '800px',
-          margin: '0 auto',
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
+          fontSize: '0.8rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: accent,
+          backgroundColor: `${accent}0a`,
+          border: `1px solid ${accent}25`,
+          padding: '6px 16px',
+          borderRadius: '20px',
+          display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '80vh',
-          gap: '20px'
+          gap: '8px'
         }}>
-          <div style={{
-            fontSize: '1.25rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: 'rgba(251, 191, 36, 0.95)',
-            backgroundColor: 'rgba(251, 191, 36, 0.08)',
-            border: '1px solid rgba(251, 191, 36, 0.15)',
-            padding: '4px 12px',
-            borderRadius: '6px'
-          }}>
-            {activeApp === "CHATZA" || activeApp === "WP_EXPORTER" ? "Application Portal" : "Under Development"}
-          </div>
-          <h2 style={{ fontFamily: 'Outfit', fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: '10px 0 0 0' }}>
-            {activeApp === "CHATZA" ? "Chatza" :
-             activeApp === "WP_EXPORTER" ? "WP Exporter" :
-             activeApp === "PAGE_AUDITOR" ? "Page Auditor" :
-             activeApp === "SITE_AUDITOR" ? "Site Auditor" :
-             activeApp === "SOCIAL_AUTOMATION" ? "Social Automation" : "TSE Application"}
-          </h2>
-          <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 0 1.5rem 0', lineHeight: 1.6 }}>
-            {activeApp === "CHATZA" ? "The Chatza real-time communication and video collaboration client is coming soon to the TSE Platform." :
-             activeApp === "WP_EXPORTER" ? "The WP Exporter plugin data sync agent is coming soon to the TSE Platform." :
-             activeApp === "PAGE_AUDITOR" ? "The intelligent page-level SEO auditing and fitment engine is currently under development." :
-             activeApp === "SITE_AUDITOR" ? "The site-wide link, layout, and structure auditor is currently under development." :
-             "This TSE application is currently under development and will be available soon."}
-          </p>
-          <button 
-            className="btn-secondary" 
-            onClick={() => setActiveApp("DASHBOARD")}
-            style={{ padding: '12px 24px', fontSize: '0.95rem', fontWeight: 600 }}
-          >
-            ← Back to Apps Dashboard
-          </button>
+          <PlaceholderIcon size={14} />
+          {statusText}
         </div>
+
+        <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+          {title}
+        </h2>
+
+        <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', maxWidth: '500px', margin: 0, lineHeight: 1.6 }}>
+          {description}
+        </p>
+
+        <button 
+          className="btn-secondary" 
+          onClick={() => setActiveApp("DASHBOARD")}
+          style={{ padding: '12px 28px', fontSize: '0.9rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '1rem' }}
+        >
+          ← Back to Apps Dashboard
+        </button>
       </div>
     );
   }
