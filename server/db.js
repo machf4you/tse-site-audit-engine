@@ -102,7 +102,9 @@ function loadFallback() {
         url: exporterData["bathroom-upgrades"]?.site_url || "https://bathroomupgrades.co.uk",
         status: "Connected",
         lastAudit: "16 May 2026",
-        tasks: []
+        tasks: [],
+        portfolio: "Other",
+        platform: "WordPress"
       },
       {
         id: "the-search-equation",
@@ -110,7 +112,9 @@ function loadFallback() {
         url: exporterData["the-search-equation"]?.site_url || "https://thesearchequation.com",
         status: "Connected",
         lastAudit: null,
-        tasks: []
+        tasks: [],
+        portfolio: "TSE",
+        platform: "WordPress"
       }
     ];
 
@@ -137,6 +141,21 @@ function loadFallback() {
         return p;
       });
     });
+    if (loadedData.sites) {
+      loadedData.sites = loadedData.sites.map(site => {
+        let siteChanged = false;
+        if (!site.portfolio) {
+          site.portfolio = site.id === "the-search-equation" ? "TSE" : "Other";
+          siteChanged = true;
+        }
+        if (!site.platform) {
+          site.platform = "WordPress";
+          siteChanged = true;
+        }
+        if (siteChanged) changed = true;
+        return site;
+      });
+    }
     if (changed) {
       saveFallback(loadedData);
     }
@@ -189,6 +208,8 @@ async function initDb() {
         tasks JSONB DEFAULT '[]'::jsonb,
         wp_username VARCHAR(255),
         wp_password VARCHAR(255),
+        portfolio VARCHAR(100) DEFAULT 'Other',
+        platform VARCHAR(100) DEFAULT 'Other',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -197,6 +218,13 @@ async function initDb() {
     // Migrate existing table if needed
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS wp_username VARCHAR(255)");
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS wp_password VARCHAR(255)");
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS portfolio VARCHAR(100) DEFAULT 'Other'");
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS platform VARCHAR(100) DEFAULT 'Other'");
+
+    // Update existing records with sensible defaults if they are NULL
+    await pool.query("UPDATE websites SET portfolio = 'TSE' WHERE id = 'the-search-equation' AND (portfolio IS NULL OR portfolio = 'Other')");
+    await pool.query("UPDATE websites SET portfolio = 'Other' WHERE id = 'bathroom-upgrades' AND portfolio IS NULL");
+    await pool.query("UPDATE websites SET platform = 'WordPress' WHERE id IN ('the-search-equation', 'bathroom-upgrades') AND platform IS NULL");
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS page_configurations (
@@ -268,8 +296,8 @@ async function initDb() {
       for (const site of defaultData.sites) {
         const creds = fallbackCredentials[site.id] || site.credentials;
         await pool.query(
-          `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password, portfolio, platform)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
           [
             site.id,
             site.name,
@@ -278,7 +306,9 @@ async function initDb() {
             site.lastAudit,
             JSON.stringify(site.tasks || []),
             creds?.username || "",
-            creds?.password || ""
+            creds?.password || "",
+            site.portfolio || "Other",
+            site.platform || "Other"
           ]
         );
 
@@ -408,7 +438,7 @@ async function initDb() {
 async function getSites() {
   if (useDb) {
     try {
-      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks, wp_username, wp_password FROM websites ORDER BY created_at ASC");
+      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks, wp_username, wp_password, portfolio, platform FROM websites ORDER BY created_at ASC");
       return rows.map(r => ({
         id: r.id,
         name: r.name,
@@ -419,21 +449,27 @@ async function getSites() {
         credentials: {
           username: r.wp_username || "",
           password: r.wp_password || ""
-        }
+        },
+        portfolio: r.portfolio || "Other",
+        platform: r.platform || "Other"
       }));
     } catch (err) {
       console.error("Database query sites failed, using fallback:", err.message);
     }
   }
-  return loadFallback().sites;
+  return loadFallback().sites.map(site => ({
+    ...site,
+    portfolio: site.portfolio || "Other",
+    platform: site.platform || "Other"
+  }));
 }
 
 async function saveSite(site) {
   if (useDb) {
     try {
       await pool.query(
-        `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password, portfolio, platform)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          ON CONFLICT (id) DO UPDATE 
          SET name = EXCLUDED.name, 
              url = EXCLUDED.url, 
@@ -442,6 +478,8 @@ async function saveSite(site) {
              tasks = EXCLUDED.tasks,
              wp_username = EXCLUDED.wp_username,
              wp_password = EXCLUDED.wp_password,
+             portfolio = EXCLUDED.portfolio,
+             platform = EXCLUDED.platform,
              updated_at = NOW()`,
         [
           site.id, 
@@ -451,7 +489,9 @@ async function saveSite(site) {
           site.lastAudit, 
           JSON.stringify(site.tasks || []),
           site.credentials?.username || "",
-          site.credentials?.password || ""
+          site.credentials?.password || "",
+          site.portfolio || "Other",
+          site.platform || "Other"
         ]
       );
       return;
@@ -462,7 +502,10 @@ async function saveSite(site) {
   const data = loadFallback();
   const index = data.sites.findIndex(s => s.id === site.id);
   if (index !== -1) {
-    data.sites[index] = site;
+    data.sites[index] = {
+      ...data.sites[index],
+      ...site
+    };
   } else {
     data.sites.push(site);
   }

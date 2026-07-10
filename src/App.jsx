@@ -889,10 +889,15 @@ export default function App() {
    }, [currentView]);
 
    useEffect(() => {
-     if (selectedSiteId) {
-       localStorage.setItem("tse_selected_site_id", selectedSiteId);
-     }
-   }, [selectedSiteId]);
+      if (selectedSiteId) {
+        localStorage.setItem("tse_selected_site_id", selectedSiteId);
+        const site = sites.find(s => s.id === selectedSiteId);
+        if (site) {
+          setSitePortfolio(site.portfolio || "Other");
+          setSitePlatform(site.platform || "Other");
+        }
+      }
+    }, [selectedSiteId, sites]);
   const [selectedAnalysisSiteId, setSelectedAnalysisSiteId] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
   const [expandedLinkRows, setExpandedLinkRows] = useState({});
@@ -989,6 +994,12 @@ export default function App() {
   const [newSitePassword, setNewSitePassword] = useState("");
   const [connectionTestStatus, setConnectionTestStatus] = useState("idle"); // "idle", "testing", "success", "failed"
   const [connectionTestMessage, setConnectionTestMessage] = useState("");
+
+  // Portfolio and Platform states (Milestone M003)
+  const [sitePortfolio, setSitePortfolio] = useState("Other");
+  const [sitePlatform, setSitePlatform] = useState("Other");
+  const [portfolioFilter, setPortfolioFilter] = useState("All");
+  const [platformFilter, setPlatformFilter] = useState("All");
 
   const handleAuditSinglePage = (pageUrl) => {
     setSingleAuditPageUrl(pageUrl);
@@ -1220,7 +1231,9 @@ export default function App() {
       credentials: {
         username: newSiteUsername.trim(),
         password: newSitePassword.trim()
-      }
+      },
+      portfolio: "Other",
+      platform: "WordPress"
     };
 
     setSites(prev => [...prev, newSite]);
@@ -2137,6 +2150,21 @@ export default function App() {
     );
 
     setIsImporting(false);
+  };
+
+  const handleSaveWebsiteConfig = () => {
+    if (!selectedSiteId) return;
+    setSites(prevSites => prevSites.map(s => {
+      if (s.id === selectedSiteId) {
+        return {
+          ...s,
+          portfolio: sitePortfolio,
+          platform: sitePlatform
+        };
+      }
+      return s;
+    }));
+    showNotification("Website settings saved successfully!");
   };
 
   const handleExportData = () => {
@@ -4509,7 +4537,53 @@ export default function App() {
                   </div>
                   <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>Manage your connected websites.</span>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {/* Portfolio Filter (Milestone M003) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Portfolio:</span>
+                    <select
+                      value={portfolioFilter}
+                      onChange={(e) => setPortfolioFilter(e.target.value)}
+                      style={{
+                        backgroundColor: '#07090b',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.85rem',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="All">All</option>
+                      <option value="TSE">TSE</option>
+                      <option value="Smoking Chili">Smoking Chili</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Platform Filter (Milestone M003) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Platform:</span>
+                    <select
+                      value={platformFilter}
+                      onChange={(e) => setPlatformFilter(e.target.value)}
+                      style={{
+                        backgroundColor: '#07090b',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        padding: '6px 12px',
+                        color: 'var(--text-primary)',
+                        fontSize: '0.85rem',
+                        outline: 'none'
+                      }}
+                    >
+                      <option value="All">All</option>
+                      <option value="WordPress">WordPress</option>
+                      <option value="Magento">Magento</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
                   <button 
                     className="btn-primary" 
                     onClick={() => setIsAddWebsiteModalOpen(true)}
@@ -4532,221 +4606,248 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="websites-grid">
-                {sites.map(site => {
-                  const isAudited = site.lastAudit !== null;
-                  const sitePages = pagesData[site.id] || [];
-                  const totalPages = sitePages.length;
-                  const configuredPages = sitePages.filter(p => p.status === "Configured").length;
-                  const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
-                  const displayTitle = site.id === "bathroom-upgrades" ? "bathroomupgrades.co.uk" : site.name;
-                  
-                  return (
-                    <div 
-                      key={site.id} 
-                      className="sidebar-site-card"
-                      style={{ cursor: isAudited ? 'pointer' : 'default', display: 'flex', flexDirection: 'column' }}
-                      onClick={() => {
-                        if (isAudited) {
-                          setSelectedSiteId(site.id);
-                          setCurrentView("WEBSITES_CONFIG");
-                        }
-                      }}
-                    >
-                      <div className="site-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
-                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }}></span>
-                          CONNECTED
-                        </span>
-                        {site.status === "Connected" ? (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', backgroundColor: 'rgba(52, 211, 153, 0.08)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.15)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            {site.tasks.length} TASKS
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', backgroundColor: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.15)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            UNCONFIGURED
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="site-title" style={{ fontSize: '1.45rem', fontWeight: 800, margin: '0.5rem 0 0.25rem 0', textAlign: 'left', color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
-                        {displayTitle}
-                      </h3>
-                      
-                      <a 
-                        href={site.url} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="site-url-link"
-                        style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', width: 'fit-content' }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {site.url} <ExternalLink size={12} />
-                      </a>
+              {(() => {
+                const filteredSites = sites.filter(site => {
+                  const matchesPortfolio = portfolioFilter === "All" || (site.portfolio || "Other") === portfolioFilter;
+                  const matchesPlatform = platformFilter === "All" || (site.platform || "Other") === platformFilter;
+                  return matchesPortfolio && matchesPlatform;
+                });
 
-                      {/* Website Health Status (Operational Readiness) */}
-                      <div className="site-health-status" style={{ marginTop: '1.25rem', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '12px', backgroundColor: 'rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span>STATUS</span>
-                        </div>
+                return (
+                  <div className="websites-grid">
+                    {filteredSites.length > 0 ? (
+                      filteredSites.map(site => {
+                        const isAudited = site.lastAudit !== null;
+                        const sitePages = pagesData[site.id] || [];
+                        const totalPages = sitePages.length;
+                        const configuredPages = sitePages.filter(p => p.status === "Configured").length;
+                        const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
+                        const displayTitle = site.id === "bathroom-upgrades" ? "bathroomupgrades.co.uk" : site.name;
                         
-                        {/* Connected */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Connected</span>
-                          <span style={{
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                            color: '#34d399',
-                            border: '1px solid rgba(16, 185, 129, 0.15)'
-                          }}>
-                            Connected
-                          </span>
-                        </div>
+                        return (
+                          <div 
+                            key={site.id} 
+                            className="sidebar-site-card"
+                            style={{ cursor: isAudited ? 'pointer' : 'default', display: 'flex', flexDirection: 'column' }}
+                            onClick={() => {
+                              if (isAudited) {
+                                setSelectedSiteId(site.id);
+                                setCurrentView("WEBSITES_CONFIG");
+                              }
+                            }}
+                          >
+                            <div className="site-card-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#10b981', display: 'inline-block' }}></span>
+                                CONNECTED
+                              </span>
+                              {site.status === "Connected" ? (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', backgroundColor: 'rgba(52, 211, 153, 0.08)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.15)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  {site.tasks.length} TASKS
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', borderRadius: '4px', backgroundColor: 'rgba(245, 158, 11, 0.08)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.15)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                  UNCONFIGURED
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="site-title" style={{ fontSize: '1.45rem', fontWeight: 800, margin: '0.5rem 0 0.25rem 0', textAlign: 'left', color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
+                              {displayTitle}
+                            </h3>
+                            
+                            <a 
+                              href={site.url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="site-url-link"
+                              style={{ fontSize: '0.85rem', color: '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none', width: 'fit-content' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {site.url} <ExternalLink size={12} />
+                            </a>
 
-                        {/* WordPress API */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>WordPress API</span>
-                          {site.status === "Connected" ? (
-                            <span style={{
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                              color: '#34d399',
-                              border: '1px solid rgba(16, 185, 129, 0.15)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              <Lock size={12} style={{ color: '#fbbf24' }} /> Securely Connected
-                            </span>
-                          ) : (
-                            <span style={{
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                              color: '#fbbf24',
-                              border: '1px solid rgba(245, 158, 11, 0.15)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px'
-                            }}>
-                              <AlertTriangle size={12} /> Setup Required
-                            </span>
-                          )}
-                        </div>
+                            {/* Website Health Status (Operational Readiness) */}
+                            <div className="site-health-status" style={{ marginTop: '1.25rem', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '12px', backgroundColor: 'rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                              <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>STATUS</span>
+                              </div>
+                              
+                              {/* Connected */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Connected</span>
+                                <span style={{
+                                  fontWeight: 700,
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.75rem',
+                                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                  color: '#34d399',
+                                  border: '1px solid rgba(16, 185, 129, 0.15)'
+                                }}>
+                                  Connected
+                                </span>
+                              </div>
 
-                        {/* Configured */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Configured</span>
-                          <span style={{
-                            fontWeight: 700,
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                            color: '#fbbf24',
-                            border: '1px solid rgba(245, 158, 11, 0.15)'
-                          }}>
-                            Configured ({configuredPages}/{totalPages})
-                          </span>
-                        </div>
+                              {/* WordPress API */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>WordPress API</span>
+                                {site.status === "Connected" ? (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                    color: '#34d399',
+                                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <Lock size={12} style={{ color: '#fbbf24' }} /> Securely Connected
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                                    color: '#fbbf24',
+                                    border: '1px solid rgba(245, 158, 11, 0.15)',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                  }}>
+                                    <AlertTriangle size={12} /> Setup Required
+                                  </span>
+                                )}
+                              </div>
 
-                        {/* Audited */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Audited</span>
-                          {isAudited ? (
-                            <span style={{
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                              color: '#34d399',
-                              border: '1px solid rgba(16, 185, 129, 0.15)'
-                            }}>
-                              Audited ({site.lastAudit || '28 Jun 2026'})
-                            </span>
-                          ) : (
-                            <span style={{
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                              color: '#f87171',
-                              border: '1px solid rgba(239, 68, 68, 0.15)'
-                            }}>
-                              Pending Audit
-                            </span>
-                          )}
-                        </div>
+                              {/* Configured */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Configured</span>
+                                <span style={{
+                                  fontWeight: 700,
+                                  padding: '3px 8px',
+                                  borderRadius: '4px',
+                                  fontSize: '0.75rem',
+                                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                                  color: '#fbbf24',
+                                  border: '1px solid rgba(245, 158, 11, 0.15)'
+                                }}>
+                                  Configured ({configuredPages}/{totalPages})
+                                </span>
+                              </div>
 
-                        {/* Tasks Outstanding */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                          <span style={{ color: 'var(--text-secondary)' }}>Tasks Outstanding</span>
-                          {isAudited ? (
-                            <span style={{
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              backgroundColor: 'rgba(245, 158, 11, 0.08)',
-                              color: '#fbbf24',
-                              border: '1px solid rgba(245, 158, 11, 0.15)'
-                            }}>
-                              {site.tasks.filter(t => t.state !== "completed").length} Outstanding
-                            </span>
-                          ) : (
-                            <span style={{
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.75rem',
-                              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                              color: '#f87171',
-                              border: '1px solid rgba(239, 68, 68, 0.15)'
-                            }}>
-                              Pending Audit
-                            </span>
-                          )}
-                        </div>
+                              {/* Audited */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Audited</span>
+                                {isAudited ? (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                    color: '#34d399',
+                                    border: '1px solid rgba(16, 185, 129, 0.15)'
+                                  }}>
+                                    Audited ({site.lastAudit || '28 Jun 2026'})
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.15)'
+                                  }}>
+                                    Pending Audit
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Tasks Outstanding */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                                <span style={{ color: 'var(--text-secondary)' }}>Tasks Outstanding</span>
+                                {isAudited ? (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                                    color: '#fbbf24',
+                                    border: '1px solid rgba(245, 158, 11, 0.15)'
+                                  }}>
+                                    {site.tasks.filter(t => t.state !== "completed").length} Outstanding
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    fontWeight: 700,
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.15)'
+                                  }}>
+                                    Pending Audit
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <button 
+                              className="btn-primary" 
+                              style={{ 
+                                width: '100%', 
+                                justifyContent: 'center', 
+                                backgroundColor: '#10b981', 
+                                color: '#ffffff', 
+                                fontWeight: 600, 
+                                padding: '10px 16px', 
+                                borderRadius: '6px', 
+                                border: 'none', 
+                                marginTop: '1.25rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                boxShadow: 'none'
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSiteId(site.id);
+                                setCurrentView("WEBSITES_CONFIG");
+                              }}
+                            >
+                              Manage Configuration
+                            </button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{
+                        gridColumn: '1 / -1',
+                        padding: '3rem 2rem',
+                        textAlign: 'center',
+                        color: 'var(--text-secondary)',
+                        backgroundColor: 'var(--surface-color)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '12px',
+                        fontSize: '1rem',
+                        fontWeight: 500,
+                        fontFamily: 'Inter, sans-serif'
+                      }}>
+                        No websites match the selected filters.
                       </div>
-
-                      <button 
-                        className="btn-primary" 
-                        style={{ 
-                          width: '100%', 
-                          justifyContent: 'center', 
-                          backgroundColor: '#10b981', 
-                          color: '#ffffff', 
-                          fontWeight: 600, 
-                          padding: '10px 16px', 
-                          borderRadius: '6px', 
-                          border: 'none', 
-                          marginTop: '1.25rem',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          boxShadow: 'none'
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSiteId(site.id);
-                          setCurrentView("WEBSITES_CONFIG");
-                        }}
-                      >
-                        Manage Configuration
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
@@ -4908,6 +5009,128 @@ export default function App() {
                       }}
                     >
                       Run Audit <Play size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Website Details & Configuration Panel (Milestone M003) */}
+              <div style={{
+                backgroundColor: 'var(--surface-color)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                marginBottom: '2rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1.25rem'
+              }}>
+                <h3 style={{
+                  fontFamily: 'Outfit, sans-serif',
+                  fontSize: '1.2rem',
+                  fontWeight: 700,
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  textAlign: 'left'
+                }}>
+                  Website Classification Settings
+                </h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: '1.5rem',
+                  alignItems: 'end'
+                }}>
+                  <div style={{ textAlign: 'left' }}>
+                    <label htmlFor="sitePortfolioInput" style={{
+                      display: 'block',
+                      fontSize: '0.725rem',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Portfolio
+                    </label>
+                    <select
+                      id="sitePortfolioInput"
+                      value={sitePortfolio}
+                      onChange={(e) => setSitePortfolio(e.target.value)}
+                      style={{
+                        width: '100%',
+                        backgroundColor: '#07090b',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        padding: '0.625rem 1rem',
+                        color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="TSE">TSE</option>
+                      <option value="Smoking Chili">Smoking Chili</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  
+                  <div style={{ textAlign: 'left' }}>
+                    <label htmlFor="sitePlatformInput" style={{
+                      display: 'block',
+                      fontSize: '0.725rem',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-secondary)',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Platform
+                    </label>
+                    <select
+                      id="sitePlatformInput"
+                      value={sitePlatform}
+                      onChange={(e) => setSitePlatform(e.target.value)}
+                      style={{
+                        width: '100%',
+                        backgroundColor: '#07090b',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        padding: '0.625rem 1rem',
+                        color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '0.9rem',
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="WordPress">WordPress</option>
+                      <option value="Magento">Magento</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <button
+                      className="btn-primary"
+                      onClick={handleSaveWebsiteConfig}
+                      style={{
+                        width: '100%',
+                        justifyContent: 'center',
+                        backgroundColor: '#10b981',
+                        color: '#ffffff',
+                        fontWeight: 600,
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        boxShadow: 'none'
+                      }}
+                    >
+                      Save Website Settings
                     </button>
                   </div>
                 </div>
