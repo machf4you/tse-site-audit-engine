@@ -5740,7 +5740,7 @@ export default function App() {
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>
-                      W2 | Website Management
+                      W2 | Website Dashboard
                     </div>
                     <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                       {selectedSite?.name}
