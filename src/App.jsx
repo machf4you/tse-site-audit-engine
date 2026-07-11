@@ -8980,7 +8980,34 @@ export default function App() {
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
                 textAlign: 'left'
               }}>
-                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
+                                {/* Close Button */}
+                <button
+                  onClick={() => setIsEditWebsiteModalOpen(false)}
+                  style={{
+                    position: 'absolute',
+                    top: '1.5rem',
+                    right: '1.5rem',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '1.5rem',
+                    fontWeight: '300',
+                    lineHeight: '1',
+                    padding: '0.25rem',
+                    outline: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10,
+                    transition: 'color 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.target.style.color = 'var(--text-primary)'}
+                  onMouseLeave={(e) => e.target.style.color = 'var(--text-secondary)'}
+                >
+                  ✕
+                </button>
+<h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
                   Edit Website
                 </h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
