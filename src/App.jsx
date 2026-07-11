@@ -663,7 +663,7 @@ const INITIAL_PAGES_DATA = {
 const WorkflowStepper = ({ currentView }) => {
   const steps = [
     { label: "Connected Website", views: ["CONNECTED_SITES"] },
-    { label: "Website Management", views: ["WEBSITES_CONFIG", "WEBSITES_PAGE_MGMT", "WEBSITES_INTERNAL_LINKING", "WEBSITES_COMING_SOON", "AUDIT_CONFIG"] },
+    { label: "Website Management", views: ["WEBSITES_CONFIG", "WEBSITES_PAGE_MGMT", "WEBSITES_INTERNAL_LINKING", "WEBSITES_SITE_ANALYSIS", "WEBSITES_COMING_SOON", "AUDIT_CONFIG"] },
     { label: "Audit", views: ["AUDIT_RUNNING", "AUDIT_RESULTS"] },
     { label: "Work Actions", views: ["TASK_FOCUS", "EDIT"] }
   ];
@@ -3335,6 +3335,56 @@ export default function App() {
     );
   };
 
+  const renderModuleNavigation = (activeModule) => {
+    const modules = [
+      { id: "W3", label: "W3 | Manage Pages", view: "WEBSITES_PAGE_MGMT" },
+      { id: "W4", label: "W4 | Internal Linking", view: "WEBSITES_INTERNAL_LINKING" },
+      { id: "W5", label: "W5 | Analysis", view: "WEBSITES_SITE_ANALYSIS" },
+      { id: "W6", label: "W6 | Website Settings", view: "SETTINGS" }
+    ];
+
+    return (
+      <div style={{ 
+        display: 'flex', 
+        gap: '24px', 
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)', 
+        marginBottom: '2rem', 
+        paddingBottom: '0.75rem',
+        marginTop: '1rem'
+      }}>
+        {modules.map((m) => {
+          const isActive = m.id === activeModule;
+          return (
+            <button
+              key={m.id}
+              onClick={() => setCurrentView(m.view)}
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '4px 0 8px 0',
+                fontSize: '0.9rem',
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? '#10b981' : 'var(--text-secondary)',
+                borderBottom: isActive ? '2px solid #10b981' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)';
+              }}
+            >
+              {m.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
+
   const renderPlatformLayout = (activeMenu, contentJSX) => {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#07090e', color: 'var(--text-primary)', width: '100vw' }}>
@@ -3592,6 +3642,8 @@ export default function App() {
                 currentView === "SITE_ANALYSIS" || 
                 currentView === "WEBSITES_CONFIG" || 
                 currentView === "WEBSITES_PAGE_MGMT" || 
+                currentView === "WEBSITES_INTERNAL_LINKING" ||
+                currentView === "WEBSITES_SITE_ANALYSIS" ||
                 currentView === "WEBSITES_COMING_SOON" ||
                 currentView === "AUDIT_CONFIG" ||
                 currentView === "AUDIT_RUNNING" ||
@@ -3627,7 +3679,10 @@ export default function App() {
             Site Analysis
           </button>
           <button 
-            onClick={() => setCurrentView("SETTINGS")} 
+            onClick={() => {
+              setSelectedSiteId(null);
+              setCurrentView("SETTINGS");
+            }} 
             style={{
               background: 'none', border: 'none', 
               color: currentView === "SETTINGS" ? '#10b981' : '#94a3b8',
@@ -6183,10 +6238,7 @@ export default function App() {
                     badge: "W5 | Site Analysis",
                     accentColor: "#3b82f6",
                     IconComponent: Activity,
-                    onClick: () => {
-                      setComingSoonModule("SITE_ANALYSIS");
-                      setCurrentView("WEBSITES_COMING_SOON");
-                    },
+                    onClick: () => setCurrentView("WEBSITES_SITE_ANALYSIS"),
                     buttonText: "View Analysis"
                   })}
 
@@ -6400,8 +6452,8 @@ export default function App() {
                 </div>
 
                 {/* Header section */}
-                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+                <div style={{ marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.5rem' }}>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{
                         fontFamily: 'Inter, sans-serif',
@@ -6453,6 +6505,7 @@ export default function App() {
                       </button>
                     </div>
                   </div>
+                  {renderModuleNavigation("W3")}
                 </div>
 
                 {/* Table section */}
@@ -6607,8 +6660,8 @@ export default function App() {
                 </div>
 
                 {/* Header Details */}
-                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+                <div style={{ marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.5rem' }}>
                     <div style={{ textAlign: 'left' }}>
                       <div style={{
                         fontSize: '0.7rem',
@@ -6639,6 +6692,7 @@ export default function App() {
                       </a>
                     </div>
                   </div>
+                  {renderModuleNavigation("W4")}
                 </div>
 
                 {/* Content Placeholder */}
@@ -6672,10 +6726,134 @@ export default function App() {
                     <Link size={32} />
                   </div>
                   <h3 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                    Internal Linking Module
+                    Internal Linking
+                  </h3>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+                    border: '1px solid rgba(251, 191, 36, 0.2)',
+                    color: '#fbbf24',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block' }}></span>
+                    Coming Soon
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* STAGE 3.6: W5 SITE ANALYSIS SHELL */}
+          {currentView === "WEBSITES_SITE_ANALYSIS" && selectedSiteId && (() => {
+            const selectedSite = sites.find(s => s.id === selectedSiteId);
+            return (
+              <div>
+                {/* Back navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                  <button 
+                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.35rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      color: 'var(--accent-color)',
+                      padding: '8px 16px',
+                      marginLeft: '-16px',
+                      textDecoration: isBackHovered ? 'underline' : 'none',
+                      opacity: isBackHovered ? 0.95 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease',
+                      outline: 'none'
+                    }}
+                    onMouseEnter={() => setIsBackHovered(true)}
+                    onMouseLeave={() => setIsBackHovered(false)}
+                  >
+                    ← Back to W2 | Website Dashboard
+                  </button>
+                </div>
+
+                {/* Header Details */}
+                <div style={{ marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: '#3b82f6cc',
+                        backgroundColor: '#3b82f60c',
+                        border: '1px solid #3b82f625',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '0.5rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        W5 | Analysis
+                      </div>
+                      <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        {selectedSite?.name}
+                      </h2>
+                      <a 
+                        href={selectedSite?.url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="site-url-link"
+                        style={{ display: 'block', fontSize: '0.9rem', marginTop: '0.35rem', textAlign: 'left' }}
+                      >
+                        {selectedSite?.url} <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                  {renderModuleNavigation("W5")}
+                </div>
+
+                {/* Content Placeholder */}
+                <div style={{
+                  padding: '6rem 3rem',
+                  maxWidth: '650px',
+                  margin: '0 auto',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '24px',
+                  backgroundColor: '#0c101b',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '16px',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#3b82f6',
+                    marginBottom: '8px'
+                  }}>
+                    <Activity size={32} />
+                  </div>
+                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    Analysis
                   </h3>
                   <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-                    Review internal linking patterns, orphan pages, AI anchor text recommendations, and internal PageRank flow.
+                    Review automated audit reports, overall SEO performance opportunities, and technical web vitals issues.
                   </p>
                   <div style={{
                     display: 'inline-flex',
@@ -6694,13 +6872,6 @@ export default function App() {
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block' }}></span>
                     Coming Soon
                   </div>
-                  <button
-                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
-                    className="btn-secondary"
-                    style={{ marginTop: '16px', padding: '10px 20px' }}
-                  >
-                    ← Return to Website Dashboard
-                  </button>
                 </div>
               </div>
             );
@@ -7733,31 +7904,102 @@ export default function App() {
           {currentView === "SETTINGS" && (
             <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
               
-              <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem', textAlign: 'left' }}>
-                <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
-                  Settings
-                </h2>
-                <div style={{
-                  fontFamily: 'Inter, sans-serif',
-                  fontSize: '0.7rem',
-                  fontWeight: 700,
-                  color: 'rgba(16, 185, 129, 0.85)',
-                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.15)',
-                  padding: '2px 8px',
-                  borderRadius: '4px',
-                  display: 'inline-block',
-                  marginTop: '6px',
-                  marginBottom: '6px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em'
-                }}>
-                  T1 | Settings
+              {selectedSiteId ? (() => {
+                const selectedSite = sites.find(s => s.id === selectedSiteId);
+                return (
+                  <div>
+                    {/* Back navigation */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                      <button 
+                        onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          fontSize: '1.35rem',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          color: 'var(--accent-color)',
+                          padding: '8px 16px',
+                          marginLeft: '-16px',
+                          textDecoration: isBackHovered ? 'underline' : 'none',
+                          opacity: isBackHovered ? 0.95 : 1,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease',
+                          outline: 'none'
+                        }}
+                        onMouseEnter={() => setIsBackHovered(true)}
+                        onMouseLeave={() => setIsBackHovered(false)}
+                      >
+                        ← Back to W2 | Website Dashboard
+                      </button>
+                    </div>
+
+                    {/* Header Details */}
+                    <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <div style={{
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            color: '#f59e0bcc',
+                            backgroundColor: '#f59e0b0c',
+                            border: '1px solid #f59e0b25',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            display: 'inline-block',
+                            marginBottom: '0.5rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                          }}>
+                            W6 | Website Settings
+                          </div>
+                          <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                            {selectedSite?.name}
+                          </h2>
+                          <a 
+                            href={selectedSite?.url} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="site-url-link"
+                            style={{ display: 'block', fontSize: '0.9rem', marginTop: '0.35rem', textAlign: 'left' }}
+                          >
+                            {selectedSite?.url} <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      </div>
+                      {renderModuleNavigation("W6")}
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem', textAlign: 'left' }}>
+                  <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
+                    Settings
+                  </h2>
+                  <div style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '0.7rem',
+                    fontWeight: 700,
+                    color: 'rgba(16, 185, 129, 0.85)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.15)',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    display: 'inline-block',
+                    marginTop: '6px',
+                    marginBottom: '6px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    T1 | Settings
+                  </div>
+                  <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
+                    System configuration and administration.
+                  </span>
                 </div>
-                <span className="subtitle" style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', display: 'block', marginTop: '4px' }}>
-                  System configuration and administration.
-                </span>
-              </div>
+              )}
 
               {(() => {
                 const SETTINGS_GROUPS = [
