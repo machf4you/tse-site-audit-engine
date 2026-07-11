@@ -6504,7 +6504,7 @@ export default function App() {
                               <tr key={page.pageUrl} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s' }} className="table-row-hover">
                                 <td style={{ padding: '16px 20px', textAlign: 'left' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{page.pageName || "Unnamed Page"}</span>
+                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{page.pageTitle || "Unnamed Page"}</span>
                                     <a href={page.pageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textDecoration: 'none' }} className="flex align-center gap-1">
                                       {page.pageUrl} <ExternalLink size={10} />
                                     </a>
@@ -6523,7 +6523,7 @@ export default function App() {
                                     {page.priority || "Medium"}
                                   </span>
                                 </td>
-                                <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{page.targetKeyword || "Not Set"}</td>
+                                <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{page.targetPhrase || "Not Set"}</td>
                                 <td style={{ padding: '16px 20px' }}>
                                   <span style={{
                                     padding: '4px 8px',
