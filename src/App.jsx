@@ -663,7 +663,7 @@ const INITIAL_PAGES_DATA = {
 const WorkflowStepper = ({ currentView }) => {
   const steps = [
     { label: "Connected Website", views: ["CONNECTED_SITES"] },
-    { label: "Configuration", views: ["WEBSITES_CONFIG", "AUDIT_CONFIG"] },
+    { label: "Website Management", views: ["WEBSITES_CONFIG", "AUDIT_CONFIG"] },
     { label: "Audit", views: ["AUDIT_RUNNING", "AUDIT_RESULTS"] },
     { label: "Work Actions", views: ["TASK_FOCUS", "EDIT"] }
   ];
@@ -5665,7 +5665,7 @@ export default function App() {
                                 setCurrentView("WEBSITES_CONFIG");
                               }}
                             >
-                              Manage Configuration
+                              Manage Website
                             </button>
                           </div>
                         );
@@ -5740,7 +5740,7 @@ export default function App() {
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em'
                     }}>
-                      W2 | Website Configuration
+                      W2 | Website Management
                     </div>
                     <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                       {selectedSite?.name}
@@ -5957,7 +5957,7 @@ export default function App() {
                 return (
                   <div className="stats-cards-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
                     <div className="stat-card" style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.25rem', borderRadius: '12px' }}>
-                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Configuration Status</span>
+                      <span style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Website Status</span>
                       <span style={{ display: 'block', fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: isConnected ? '#34d399' : '#f87171', marginTop: '0.5rem' }}>
                         {isConnected ? "Connected" : "Requires Setup"}
                       </span>
@@ -6362,7 +6362,7 @@ export default function App() {
                     onMouseEnter={() => setIsW3BackHovered(true)}
                     onMouseLeave={() => setIsW3BackHovered(false)}
                   >
-                    ← Back to Website Configuration
+                    ← Back to Website Management
                   </button>
                 </div>
 
