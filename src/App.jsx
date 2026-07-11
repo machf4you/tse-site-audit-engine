@@ -3639,7 +3639,6 @@ export default function App() {
             onClick={() => {
               if (
                 currentView === "SETTINGS" || 
-                currentView === "SITE_ANALYSIS" || 
                 currentView === "WEBSITES_CONFIG" || 
                 currentView === "WEBSITES_PAGE_MGMT" || 
                 currentView === "WEBSITES_INTERNAL_LINKING" ||
@@ -3654,30 +3653,15 @@ export default function App() {
             }} 
             style={{
               background: 'none', border: 'none', 
-              color: (currentView !== "SETTINGS" && currentView !== "SITE_ANALYSIS") ? '#10b981' : 'var(--text-secondary)',
+              color: currentView !== "SETTINGS" ? '#10b981' : 'var(--text-secondary)',
               fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-              borderBottom: (currentView !== "SETTINGS" && currentView !== "SITE_ANALYSIS") ? '2px solid #10b981' : '2px solid transparent',
+              borderBottom: currentView !== "SETTINGS" ? '2px solid #10b981' : '2px solid transparent',
               padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
             }}
           >
             Websites
           </button>
-          <button 
-            onClick={() => {
-              setSelectedAnalysisSiteId(null);
-              setActiveModule(null);
-              setCurrentView("SITE_ANALYSIS");
-            }} 
-            style={{
-              background: 'none', border: 'none', 
-              color: currentView === "SITE_ANALYSIS" ? '#10b981' : '#94a3b8',
-              fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer',
-              borderBottom: currentView === "SITE_ANALYSIS" ? '2px solid #10b981' : '2px solid transparent',
-              padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
-            }}
-          >
-            Site Analysis
-          </button>
+          
           <button 
             onClick={() => {
               setSelectedSiteId(null);
@@ -3704,1150 +3688,7 @@ export default function App() {
 
 
           {/* SITE ANALYSIS SECTION */}
-          {currentView === "SITE_ANALYSIS" && (
-            <div className="report-section" style={{ maxWidth: '1650px', margin: '0 auto', padding: '2.5rem', textAlign: 'left' }}>
-              
-              {selectedAnalysisSiteId === null ? (
-                <>
-                  {/* Overview Page */}
-                  <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
-                    <h2 style={{ fontFamily: 'Outfit', fontSize: '2.2rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
-                      Site Analysis
-                    </h2>
-                    <p style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginTop: '0.5rem', fontWeight: 500 }}>
-                      Analyze SEO configurations, crawl results, and audit histories across all connected sites.
-                    </p>
-                  </div>
-
-                  <div className="websites-grid">
-                    {sites.map(site => {
-                      const sitePages = pagesData[site.id] || [];
-                      const pagesFound = sitePages.length || (site.id === 'bathroom-upgrades' ? 33 : 113);
-                      const configuredPages = sitePages.filter(p => p.status === "Configured").length;
-                      const hasAudit = !!site.lastAudit;
-                      const auditStatusText = hasAudit ? `Analysed (${site.lastAudit})` : "Pending Audit";
-
-                      return (
-                        <div 
-                          key={site.id}
-                          className="sidebar-site-card"
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '1.25rem',
-                            cursor: 'default'
-                          }}
-                        >
-                          <div>
-                            <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
-                              {site.name}
-                            </h3>
-                            <a 
-                              href={site.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              style={{ 
-                                fontSize: '0.9rem', 
-                                color: '#10b981', 
-                                textDecoration: 'none', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '4px',
-                                fontWeight: 500
-                              }}
-                            >
-                              {site.url} <ExternalLink size={12} />
-                            </a>
-                          </div>
-
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '0.25rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-                              <span>Pages Found</span>
-                              <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{pagesFound}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-                              <span>Configured Pages</span>
-                              <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{configuredPages}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: 'var(--text-secondary)', alignItems: 'center' }}>
-                              <span>Last Analysis</span>
-                              <span style={{
-                                fontWeight: 700,
-                                padding: '4px 10px',
-                                borderRadius: '6px',
-                                fontSize: '0.8rem',
-                                backgroundColor: hasAudit ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                                color: hasAudit ? '#34d399' : '#fbbf24',
-                                border: hasAudit ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)'
-                              }}>
-                                {auditStatusText}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div style={{ marginTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '1rem', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                            <button
-                              onClick={() => {
-                                setSelectedSiteId(site.id);
-                                setSelectedAnalysisSiteId(site.id);
-                                setSingleAuditPageUrl(null);
-                                setAnalysisReturnView("SITE_ANALYSIS");
-                                setCurrentView("AUDIT_RUNNING");
-                              }}
-                              className="btn-primary"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: '6px 12px',
-                                fontSize: '0.85rem'
-                              }}
-                            >
-                              Run Site Analysis <Play size={12} />
-                            </button>
-                            
-                            <button
-                              onClick={() => {
-                                setSelectedAnalysisSiteId(site.id);
-                              }}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                color: '#ffffff',
-                                fontWeight: 700,
-                                fontSize: '0.95rem',
-                                cursor: 'pointer',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                padding: 0,
-                                transition: 'all 0.2s ease'
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.color = '#cbd5e1';
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.color = '#ffffff';
-                              }}
-                            >
-                              Open Site Analysis
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                <>
-                  {/* Detailed Site Page */}
-                  {(() => {
-                    const site = sites.find(s => s.id === selectedAnalysisSiteId);
-                    if (!site) return null;
-
-                    if (activeModule === 'visual-site-map') {
-                      const sitePages = pagesData[site.id] || [];
-                      
-                      // Classify page types consistently with the main list
-                      const getGroupedPageType = (page) => {
-                        if (page.assignedType) {
-                          if (page.assignedType === "Homepage") return "Homepage";
-                          if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
-                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
-                          if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
-                          if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
-                          return "Unassigned Pages";
-                        }
-                        const url = page.pageUrl;
-                        if (url === "/") return "Homepage";
-                        const score = getPageSEOScore(page);
-                        switch (score) {
-                          case 0: return "Homepage";
-                          case 1:
-                          case 2: return "Landing Pages";
-                          case 3: return "Supporting Pages";
-                          case 4: return "Topical Pages";
-                          default: return "Unassigned Pages";
-                        }
-                      };
-
-                      // Construct the hierarchical tree model
-                      const rootNode = { 
-                        pageUrl: "/", 
-                        pageTitle: "Homepage", 
-                        type: "Homepage", 
-                        children: [] 
-                      };
-                      
-                      const landingNodes = [];
-                      const otherPages = [];
-
-                      sitePages.forEach(p => {
-                        if (p.assignedType === "Excluded") return;
-                        const type = getGroupedPageType(p);
-                        if (type === "Homepage") {
-                          rootNode.pageTitle = p.pageTitle || "Homepage";
-                          rootNode.targetPhrase = p.targetPhrase;
-                        } else if (type === "Hub Pages" || type === "Landing Pages") {
-                          landingNodes.push({ ...p, type, children: [] });
-                        } else {
-                          otherPages.push({ ...p, type });
-                        }
-                      });
-
-                      // Assign supporting/topical pages to the best matching parent landing page based on URL keyword overlap
-                      otherPages.forEach(p => {
-                        let bestParent = null;
-                        let maxOverlap = 0;
-                        
-                        const getUrlWords = (url) => {
-                          return url.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 3 && w !== "page" && w !== "html");
-                        };
-                        
-                        const pWords = getUrlWords(p.pageUrl);
-                        
-                        landingNodes.forEach(ln => {
-                          const lnWords = getUrlWords(ln.pageUrl);
-                          const overlap = pWords.filter(w => lnWords.includes(w)).length;
-                          if (overlap > maxOverlap) {
-                            maxOverlap = overlap;
-                            bestParent = ln;
-                          }
-                        });
-                        
-                        if (bestParent) {
-                          bestParent.children.push(p);
-                        } else {
-                          rootNode.children.push(p);
-                        }
-                      });
-
-                      // Prepend all matched landing nodes to the root's children list
-                      rootNode.children.unshift(...landingNodes);
-
-                      return (
-                        <div style={{ textAlign: 'left' }}>
-                          {/* Back navigation */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
-                            <button 
-                              onClick={() => setActiveModule('site-structure')}
-                              style={{ 
-                                background: 'none', 
-                                border: 'none', 
-                                fontSize: '0.9rem', 
-                                cursor: 'pointer', 
-                                color: 'var(--text-secondary)', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '8px',
-                                padding: 0
-                              }}
-                            >
-                              <ArrowLeft size={16} /> Back to Site Structure
-                            </button>
-                          </div>
-
-                          {/* Visual Tree Map Card Container */}
-                          <div style={{
-                            backgroundColor: 'var(--surface-color)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '12px',
-                            padding: '2rem',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '2.5rem',
-                            overflowX: 'auto'
-                          }}>
-                            <div>
-                              <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
-                                Visual Site Map
-                              </h2>
-                              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                {site.name} ({site.url})
-                              </span>
-                            </div>
-
-                            {/* Connected Tree Nodes Layout */}
-                            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', minWidth: 'max-content', paddingLeft: '0.5rem', gap: '3rem' }}>
-                              
-                              {/* Homepage (Root Node Column) */}
-                              <div style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                alignSelf: 'center',
-                                position: 'relative',
-                                paddingRight: '3rem'
-                              }}>
-                                <div style={{
-                                  backgroundColor: '#070b13',
-                                  border: '2px solid #10b981',
-                                  borderRadius: '8px',
-                                  padding: '1rem 1.25rem',
-                                  minWidth: '260px',
-                                  maxWidth: '320px',
-                                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)',
-                                  zIndex: 2,
-                                  textAlign: 'left'
-                                }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, letterSpacing: '0.05em' }}>
-                                      Homepage (Root)
-                                    </span>
-                                    {rootNode.targetPhrase && (
-                                      <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>
-                                        Target: {rootNode.targetPhrase}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'Outfit' }}>
-                                    {rootNode.pageTitle}
-                                  </div>
-                                  <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#60a5fa', marginTop: '6px', wordBreak: 'break-all' }}>
-                                    {rootNode.pageUrl}
-                                  </div>
-                                </div>
-
-                                {/* Line connector extending right from Homepage card to the main stem */}
-                                {rootNode.children.length > 0 && (
-                                  <div style={{
-                                    position: 'absolute',
-                                    right: 0,
-                                    top: '50%',
-                                    width: '3rem',
-                                    height: '2px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                                    zIndex: 1
-                                  }} />
-                                )}
-                              </div>
-
-                              {/* Branch Nodes Column (Landing Pages & their Sub-stems) */}
-                              {rootNode.children.length > 0 && (
-                                <div style={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  gap: '2.5rem',
-                                  borderLeft: '2px solid rgba(255, 255, 255, 0.08)',
-                                  paddingLeft: '3rem',
-                                  position: 'relative'
-                                }}>
-                                  {rootNode.children.map((child, cIdx) => {
-                                    const hasGrandchildren = child.children && child.children.length > 0;
-                                    return (
-                                      <div 
-                                        key={cIdx} 
-                                        style={{ 
-                                          display: 'flex', 
-                                          flexDirection: 'row', 
-                                          alignItems: 'center', 
-                                          gap: '3rem', 
-                                          position: 'relative' 
-                                        }}
-                                      >
-                                        {/* Horizontal connection line from main stem on the left to this Landing card */}
-                                        <div style={{
-                                          position: 'absolute',
-                                          left: '-3rem',
-                                          top: '50%',
-                                          width: '3rem',
-                                          height: '2px',
-                                          backgroundColor: 'rgba(255, 255, 255, 0.08)'
-                                        }} />
-
-                                        {/* Landing / Hub Node Card */}
-                                        <div style={{
-                                          backgroundColor: '#0c101b',
-                                          border: '1px solid var(--border-color)',
-                                          borderRadius: '8px',
-                                          padding: '0.85rem 1.15rem',
-                                          minWidth: '240px',
-                                          maxWidth: '320px',
-                                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                                          zIndex: 2,
-                                          textAlign: 'left',
-                                          position: 'relative'
-                                        }}>
-                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <span style={{ 
-                                              fontSize: '0.7rem', 
-                                              fontWeight: 700, 
-                                              color: child.type === "Hub Pages" ? "#a78bfa" : "#38bdf8",
-                                              backgroundColor: child.type === "Hub Pages" ? "rgba(167, 139, 250, 0.08)" : "rgba(56, 189, 248, 0.08)",
-                                              padding: '2px 6px',
-                                              borderRadius: '4px'
-                                            }}>
-                                              {child.type === "Hub Pages" ? "Hub Page" : "Landing Page"}
-                                            </span>
-                                            {child.targetPhrase && (
-                                              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>
-                                                Target: {child.targetPhrase}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontFamily: 'Outfit' }}>
-                                            {child.pageTitle}
-                                          </div>
-                                          <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginTop: '4px', wordBreak: 'break-all' }}>
-                                            {child.pageUrl}
-                                          </div>
-
-                                          {/* Horizontal connection line extending right from Landing card to its grandchildren stem */}
-                                          {hasGrandchildren && (
-                                            <div style={{
-                                              position: 'absolute',
-                                              right: '-3rem',
-                                              top: '50%',
-                                              width: '3rem',
-                                              height: '2px',
-                                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                              zIndex: 1
-                                            }} />
-                                          )}
-                                        </div>
-
-                                        {/* Grandchildren Column (Supporting / Topical Pages) */}
-                                        {hasGrandchildren && (
-                                          <div style={{
-                                            display: 'flex',
-                                            flexDirection: 'row',
-                                            gap: '1.5rem',
-                                            position: 'relative',
-                                            alignItems: 'center'
-                                          }}>
-                                            {/* Continuous horizontal connection line behind all grandchildren cards */}
-                                            <div style={{
-                                              position: 'absolute',
-                                              left: '-3rem',
-                                              top: '50%',
-                                              width: 'calc(100% + 3rem)',
-                                              height: '2px',
-                                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                              zIndex: 1
-                                            }} />
-
-                                            {child.children.map((grandchild, gIdx) => (
-                                              <div 
-                                                key={gIdx}
-                                                style={{
-                                                  backgroundColor: '#070b13',
-                                                  border: '1px dashed var(--border-color)',
-                                                  borderRadius: '6px',
-                                                  padding: '0.75rem 1rem',
-                                                  minWidth: '220px',
-                                                  maxWidth: '300px',
-                                                  position: 'relative',
-                                                  zIndex: 2,
-                                                  textAlign: 'left'
-                                                }}
-                                              >
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                  <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                                    Supporting Page
-                                                  </span>
-                                                  {grandchild.targetPhrase && (
-                                                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 600 }}>
-                                                      {grandchild.targetPhrase}
-                                                    </span>
-                                                  )}
-                                                </div>
-                                                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
-                                                  {grandchild.pageTitle}
-                                                </div>
-                                                <div style={{ fontSize: '0.725rem', fontFamily: 'monospace', color: '#94a3b8', marginTop: '4px', wordBreak: 'break-all' }}>
-                                                  {grandchild.pageUrl}
-                                                </div>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    const sitePages = pagesData[site.id] || [];
-                    const pagesFound = sitePages.length || (site.id === 'bathroom-upgrades' ? 33 : 113);
-                    const configuredPages = sitePages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded").length;
-                    const hasAudit = !!site.lastAudit;
-                    const auditStatusText = hasAudit ? `Analysed (${site.lastAudit})` : "Pending Analysis";
-
-                    const tabs = [
-                      { id: null, label: "Overview" },
-                      { id: "site-structure", label: "Site Structure" },
-                      
-                      { id: "content-coverage", label: "Content Coverage" },
-                      { id: "opportunities", label: "Opportunities" }
-                    ];
-
-                    const getPageCategory = (page) => {
-                      if (page.pageUrl === "/") return "Homepage";
-                      if (page.assignedType === "Homepage") return "Homepage";
-                      if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
-                      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
-                      if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
-                      if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
-                      return "Unassigned Pages";
-                    };
-
-                    return (
-                      <div>
-                        {/* Back navigation */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem', textAlign: 'left' }}>
-                          <button 
-                            onClick={() => {
-                              setSelectedAnalysisSiteId(null);
-                              setActiveModule(null);
-                            }}
-                            style={{ 
-                              background: 'none', 
-                              border: 'none', 
-                              fontSize: '0.9rem', 
-                              cursor: 'pointer', 
-                              color: 'var(--text-secondary)', 
-                              display: 'inline-flex', 
-                              alignItems: 'center', 
-                              gap: '8px',
-                              padding: 0
-                            }}
-                          >
-                            <ArrowLeft size={16} /> Back to Site Analysis Overview
-                          </button>
-                        </div>
-
-                        {/* Top banner card */}
-                        <div style={{
-                          backgroundColor: '#0c101b',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '12px',
-                          padding: '1.5rem',
-                          textAlign: 'left',
-                          marginBottom: '2rem'
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                              <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
-                                {site.name}
-                              </h2>
-                              <a 
-                                href={site.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                style={{ 
-                                  fontSize: '0.9rem', 
-                                  color: '#10b981', 
-                                  textDecoration: 'none', 
-                                  display: 'inline-flex', 
-                                  alignItems: 'center', 
-                                  gap: '4px',
-                                  fontWeight: 500
-                                }}
-                              >
-                                {site.url} <ExternalLink size={12} />
-                              </a>
-                            </div>
-                          </div>
-
-                          <hr style={{ borderColor: 'rgba(255,255,255,0.06)', margin: '1.25rem 0', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
-
-                          <div style={{ display: 'flex', gap: '3.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <div>
-                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
-                                Pages Found
-                              </span>
-                              <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
-                                {pagesFound}
-                              </span>
-                            </div>
-                            <div>
-                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
-                                Configured Pages
-                              </span>
-                              <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
-                                {configuredPages}
-                              </span>
-                            </div>
-                            <div>
-                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
-                                Last Analysis
-                              </span>
-                              <div style={{ marginTop: '0.35rem' }}>
-                                <span style={{
-                                  fontWeight: 700,
-                                  padding: '4px 10px',
-                                  borderRadius: '6px',
-                                  fontSize: '0.8rem',
-                                  backgroundColor: hasAudit ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                                  color: hasAudit ? '#34d399' : '#fbbf24',
-                                  border: hasAudit ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
-                                  display: 'inline-block'
-                                }}>
-                                  {auditStatusText}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Navigation Tabs */}
-                          <div style={{
-                            display: 'flex',
-                            gap: '0.5rem',
-                            borderTop: '1px solid rgba(255,255,255,0.06)',
-                            marginTop: '1.5rem',
-                            paddingTop: '1rem',
-                            flexWrap: 'wrap'
-                          }}>
-                            {tabs.map(tab => {
-                              const isActive = activeModule === tab.id;
-                              return (
-                                <button
-                                  key={tab.label}
-                                  onClick={() => setActiveModule(tab.id)}
-                                  style={{
-                                    background: 'none',
-                                    border: 'none',
-                                    padding: '8px 16px',
-                                    fontSize: '0.9rem',
-                                    fontWeight: isActive ? 700 : 500,
-                                    color: isActive ? '#34d399' : 'var(--text-secondary)',
-                                    borderBottom: isActive ? '2px solid #10b981' : '2px solid transparent',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s ease',
-                                    outline: 'none',
-                                    marginBottom: '-1px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    if (!isActive) e.currentTarget.style.color = 'var(--text-primary)';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)';
-                                  }}
-                                >
-                                  {tab.label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* Page Module Contents */}
-                        {(() => {
-                          if (activeModule === 'site-structure') {
-                            const sortedPages = sortPagesForSEO(sitePages);
-
-                            const getGroupedPageType = (page) => {
-                              if (page.assignedType) {
-                                if (page.assignedType === "Homepage") return "Homepage";
-                                if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
-                                if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
-                                if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
-                                if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
-                                return "Unassigned Pages";
-                              }
-                              const url = page.pageUrl;
-                              if (url === "/") return "Homepage";
-                              const score = getPageSEOScore(page);
-                              switch (score) {
-                                case 0: return "Homepage";
-                                case 1:
-                                case 2: return "Landing Pages";
-                                case 3: return "Supporting Pages";
-                                case 4: return "Topical Pages";
-                                default: return "Unassigned Pages";
-                              }
-                            };
-
-                            const sections = [
-                              { name: "Homepage", key: "Homepage", pages: sortedPages.filter(p => getGroupedPageType(p) === "Homepage") },
-                              { name: "Hub Pages", key: "HubPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Hub Pages") },
-                              { name: "Landing Pages", key: "LandingPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Landing Pages") },
-                              { name: "Supporting Pages", key: "SupportingPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Supporting Pages") },
-                              { name: "Topical Pages", key: "TopicalPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Topical Pages") },
-                              { name: "Unassigned Pages", key: "UnassignedPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Unassigned Pages") }
-                            ];
-
-                            return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                {/* Header / Action Area */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', textAlign: 'left' }}>
-                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                                    Site Structure
-                                  </h3>
-                                  <button
-                                    className="btn-primary"
-                                    onClick={() => setActiveModule('visual-site-map')}
-                                    style={{
-                                      backgroundColor: '#f97316',
-                                      color: '#ffffff',
-                                      border: 'none',
-                                      padding: '8px 16px',
-                                      borderRadius: '6px',
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '8px',
-                                      transition: 'background-color 0.2s ease',
-                                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.15)'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ea580c'}
-                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f97316'}
-                                  >
-                                    Visual Site Map
-                                  </button>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                  {sections.map(sec => {
-                                  const isSectionExpanded = !!expandedSections[sec.key];
-                                  return (
-                                    <div 
-                                      key={sec.key}
-                                      style={{
-                                        backgroundColor: 'var(--surface-color)',
-                                        border: '1px solid var(--border-color)',
-                                        borderRadius: '12px',
-                                        overflow: 'hidden'
-                                      }}
-                                    >
-                                      {/* Accordion header */}
-                                      <div 
-                                        onClick={() => toggleSection(sec.key)}
-                                        style={{
-                                          padding: '1.25rem 1.5rem',
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                          cursor: 'pointer',
-                                          backgroundColor: isSectionExpanded ? 'rgba(255,255,255,0.01)' : 'transparent',
-                                          userSelect: 'none',
-                                          textAlign: 'left'
-                                        }}
-                                      >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                          <h3 style={{ margin: 0, fontFamily: 'Outfit', fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                                            {sec.name}
-                                          </h3>
-                                          <span style={{ 
-                                            fontSize: '0.8rem', 
-                                            color: 'var(--text-secondary)', 
-                                            backgroundColor: 'rgba(255,255,255,0.05)', 
-                                            padding: '2px 8px', 
-                                            borderRadius: '20px',
-                                            fontWeight: 600
-                                          }}>
-                                            {sec.pages.length} {sec.pages.length === 1 ? "page" : "pages"}
-                                          </span>
-                                        </div>
-                                        <span style={{ fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600 }}>
-                                          {isSectionExpanded ? "Hide Pages ▲" : "Show Pages ▼"}
-                                        </span>
-                                      </div>
-
-                                      {/* Accordion content */}
-                                      {isSectionExpanded && (
-                                        <div style={{ borderTop: '1px solid var(--border-color)', padding: '1.5rem' }}>
-                                          {sec.pages.length === 0 ? (
-                                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', padding: '1rem 0' }}>
-                                              No pages classified under this type.
-                                            </div>
-                                          ) : (
-                                            <div style={{ overflowX: 'auto' }}>
-                                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', color: '#cbd5e1' }}>
-                                                <thead>
-                                                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left' }}>
-                                                    <th style={{ padding: '10px 14px', width: '35%' }}>Page URL</th>
-                                                    <th style={{ padding: '10px 14px', width: '35%' }}>Page Title</th>
-                                                    <th style={{ padding: '10px 14px', width: '15%' }}>Target Keyword</th>
-                                                    <th style={{ padding: '10px 14px', width: '15%', textAlign: 'center' }}>Audit Status</th>
-                                                  </tr>
-                                                </thead>
-                                                <tbody>
-                                                  {sec.pages.map((p, pIdx) => {
-                                                    const isExcluded = p.assignedType === "Excluded";
-                                                    const isConfigured = p.status === "Configured";
-                                                    
-                                                    let statusText = "Awaiting Config";
-                                                    let statusColor = "#fbbf24";
-                                                    let statusBg = "rgba(245, 158, 11, 0.08)";
-                                                    let statusBorder = "1px solid rgba(245, 158, 11, 0.15)";
-                                                    
-                                                    if (isExcluded) {
-                                                      statusText = "Excluded";
-                                                      statusColor = "#94a3b8";
-                                                      statusBg = "rgba(148, 163, 184, 0.08)";
-                                                      statusBorder = "1px solid rgba(148, 163, 184, 0.15)";
-                                                    } else if (isConfigured) {
-                                                      statusText = "Configured";
-                                                      statusColor = "#34d399";
-                                                      statusBg = "rgba(16, 185, 129, 0.08)";
-                                                      statusBorder = "1px solid rgba(16, 185, 129, 0.15)";
-                                                    }
-
-                                                    return (
-                                                      <tr key={pIdx} style={{ borderBottom: pIdx < sec.pages.length - 1 ? '1px solid rgba(255,255,255,0.02)' : 'none' }}>
-                                                        <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600 }}>{p.pageUrl}</td>
-                                                        <td style={{ padding: '12px 14px', fontWeight: 500, color: 'var(--text-primary)' }}>{p.pageTitle}</td>
-                                                        <td style={{ padding: '12px 14px', fontStyle: p.targetPhrase ? 'normal' : 'italic', color: p.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{p.targetPhrase || "Not configured"}</td>
-                                                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
-                                                          <span style={{
-                                                            fontSize: '0.75rem',
-                                                            fontWeight: 700,
-                                                            padding: '2px 8px',
-                                                            borderRadius: '4px',
-                                                            color: statusColor,
-                                                            backgroundColor: statusBg,
-                                                            border: statusBorder,
-                                                            display: 'inline-block'
-                                                          }}>
-                                                            {statusText}
-                                                          </span>
-                                                        </td>
-                                                      </tr>
-                                                    );
-                                                  })}
-                                                </tbody>
-                                              </table>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          
-
-                          if (activeModule === 'content-coverage') {
-                            const configuredPagesList = sitePages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded");
-                            const awaitingPagesList = sitePages.filter(p => p.status === "Unconfigured" && p.assignedType !== "Excluded");
-                            const excludedPagesList = sitePages.filter(p => p.assignedType === "Excluded");
-                            
-                            const actionableTotal = configuredPagesList.length + awaitingPagesList.length;
-                            const configuredPagesCount = configuredPagesList.length;
-                            const pct = actionableTotal > 0 ? Math.round((configuredPagesCount / actionableTotal) * 100) : 0;
-
-                            const categories = [
-                              "Homepage",
-                              "Hub Pages",
-                              "Landing Pages",
-                              "Supporting Pages",
-                              "Topical Pages",
-                              "Unassigned Pages"
-                            ];
-
-                            const summaryData = categories.map(category => {
-                              const matchingPages = sitePages.filter(p => getPageCategory(p) === category);
-                              
-                              const total = matchingPages.length;
-                              const configured = matchingPages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded").length;
-                              const awaiting = matchingPages.filter(p => p.status === "Unconfigured" && p.assignedType !== "Excluded").length;
-                              const excluded = matchingPages.filter(p => p.assignedType === "Excluded").length;
-
-                              return {
-                                category,
-                                total,
-                                configured,
-                                awaiting,
-                                excluded
-                              };
-                            });
-
-                            return (
-                              <div>
-                                {/* Grid layout for Content Summary and Coverage Progress */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', marginBottom: '2.5rem', alignItems: 'start' }}>
-                                  {/* Section 1 - Content Summary */}
-                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
-                                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1rem 0' }}>
-                                      Content Summary
-                                    </h3>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
-                                      <thead>
-                                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                          <th style={{ padding: '12px 10px' }}>Content Type</th>
-                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Total Pages</th>
-                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Configured</th>
-                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Awaiting Config</th>
-                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Excluded</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {summaryData.map(row => (
-                                          <tr key={row.category} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                            <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>{row.category}</td>
-                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#cbd5e1' }}>{row.total}</td>
-                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>{row.configured}</td>
-                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#fbbf24' }}>{row.awaiting}</td>
-                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#94a3b8' }}>{row.excluded}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-
-                                  {/* Section 4 - Coverage Progress */}
-                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
-                                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1rem 0' }}>
-                                      Coverage Progress
-                                    </h3>
-                                    <div style={{ margin: '1.5rem 0' }}>
-                                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
-                                        Configured Pages
-                                      </div>
-                                      <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.5rem', fontFamily: 'Outfit' }}>
-                                        {configuredPagesCount} of {actionableTotal} pages configured
-                                      </div>
-                                      <div style={{ marginTop: '1rem', width: '100%', height: '10px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '9999px', overflow: 'hidden' }}>
-                                        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent-gradient)', borderRadius: '9999px', transition: 'width 0.5s ease' }} />
-                                      </div>
-                                      <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, marginTop: '0.75rem', textAlign: 'right' }}>
-                                        {pct}% Complete
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Section 2 - Configured Pages */}
-                                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left', marginBottom: '2.5rem' }}>
-                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.25rem 0' }}>
-                                    Configured Pages
-                                  </h3>
-                                  {configuredPagesList.length === 0 ? (
-                                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                      No pages configured yet.
-                                    </div>
-                                  ) : (
-                                    <div style={{ overflowX: 'auto' }}>
-                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                        <thead>
-                                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '30%' }}>Page URL</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '25%' }}>Page Title</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '15%' }}>Page Type</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '15%' }}>Target Phrase</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'right', width: '10%' }}>Word Count</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'center', width: '10%' }}>Status</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {configuredPagesList.map(p => (
-                                            <tr key={p.pageUrl} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                              <td style={{ padding: '12px 10px', fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600 }}>{p.pageUrl}</td>
-                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{p.pageTitle}</td>
-                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{getPageCategory(p)}</td>
-                                              <td style={{ padding: '12px 10px', color: 'var(--text-primary)', fontWeight: 600 }}>{p.targetPhrase}</td>
-                                              <td style={{ padding: '12px 10px', textAlign: 'right', color: '#cbd5e1' }}>{p.crawlData?.wordCount || 0}</td>
-                                              <td style={{ padding: '12px 10px', textAlign: 'center' }}>
-                                                <span style={{ color: '#34d399', backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                                                  Configured
-                                                </span>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Section 3 - Pages Awaiting Configuration */}
-                                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left', marginBottom: '2.5rem' }}>
-                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.25rem 0' }}>
-                                    Pages Awaiting Configuration
-                                  </h3>
-                                  {awaitingPagesList.length === 0 ? (
-                                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                      All pages are fully configured!
-                                    </div>
-                                  ) : (
-                                    <div style={{ overflowX: 'auto' }}>
-                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                        <thead>
-                                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '35%' }}>Page URL</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '35%' }}>Page Title</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '15%' }}>Page Type</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'center', width: '15%' }}>Suggested Action</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {awaitingPagesList.map(p => (
-                                            <tr key={p.pageUrl} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                              <td style={{ padding: '12px 10px', fontFamily: 'monospace', color: '#94a3b8' }}>{p.pageUrl}</td>
-                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{p.pageTitle}</td>
-                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{getPageCategory(p)}</td>
-                                              <td style={{ padding: '12px 10px', textAlign: 'center' }}>
-                                                <button 
-                                                  className="btn-secondary" 
-                                                  onClick={() => handleOpenConfigModal(p)}
-                                                  style={{ 
-                                                    padding: '4px 12px', 
-                                                    fontSize: '0.8rem', 
-                                                    fontWeight: 600,
-                                                    color: 'var(--text-primary)',
-                                                    backgroundColor: 'rgba(255,255,255,0.05)',
-                                                    border: '1px solid var(--border-color)',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s ease'
-                                                  }}
-                                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; }}
-                                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
-                                                >
-                                                  Configure Target Phrase
-                                                </button>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Section 5 - Excluded Pages (Collapsible) */}
-                                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
-                                  <div 
-                                    onClick={() => setIsExcludedCollapsed(!isExcludedCollapsed)}
-                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                                  >
-                                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                                      Excluded Pages ({excludedPagesList.length})
-                                    </h3>
-                                    <span style={{ fontSize: '0.9rem', color: '#60a5fa', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                      {isExcludedCollapsed ? "▼ Show Pages" : "▲ Hide Pages"}
-                                    </span>
-                                  </div>
-
-                                  {!isExcludedCollapsed && (
-                                    <div style={{ marginTop: '1.5rem', overflowX: 'auto' }}>
-                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                        <thead>
-                                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '40%' }}>Page URL</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '40%' }}>Page Title</th>
-                                            <th style={{ padding: '12px 10px', textAlign: 'center', width: '20%' }}>Status</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {excludedPagesList.map(p => (
-                                            <tr key={p.pageUrl} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                                              <td style={{ padding: '12px 10px', fontFamily: 'monospace', color: '#94a3b8' }}>{p.pageUrl}</td>
-                                              <td style={{ padding: '12px 10px', color: '#94a3b8' }}>{p.pageTitle}</td>
-                                              <td style={{ padding: '12px 10px', textAlign: 'center' }}>
-                                                <span style={{ color: '#94a3b8', backgroundColor: 'rgba(148, 163, 184, 0.08)', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
-                                                  Excluded
-                                                </span>
-                                              </td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          if (activeModule === 'opportunities') {
-                            return (
-                              <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '3rem 2rem', textAlign: 'center' }}>
-                                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Opportunities</h3>
-                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Coming Soon: Content Opportunities and AI recommendations will be available in the next phase.</p>
-                              </div>
-                            );
-                          }
-
-                          // Default View: Overview Dashboard
-                          return (
-                            <div style={{
-                              display: 'grid',
-                              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                              gap: '1.25rem',
-                              marginTop: '1.5rem'
-                            }}>
-                              {['Site Structure', 'Internal Linking', 'Content Coverage', 'Opportunities'].map(module => {
-                                const isSiteStructure = module === 'Site Structure';
-                                const isInternalLinking = module === 'Internal Linking';
-                                const isClickable = isSiteStructure || isInternalLinking || module === 'Content Coverage' || module === 'Opportunities';
-
-                                return (
-                                  <div 
-                                    key={module}
-                                    onClick={() => {
-                                      if (isSiteStructure) {
-                                        setActiveModule('site-structure');
-                                      } else if (isInternalLinking) {
-                                        setActiveModule('internal-linking');
-                                      } else if (module === 'Content Coverage') {
-                                        setActiveModule('content-coverage');
-                                      } else if (module === 'Opportunities') {
-                                        setActiveModule('opportunities');
-                                      }
-                                    }}
-                                    style={{
-                                      backgroundColor: 'var(--surface-color)',
-                                      border: '1px solid var(--border-color)',
-                                      borderRadius: '12px',
-                                      padding: '1.5rem',
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '8px',
-                                      textAlign: 'left',
-                                      minHeight: '120px',
-                                      cursor: isClickable ? 'pointer' : 'default',
-                                      transition: 'all 0.2s ease'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      if (isClickable) {
-                                        e.currentTarget.style.borderColor = '#10b981';
-                                        e.currentTarget.style.transform = 'translateY(-2px)';
-                                      }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (isClickable) {
-                                        e.currentTarget.style.borderColor = 'var(--border-color)';
-                                        e.currentTarget.style.transform = 'none';
-                                      }
-                                    }}
-                                  >
-                                    <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
-                                      {module}
-                                    </h4>
-                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                      {isSiteStructure 
-                                        ? "View organized hierarchy" 
-                                        : isInternalLinking 
-                                        ? "View link & anchor analysis" 
-                                        : module === "Content Coverage" 
-                                        ? "View content inventory & targeting status" 
-                                        : "View potential content expansion ideas"}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    );
-                  })()}
-                </>
-              )}
-            </div>
-          )}
+          
 
           {/* STAGE 1: CONNECTED WEBSITES LIST */}
           {currentView === "CONNECTED_SITES" && (
@@ -5189,13 +4030,13 @@ export default function App() {
           )}
 
           {/* STAGE 2: WEBSITE CONFIGURATION MANAGEMENT */}
-          {(currentView === "WEBSITES_CONFIG" || currentView === "SITE_ANALYSIS_CONFIG") && selectedSiteId && (
+          {currentView === "WEBSITES_CONFIG" && selectedSiteId && (
             <div>
               {/* Back to websites or Site Analysis */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                 <button 
                   className="flex align-center gap-2"
-                  onClick={() => setCurrentView(currentView === "SITE_ANALYSIS_CONFIG" ? "SITE_ANALYSIS" : "CONNECTED_SITES")}
+                  onClick={() => setCurrentView("CONNECTED_SITES")}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -5214,7 +4055,7 @@ export default function App() {
                   onMouseEnter={() => setIsBackHovered(true)}
                   onMouseLeave={() => setIsBackHovered(false)}
                 >
-                  {currentView === "SITE_ANALYSIS_CONFIG" ? "← Back to Site Analysis" : "← Back to All Connected Websites"}
+                  ← Back to All Connected Websites
                 </button>
               </div>
 
@@ -6772,59 +5613,1009 @@ export default function App() {
                 </div>
 
                 {/* Content Placeholder */}
-                <div style={{
-                  padding: '6rem 3rem',
-                  maxWidth: '650px',
-                  margin: '0 auto',
-                  textAlign: 'center',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '24px',
-                  backgroundColor: '#0c101b',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
-                }}>
-                  <div style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '16px',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#3b82f6',
-                    marginBottom: '8px'
-                  }}>
-                    <Activity size={32} />
-                  </div>
-                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                    Analysis
-                  </h3>
-                  <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-                    Review automated audit reports, overall SEO performance opportunities, and technical web vitals issues.
-                  </p>
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 14px',
-                    borderRadius: '20px',
-                    backgroundColor: 'rgba(251, 191, 36, 0.08)',
-                    border: '1px solid rgba(251, 191, 36, 0.2)',
-                    color: '#fbbf24',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em'
-                  }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block' }}></span>
-                    Coming Soon
-                  </div>
-                </div>
+                {(() => {
+                    const site = sites.find(s => s.id === selectedSiteId);
+                    if (!site) return null;
+
+                    if (activeModule === 'visual-site-map') {
+                      const sitePages = pagesData[site.id] || [];
+                      
+                      // Classify page types consistently with the main list
+                      const getGroupedPageType = (page) => {
+                        if (page.assignedType) {
+                          if (page.assignedType === "Homepage") return "Homepage";
+                          if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
+                          if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
+                          if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
+                          if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
+                          return "Unassigned Pages";
+                        }
+                        const url = page.pageUrl;
+                        if (url === "/") return "Homepage";
+                        const score = getPageSEOScore(page);
+                        switch (score) {
+                          case 0: return "Homepage";
+                          case 1:
+                          case 2: return "Landing Pages";
+                          case 3: return "Supporting Pages";
+                          case 4: return "Topical Pages";
+                          default: return "Unassigned Pages";
+                        }
+                      };
+
+                      // Construct the hierarchical tree model
+                      const rootNode = { 
+                        pageUrl: "/", 
+                        pageTitle: "Homepage", 
+                        type: "Homepage", 
+                        children: [] 
+                      };
+                      
+                      const landingNodes = [];
+                      const otherPages = [];
+
+                      sitePages.forEach(p => {
+                        if (p.assignedType === "Excluded") return;
+                        const type = getGroupedPageType(p);
+                        if (type === "Homepage") {
+                          rootNode.pageTitle = p.pageTitle || "Homepage";
+                          rootNode.targetPhrase = p.targetPhrase;
+                        } else if (type === "Hub Pages" || type === "Landing Pages") {
+                          landingNodes.push({ ...p, type, children: [] });
+                        } else {
+                          otherPages.push({ ...p, type });
+                        }
+                      });
+
+                      // Assign supporting/topical pages to the best matching parent landing page based on URL keyword overlap
+                      otherPages.forEach(p => {
+                        let bestParent = null;
+                        let maxOverlap = 0;
+                        
+                        const getUrlWords = (url) => {
+                          return url.toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length > 3 && w !== "page" && w !== "html");
+                        };
+                        
+                        const pWords = getUrlWords(p.pageUrl);
+                        
+                        landingNodes.forEach(ln => {
+                          const lnWords = getUrlWords(ln.pageUrl);
+                          const overlap = pWords.filter(w => lnWords.includes(w)).length;
+                          if (overlap > maxOverlap) {
+                            maxOverlap = overlap;
+                            bestParent = ln;
+                          }
+                        });
+                        
+                        if (bestParent) {
+                          bestParent.children.push(p);
+                        } else {
+                          rootNode.children.push(p);
+                        }
+                      });
+
+                      // Prepend all matched landing nodes to the root's children list
+                      rootNode.children.unshift(...landingNodes);
+
+                      return (
+                        <div style={{ textAlign: 'left' }}>
+                          {/* Back navigation */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                            <button 
+                              onClick={() => setActiveModule('site-structure')}
+                              style={{ 
+                                background: 'none', 
+                                border: 'none', 
+                                fontSize: '0.9rem', 
+                                cursor: 'pointer', 
+                                color: 'var(--text-secondary)', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '8px',
+                                padding: 0
+                              }}
+                            >
+                              <ArrowLeft size={16} /> Back to Site Structure
+                            </button>
+                          </div>
+
+                          {/* Visual Tree Map Card Container */}
+                          <div style={{
+                            backgroundColor: 'var(--surface-color)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            padding: '2rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '2.5rem',
+                            overflowX: 'auto'
+                          }}>
+                            <div>
+                              <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
+                                Visual Site Map
+                              </h2>
+                              <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                {site.name} ({site.url})
+                              </span>
+                            </div>
+
+                            {/* Connected Tree Nodes Layout */}
+                            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', minWidth: 'max-content', paddingLeft: '0.5rem', gap: '3rem' }}>
+                              
+                              {/* Homepage (Root Node Column) */}
+                              <div style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                                alignSelf: 'center',
+                                position: 'relative',
+                                paddingRight: '3rem'
+                              }}>
+                                <div style={{
+                                  backgroundColor: '#070b13',
+                                  border: '2px solid #10b981',
+                                  borderRadius: '8px',
+                                  padding: '1rem 1.25rem',
+                                  minWidth: '260px',
+                                  maxWidth: '320px',
+                                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)',
+                                  zIndex: 2,
+                                  textAlign: 'left'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                      Homepage (Root)
+                                    </span>
+                                    {rootNode.targetPhrase && (
+                                      <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>
+                                        Target: {rootNode.targetPhrase}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '4px', fontFamily: 'Outfit' }}>
+                                    {rootNode.pageTitle}
+                                  </div>
+                                  <div style={{ fontSize: '0.8rem', fontFamily: 'monospace', color: '#60a5fa', marginTop: '6px', wordBreak: 'break-all' }}>
+                                    {rootNode.pageUrl}
+                                  </div>
+                                </div>
+
+                                {/* Line connector extending right from Homepage card to the main stem */}
+                                {rootNode.children.length > 0 && (
+                                  <div style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: '50%',
+                                    width: '3rem',
+                                    height: '2px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                    zIndex: 1
+                                  }} />
+                                )}
+                              </div>
+
+                              {/* Branch Nodes Column (Landing Pages & their Sub-stems) */}
+                              {rootNode.children.length > 0 && (
+                                <div style={{
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: '2.5rem',
+                                  borderLeft: '2px solid rgba(255, 255, 255, 0.08)',
+                                  paddingLeft: '3rem',
+                                  position: 'relative'
+                                }}>
+                                  {rootNode.children.map((child, cIdx) => {
+                                    const hasGrandchildren = child.children && child.children.length > 0;
+                                    return (
+                                      <div 
+                                        key={cIdx} 
+                                        style={{ 
+                                          display: 'flex', 
+                                          flexDirection: 'row', 
+                                          alignItems: 'center', 
+                                          gap: '3rem', 
+                                          position: 'relative' 
+                                        }}
+                                      >
+                                        {/* Horizontal connection line from main stem on the left to this Landing card */}
+                                        <div style={{
+                                          position: 'absolute',
+                                          left: '-3rem',
+                                          top: '50%',
+                                          width: '3rem',
+                                          height: '2px',
+                                          backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                                        }} />
+
+                                        {/* Landing / Hub Node Card */}
+                                        <div style={{
+                                          backgroundColor: '#0c101b',
+                                          border: '1px solid var(--border-color)',
+                                          borderRadius: '8px',
+                                          padding: '0.85rem 1.15rem',
+                                          minWidth: '240px',
+                                          maxWidth: '320px',
+                                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                                          zIndex: 2,
+                                          textAlign: 'left',
+                                          position: 'relative'
+                                        }}>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ 
+                                              fontSize: '0.7rem', 
+                                              fontWeight: 700, 
+                                              color: child.type === "Hub Pages" ? "#a78bfa" : "#38bdf8",
+                                              backgroundColor: child.type === "Hub Pages" ? "rgba(167, 139, 250, 0.08)" : "rgba(56, 189, 248, 0.08)",
+                                              padding: '2px 6px',
+                                              borderRadius: '4px'
+                                            }}>
+                                              {child.type === "Hub Pages" ? "Hub Page" : "Landing Page"}
+                                            </span>
+                                            {child.targetPhrase && (
+                                              <span style={{ fontSize: '0.7rem', color: '#10b981', fontWeight: 600 }}>
+                                                Target: {child.targetPhrase}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '6px', fontFamily: 'Outfit' }}>
+                                            {child.pageTitle}
+                                          </div>
+                                          <div style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginTop: '4px', wordBreak: 'break-all' }}>
+                                            {child.pageUrl}
+                                          </div>
+
+                                          {/* Horizontal connection line extending right from Landing card to its grandchildren stem */}
+                                          {hasGrandchildren && (
+                                            <div style={{
+                                              position: 'absolute',
+                                              right: '-3rem',
+                                              top: '50%',
+                                              width: '3rem',
+                                              height: '2px',
+                                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                              zIndex: 1
+                                            }} />
+                                          )}
+                                        </div>
+
+                                        {/* Grandchildren Column (Supporting / Topical Pages) */}
+                                        {hasGrandchildren && (
+                                          <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'row',
+                                            gap: '1.5rem',
+                                            position: 'relative',
+                                            alignItems: 'center'
+                                          }}>
+                                            {/* Continuous horizontal connection line behind all grandchildren cards */}
+                                            <div style={{
+                                              position: 'absolute',
+                                              left: '-3rem',
+                                              top: '50%',
+                                              width: 'calc(100% + 3rem)',
+                                              height: '2px',
+                                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                              zIndex: 1
+                                            }} />
+
+                                            {child.children.map((grandchild, gIdx) => (
+                                              <div 
+                                                key={gIdx}
+                                                style={{
+                                                  backgroundColor: '#070b13',
+                                                  border: '1px dashed var(--border-color)',
+                                                  borderRadius: '6px',
+                                                  padding: '0.75rem 1rem',
+                                                  minWidth: '220px',
+                                                  maxWidth: '300px',
+                                                  position: 'relative',
+                                                  zIndex: 2,
+                                                  textAlign: 'left'
+                                                }}
+                                              >
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                  <span style={{ fontSize: '0.65rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                                    Supporting Page
+                                                  </span>
+                                                  {grandchild.targetPhrase && (
+                                                    <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 600 }}>
+                                                      {grandchild.targetPhrase}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '4px' }}>
+                                                  {grandchild.pageTitle}
+                                                </div>
+                                                <div style={{ fontSize: '0.725rem', fontFamily: 'monospace', color: '#94a3b8', marginTop: '4px', wordBreak: 'break-all' }}>
+                                                  {grandchild.pageUrl}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const sitePages = pagesData[site.id] || [];
+                    const pagesFound = sitePages.length || (site.id === 'bathroom-upgrades' ? 33 : 113);
+                    const configuredPages = sitePages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded").length;
+                    const hasAudit = !!site.lastAudit;
+                    const auditStatusText = hasAudit ? `Analysed (${site.lastAudit})` : "Pending Analysis";
+
+                    const tabs = [
+                      { id: null, label: "Overview" },
+                      { id: "site-structure", label: "Site Structure" },
+                      
+                      { id: "content-coverage", label: "Content Coverage" },
+                      { id: "opportunities", label: "Opportunities" }
+                    ];
+
+                    const getPageCategory = (page) => {
+                      if (page.pageUrl === "/") return "Homepage";
+                      if (page.assignedType === "Homepage") return "Homepage";
+                      if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
+                      if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
+                      if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
+                      if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
+                      return "Unassigned Pages";
+                    };
+
+                    return (
+                      <div>
+                        {/* Back navigation */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem', textAlign: 'left' }}>
+                          <button 
+                            onClick={() => {
+                              setSelectedAnalysisSiteId(null);
+                              setActiveModule(null);
+                            }}
+                            style={{ 
+                              background: 'none', 
+                              border: 'none', 
+                              fontSize: '0.9rem', 
+                              cursor: 'pointer', 
+                              color: 'var(--text-secondary)', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '8px',
+                              padding: 0
+                            }}
+                          >
+                            <ArrowLeft size={16} /> Back to Site Analysis Overview
+                          </button>
+                        </div>
+
+                        {/* Top banner card */}
+                        <div style={{
+                          backgroundColor: '#0c101b',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '12px',
+                          padding: '1.5rem',
+                          textAlign: 'left',
+                          marginBottom: '2rem'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                            <div>
+                              <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>
+                                {site.name}
+                              </h2>
+                              <a 
+                                href={site.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ 
+                                  fontSize: '0.9rem', 
+                                  color: '#10b981', 
+                                  textDecoration: 'none', 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  gap: '4px',
+                                  fontWeight: 500
+                                }}
+                              >
+                                {site.url} <ExternalLink size={12} />
+                              </a>
+                            </div>
+                          </div>
+
+                          <hr style={{ borderColor: 'rgba(255,255,255,0.06)', margin: '1.25rem 0', borderStyle: 'solid', borderWidth: '1px 0 0 0' }} />
+
+                          <div style={{ display: 'flex', gap: '3.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                Pages Found
+                              </span>
+                              <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                {pagesFound}
+                              </span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                Configured Pages
+                              </span>
+                              <span style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Outfit', color: 'var(--text-primary)', display: 'block', marginTop: '0.35rem' }}>
+                                {configuredPages}
+                              </span>
+                            </div>
+                            <div>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                Last Analysis
+                              </span>
+                              <div style={{ marginTop: '0.35rem' }}>
+                                <span style={{
+                                  fontWeight: 700,
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.8rem',
+                                  backgroundColor: hasAudit ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                                  color: hasAudit ? '#34d399' : '#fbbf24',
+                                  border: hasAudit ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
+                                  display: 'inline-block'
+                                }}>
+                                  {auditStatusText}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Navigation Tabs */}
+                          <div style={{
+                            display: 'flex',
+                            gap: '0.5rem',
+                            borderTop: '1px solid rgba(255,255,255,0.06)',
+                            marginTop: '1.5rem',
+                            paddingTop: '1rem',
+                            flexWrap: 'wrap'
+                          }}>
+                            {tabs.map(tab => {
+                              const isActive = activeModule === tab.id;
+                              return (
+                                <button
+                                  key={tab.label}
+                                  onClick={() => setActiveModule(tab.id)}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    fontSize: '0.9rem',
+                                    fontWeight: isActive ? 700 : 500,
+                                    color: isActive ? '#34d399' : 'var(--text-secondary)',
+                                    borderBottom: isActive ? '2px solid #10b981' : '2px solid transparent',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    outline: 'none',
+                                    marginBottom: '-1px'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!isActive) e.currentTarget.style.color = 'var(--text-primary)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)';
+                                  }}
+                                >
+                                  {tab.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Page Module Contents */}
+                        {(() => {
+                          if (activeModule === 'site-structure') {
+                            const sortedPages = sortPagesForSEO(sitePages);
+
+                            const getGroupedPageType = (page) => {
+                              if (page.assignedType) {
+                                if (page.assignedType === "Homepage") return "Homepage";
+                                if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
+                                if (page.assignedType === "Landing Page" || page.assignedType === "Landing Pages" || page.assignedType === "Landing" || page.assignedType === "Primary Landing Page") return "Landing Pages";
+                                if (page.assignedType === "Supporting Page" || page.assignedType === "Supporting Pages" || page.assignedType === "Supporting") return "Supporting Pages";
+                                if (page.assignedType === "Topical Page" || page.assignedType === "Topical Pages" || page.assignedType === "Topical") return "Topical Pages";
+                                return "Unassigned Pages";
+                              }
+                              const url = page.pageUrl;
+                              if (url === "/") return "Homepage";
+                              const score = getPageSEOScore(page);
+                              switch (score) {
+                                case 0: return "Homepage";
+                                case 1:
+                                case 2: return "Landing Pages";
+                                case 3: return "Supporting Pages";
+                                case 4: return "Topical Pages";
+                                default: return "Unassigned Pages";
+                              }
+                            };
+
+                            const sections = [
+                              { name: "Homepage", key: "Homepage", pages: sortedPages.filter(p => getGroupedPageType(p) === "Homepage") },
+                              { name: "Hub Pages", key: "HubPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Hub Pages") },
+                              { name: "Landing Pages", key: "LandingPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Landing Pages") },
+                              { name: "Supporting Pages", key: "SupportingPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Supporting Pages") },
+                              { name: "Topical Pages", key: "TopicalPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Topical Pages") },
+                              { name: "Unassigned Pages", key: "UnassignedPages", pages: sortedPages.filter(p => getGroupedPageType(p) === "Unassigned Pages") }
+                            ];
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                {/* Header / Action Area */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', textAlign: 'left' }}>
+                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.45rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                                    Site Structure
+                                  </h3>
+                                  <button
+                                    className="btn-primary"
+                                    onClick={() => setActiveModule('visual-site-map')}
+                                    style={{
+                                      backgroundColor: '#f97316',
+                                      color: '#ffffff',
+                                      border: 'none',
+                                      padding: '8px 16px',
+                                      borderRadius: '6px',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      transition: 'background-color 0.2s ease',
+                                      boxShadow: '0 2px 8px rgba(249, 115, 22, 0.15)'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#ea580c'}
+                                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f97316'}
+                                  >
+                                    Visual Site Map
+                                  </button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                  {sections.map(sec => {
+                                  const isSectionExpanded = !!expandedSections[sec.key];
+                                  return (
+                                    <div 
+                                      key={sec.key}
+                                      style={{
+                                        backgroundColor: 'var(--surface-color)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '12px',
+                                        overflow: 'hidden'
+                                      }}
+                                    >
+                                      {/* Accordion header */}
+                                      <div 
+                                        onClick={() => toggleSection(sec.key)}
+                                        style={{
+                                          padding: '1.25rem 1.5rem',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          cursor: 'pointer',
+                                          backgroundColor: isSectionExpanded ? 'rgba(255,255,255,0.01)' : 'transparent',
+                                          userSelect: 'none',
+                                          textAlign: 'left'
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                          <h3 style={{ margin: 0, fontFamily: 'Outfit', fontSize: '1.15rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                            {sec.name}
+                                          </h3>
+                                          <span style={{ 
+                                            fontSize: '0.8rem', 
+                                            color: 'var(--text-secondary)', 
+                                            backgroundColor: 'rgba(255,255,255,0.05)', 
+                                            padding: '2px 8px', 
+                                            borderRadius: '20px',
+                                            fontWeight: 600
+                                          }}>
+                                            {sec.pages.length} {sec.pages.length === 1 ? "page" : "pages"}
+                                          </span>
+                                        </div>
+                                        <span style={{ fontSize: '0.85rem', color: '#60a5fa', fontWeight: 600 }}>
+                                          {isSectionExpanded ? "Hide Pages ▲" : "Show Pages ▼"}
+                                        </span>
+                                      </div>
+
+                                      {/* Accordion content */}
+                                      {isSectionExpanded && (
+                                        <div style={{ borderTop: '1px solid var(--border-color)', padding: '1.5rem' }}>
+                                          {sec.pages.length === 0 ? (
+                                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', padding: '1rem 0' }}>
+                                              No pages classified under this type.
+                                            </div>
+                                          ) : (
+                                            <div style={{ overflowX: 'auto' }}>
+                                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                                                <thead>
+                                                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left' }}>
+                                                    <th style={{ padding: '10px 14px', width: '35%' }}>Page URL</th>
+                                                    <th style={{ padding: '10px 14px', width: '35%' }}>Page Title</th>
+                                                    <th style={{ padding: '10px 14px', width: '15%' }}>Target Keyword</th>
+                                                    <th style={{ padding: '10px 14px', width: '15%', textAlign: 'center' }}>Audit Status</th>
+                                                  </tr>
+                                                </thead>
+                                                <tbody>
+                                                  {sec.pages.map((p, pIdx) => {
+                                                    const isExcluded = p.assignedType === "Excluded";
+                                                    const isConfigured = p.status === "Configured";
+                                                    
+                                                    let statusText = "Awaiting Config";
+                                                    let statusColor = "#fbbf24";
+                                                    let statusBg = "rgba(245, 158, 11, 0.08)";
+                                                    let statusBorder = "1px solid rgba(245, 158, 11, 0.15)";
+                                                    
+                                                    if (isExcluded) {
+                                                      statusText = "Excluded";
+                                                      statusColor = "#94a3b8";
+                                                      statusBg = "rgba(148, 163, 184, 0.08)";
+                                                      statusBorder = "1px solid rgba(148, 163, 184, 0.15)";
+                                                    } else if (isConfigured) {
+                                                      statusText = "Configured";
+                                                      statusColor = "#34d399";
+                                                      statusBg = "rgba(16, 185, 129, 0.08)";
+                                                      statusBorder = "1px solid rgba(16, 185, 129, 0.15)";
+                                                    }
+
+                                                    return (
+                                                      <tr key={pIdx} style={{ borderBottom: pIdx < sec.pages.length - 1 ? '1px solid rgba(255,255,255,0.02)' : 'none' }}>
+                                                        <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600 }}>{p.pageUrl}</td>
+                                                        <td style={{ padding: '12px 14px', fontWeight: 500, color: 'var(--text-primary)' }}>{p.pageTitle}</td>
+                                                        <td style={{ padding: '12px 14px', fontStyle: p.targetPhrase ? 'normal' : 'italic', color: p.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)' }}>{p.targetPhrase || "Not configured"}</td>
+                                                        <td style={{ padding: '12px 14px', textAlign: 'center' }}>
+                                                          <span style={{
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 700,
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            color: statusColor,
+                                                            backgroundColor: statusBg,
+                                                            border: statusBorder,
+                                                            display: 'inline-block'
+                                                          }}>
+                                                            {statusText}
+                                                          </span>
+                                                        </td>
+                                                      </tr>
+                                                    );
+                                                  })}
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          
+
+                          if (activeModule === 'content-coverage') {
+                            const configuredPagesList = sitePages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded");
+                            const awaitingPagesList = sitePages.filter(p => p.status === "Unconfigured" && p.assignedType !== "Excluded");
+                            const excludedPagesList = sitePages.filter(p => p.assignedType === "Excluded");
+                            
+                            const actionableTotal = configuredPagesList.length + awaitingPagesList.length;
+                            const configuredPagesCount = configuredPagesList.length;
+                            const pct = actionableTotal > 0 ? Math.round((configuredPagesCount / actionableTotal) * 100) : 0;
+
+                            const categories = [
+                              "Homepage",
+                              "Hub Pages",
+                              "Landing Pages",
+                              "Supporting Pages",
+                              "Topical Pages",
+                              "Unassigned Pages"
+                            ];
+
+                            const summaryData = categories.map(category => {
+                              const matchingPages = sitePages.filter(p => getPageCategory(p) === category);
+                              
+                              const total = matchingPages.length;
+                              const configured = matchingPages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded").length;
+                              const awaiting = matchingPages.filter(p => p.status === "Unconfigured" && p.assignedType !== "Excluded").length;
+                              const excluded = matchingPages.filter(p => p.assignedType === "Excluded").length;
+
+                              return {
+                                category,
+                                total,
+                                configured,
+                                awaiting,
+                                excluded
+                              };
+                            });
+
+                            return (
+                              <div>
+                                {/* Grid layout for Content Summary and Coverage Progress */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', marginBottom: '2.5rem', alignItems: 'start' }}>
+                                  {/* Section 1 - Content Summary */}
+                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
+                                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1rem 0' }}>
+                                      Content Summary
+                                    </h3>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem', textAlign: 'left' }}>
+                                      <thead>
+                                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                          <th style={{ padding: '12px 10px' }}>Content Type</th>
+                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Total Pages</th>
+                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Configured</th>
+                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Awaiting Config</th>
+                                          <th style={{ padding: '12px 10px', textAlign: 'right' }}>Excluded</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {summaryData.map(row => (
+                                          <tr key={row.category} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                            <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>{row.category}</td>
+                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#cbd5e1' }}>{row.total}</td>
+                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#34d399', fontWeight: 600 }}>{row.configured}</td>
+                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#fbbf24' }}>{row.awaiting}</td>
+                                            <td style={{ padding: '12px 10px', textAlign: 'right', color: '#94a3b8' }}>{row.excluded}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  {/* Section 4 - Coverage Progress */}
+                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
+                                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1rem 0' }}>
+                                      Coverage Progress
+                                    </h3>
+                                    <div style={{ margin: '1.5rem 0' }}>
+                                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                        Configured Pages
+                                      </div>
+                                      <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.5rem', fontFamily: 'Outfit' }}>
+                                        {configuredPagesCount} of {actionableTotal} pages configured
+                                      </div>
+                                      <div style={{ marginTop: '1rem', width: '100%', height: '10px', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: '9999px', overflow: 'hidden' }}>
+                                        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent-gradient)', borderRadius: '9999px', transition: 'width 0.5s ease' }} />
+                                      </div>
+                                      <div style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: 700, marginTop: '0.75rem', textAlign: 'right' }}>
+                                        {pct}% Complete
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Section 2 - Configured Pages */}
+                                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left', marginBottom: '2.5rem' }}>
+                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.25rem 0' }}>
+                                    Configured Pages
+                                  </h3>
+                                  {configuredPagesList.length === 0 ? (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      No pages configured yet.
+                                    </div>
+                                  ) : (
+                                    <div style={{ overflowX: 'auto' }}>
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                        <thead>
+                                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '30%' }}>Page URL</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '25%' }}>Page Title</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '15%' }}>Page Type</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '15%' }}>Target Phrase</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'right', width: '10%' }}>Word Count</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'center', width: '10%' }}>Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {configuredPagesList.map(p => (
+                                            <tr key={p.pageUrl} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                              <td style={{ padding: '12px 10px', fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600 }}>{p.pageUrl}</td>
+                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{p.pageTitle}</td>
+                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{getPageCategory(p)}</td>
+                                              <td style={{ padding: '12px 10px', color: 'var(--text-primary)', fontWeight: 600 }}>{p.targetPhrase}</td>
+                                              <td style={{ padding: '12px 10px', textAlign: 'right', color: '#cbd5e1' }}>{p.crawlData?.wordCount || 0}</td>
+                                              <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                                                <span style={{ color: '#34d399', backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                  Configured
+                                                </span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Section 3 - Pages Awaiting Configuration */}
+                                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left', marginBottom: '2.5rem' }}>
+                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.25rem 0' }}>
+                                    Pages Awaiting Configuration
+                                  </h3>
+                                  {awaitingPagesList.length === 0 ? (
+                                    <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      All pages are fully configured!
+                                    </div>
+                                  ) : (
+                                    <div style={{ overflowX: 'auto' }}>
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                        <thead>
+                                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '35%' }}>Page URL</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '35%' }}>Page Title</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '15%' }}>Page Type</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'center', width: '15%' }}>Suggested Action</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {awaitingPagesList.map(p => (
+                                            <tr key={p.pageUrl} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                              <td style={{ padding: '12px 10px', fontFamily: 'monospace', color: '#94a3b8' }}>{p.pageUrl}</td>
+                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{p.pageTitle}</td>
+                                              <td style={{ padding: '12px 10px', color: '#cbd5e1' }}>{getPageCategory(p)}</td>
+                                              <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                                                <button 
+                                                  className="btn-secondary" 
+                                                  onClick={() => handleOpenConfigModal(p)}
+                                                  style={{ 
+                                                    padding: '4px 12px', 
+                                                    fontSize: '0.8rem', 
+                                                    fontWeight: 600,
+                                                    color: 'var(--text-primary)',
+                                                    backgroundColor: 'rgba(255,255,255,0.05)',
+                                                    border: '1px solid var(--border-color)',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s ease'
+                                                  }}
+                                                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; }}
+                                                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)'; }}
+                                                >
+                                                  Configure Target Phrase
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Section 5 - Excluded Pages (Collapsible) */}
+                                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.5rem', textAlign: 'left' }}>
+                                  <div 
+                                    onClick={() => setIsExcludedCollapsed(!isExcludedCollapsed)}
+                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                                  >
+                                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                                      Excluded Pages ({excludedPagesList.length})
+                                    </h3>
+                                    <span style={{ fontSize: '0.9rem', color: '#60a5fa', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                      {isExcludedCollapsed ? "▼ Show Pages" : "▲ Hide Pages"}
+                                    </span>
+                                  </div>
+
+                                  {!isExcludedCollapsed && (
+                                    <div style={{ marginTop: '1.5rem', overflowX: 'auto' }}>
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                                        <thead>
+                                          <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '40%' }}>Page URL</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'left', width: '40%' }}>Page Title</th>
+                                            <th style={{ padding: '12px 10px', textAlign: 'center', width: '20%' }}>Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {excludedPagesList.map(p => (
+                                            <tr key={p.pageUrl} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                              <td style={{ padding: '12px 10px', fontFamily: 'monospace', color: '#94a3b8' }}>{p.pageUrl}</td>
+                                              <td style={{ padding: '12px 10px', color: '#94a3b8' }}>{p.pageTitle}</td>
+                                              <td style={{ padding: '12px 10px', textAlign: 'center' }}>
+                                                <span style={{ color: '#94a3b8', backgroundColor: 'rgba(148, 163, 184, 0.08)', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                                  Excluded
+                                                </span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          if (activeModule === 'opportunities') {
+                            return (
+                              <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '3rem 2rem', textAlign: 'center' }}>
+                                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Opportunities</h3>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>Coming Soon: Content Opportunities and AI recommendations will be available in the next phase.</p>
+                              </div>
+                            );
+                          }
+
+                          // Default View: Overview Dashboard
+                          return (
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                              gap: '1.25rem',
+                              marginTop: '1.5rem'
+                            }}>
+                              {['Site Structure', 'Internal Linking', 'Content Coverage', 'Opportunities'].map(module => {
+                                const isSiteStructure = module === 'Site Structure';
+                                const isInternalLinking = module === 'Internal Linking';
+                                const isClickable = isSiteStructure || isInternalLinking || module === 'Content Coverage' || module === 'Opportunities';
+
+                                return (
+                                  <div 
+                                    key={module}
+                                    onClick={() => {
+                                      if (isSiteStructure) {
+                                        setActiveModule('site-structure');
+                                      } else if (isInternalLinking) {
+                                        setActiveModule('internal-linking');
+                                      } else if (module === 'Content Coverage') {
+                                        setActiveModule('content-coverage');
+                                      } else if (module === 'Opportunities') {
+                                        setActiveModule('opportunities');
+                                      }
+                                    }}
+                                    style={{
+                                      backgroundColor: 'var(--surface-color)',
+                                      border: '1px solid var(--border-color)',
+                                      borderRadius: '12px',
+                                      padding: '1.5rem',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      gap: '8px',
+                                      textAlign: 'left',
+                                      minHeight: '120px',
+                                      cursor: isClickable ? 'pointer' : 'default',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (isClickable) {
+                                        e.currentTarget.style.borderColor = '#10b981';
+                                        e.currentTarget.style.transform = 'translateY(-2px)';
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (isClickable) {
+                                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                                        e.currentTarget.style.transform = 'none';
+                                      }
+                                    }}
+                                  >
+                                    <h4 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Outfit, sans-serif' }}>
+                                      {module}
+                                    </h4>
+                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                      {isSiteStructure 
+                                        ? "View organized hierarchy" 
+                                        : isInternalLinking 
+                                        ? "View link & anchor analysis" 
+                                        : module === "Content Coverage" 
+                                        ? "View content inventory & targeting status" 
+                                        : "View potential content expansion ideas"}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    );
+                  })()}
               </div>
             );
           })()}
