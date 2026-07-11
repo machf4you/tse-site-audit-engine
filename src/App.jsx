@@ -2598,6 +2598,88 @@ export default function App() {
     }
   };
 
+  const handleFixIssueDirectly = (pageUrl, targetPhrase, failItem, site) => {
+    const relUrl = getRelativeUrl(pageUrl, site.url);
+    
+    // Find if task exists
+    let existingTask = site.tasks.find(t => {
+      const tRel = getRelativeUrl(t.pageUrl, site.url);
+      return tRel === relUrl && t.taskTitle.toLowerCase().includes(failItem.item.toLowerCase());
+    });
+
+    if (!existingTask) {
+      // Create on the fly
+      const nextTaskId = `t-${site.id}-dyn-${Date.now()}`;
+      const newTask = {
+        id: nextTaskId,
+        taskId: nextTaskId,
+        website: site.name,
+        pageUrl: site.url.replace(/\/+$/, "") + relUrl,
+        pageTitle: failItem.item,
+        targetPhrase: targetPhrase || "None",
+        keyword: targetPhrase || "None",
+        taskSource: "Page Auditor",
+        source: "Page Auditor",
+        issueType: "Content Audit",
+        issueDescription: failItem.action,
+        issueFound: failItem.action,
+        priority: failItem.item === "H1" || failItem.item === "Title Tag" ? "High" : "Medium",
+        status: "Open",
+        state: "progress",
+        assignedTo: "Sarah",
+        assignee: "Sarah",
+        verificationMethod: "Page Auditor verifies page structure",
+        successCheck: "Page Auditor will verify automatically.",
+        createdDate: new Date().toISOString().split('T')[0],
+        completedDate: null,
+        taskTitle: `Missing/Optimizable ${failItem.item === "Title Tag" ? "Meta Title" : failItem.item}`,
+        currentVersion: failItem.current || "Standard",
+        requiredVersion: failItem.action || "Optimized",
+        whyItMatters: "General on-page SEO improvement."
+      };
+
+      const updatedTasks = [...site.tasks, newTask];
+      setSites(prev => prev.map(s => s.id === site.id ? { ...s, tasks: updatedTasks } : s));
+
+      setSelectedTaskId(nextTaskId);
+      
+      const sitePages = pagesData[site.id] || [];
+      const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+      const { required } = getComparisonContent(newTask, pageObj);
+
+      setEditingContent(required || failItem.action || "");
+      setVerificationStatus("idle");
+      setVerificationError("");
+      setCurrentView("EDIT");
+    } else {
+      // Mark as progress
+      setSites(prev => prev.map(s => {
+        if (s.id === site.id) {
+          const updatedTasks = s.tasks.map(t => {
+            if (t.id === existingTask.id) {
+              return { ...t, state: "progress", assignee: t.assignee || "Sarah" };
+            }
+            return t;
+          });
+          return { ...s, tasks: updatedTasks };
+        }
+        return s;
+      }));
+
+      setSelectedTaskId(existingTask.id);
+      
+      const sitePages = pagesData[site.id] || [];
+      const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+      const enriched = getEnrichedTask(existingTask);
+      const { required } = getComparisonContent(enriched, pageObj);
+
+      setEditingContent(required || failItem.action || "");
+      setVerificationStatus("idle");
+      setVerificationError("");
+      setCurrentView("EDIT");
+    }
+  };
+
   const handleMarkInProgress = (taskId) => {
     setSites(prevSites => prevSites.map(s => {
       if (s.id === selectedSiteId) {
@@ -7656,48 +7738,7 @@ export default function App() {
                               </div>
                               <button 
                                 className="btn-primary btn-sm"
-                                onClick={() => {
-                                  if (matchingTask) {
-                                    handleStartTask(matchingTask.id);
-                                  } else {
-                                    // Generate and append the task dynamically on the fly
-                                    const nextTaskId = `t-${site.id}-dyn-${Date.now()}-${idx + 1}`;
-                                    const newTask = {
-                                      id: nextTaskId,
-                                      taskId: nextTaskId,
-                                      website: site.name,
-                                      pageUrl: site.url.replace(/\/+$/, "") + relUrl,
-                                      pageTitle: pageTitle || "Page Details",
-                                      targetPhrase: currentTargetPhrase || "None",
-                                      keyword: currentTargetPhrase || "None",
-                                      taskSource: "Page Auditor",
-                                      source: "Page Auditor",
-                                      issueType: "Content Audit",
-                                      issueDescription: failItem.action,
-                                      issueFound: failItem.action,
-                                      priority: failItem.item === "H1" || failItem.item === "Title Tag" ? "High" : "Medium",
-                                      status: "Open",
-                                      state: "backlog",
-                                      assignedTo: null,
-                                      assignee: null,
-                                      verificationMethod: "Page Auditor verifies page structure",
-                                      successCheck: "Page Auditor will verify automatically.",
-                                      createdDate: new Date().toISOString().split('T')[0],
-                                      completedDate: null,
-                                      taskTitle: `Missing/Optimizable ${failItem.item === "Title Tag" ? "Meta Title" : failItem.item}`,
-                                      currentVersion: "Standard",
-                                      requiredVersion: "Optimized",
-                                      whyItMatters: "General on-page SEO improvement."
-                                    };
-                                    
-                                    const updatedTasks = [...site.tasks, newTask];
-                                    setSites(prev => prev.map(s => s.id === site.id ? { ...s, tasks: updatedTasks } : s));
-                                    
-                                    setTimeout(() => {
-                                      handleStartTask(newTask.id);
-                                    }, 100);
-                                  }
-                                }}
+                                onClick={() => handleFixIssueDirectly(currentReviewUrl, currentTargetPhrase, failItem, site)}
                                 style={{ padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: '4px', width: 'auto' }}
                               >
                                 Fix Issue <ChevronRight size={14} />
