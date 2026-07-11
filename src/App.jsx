@@ -1007,6 +1007,9 @@ export default function App() {
   const [newSitePassword, setNewSitePassword] = useState("");
   const [connectionTestStatus, setConnectionTestStatus] = useState("idle"); // "idle", "testing", "success", "failed"
   const [connectionTestMessage, setConnectionTestMessage] = useState("");
+  const [w6ConnectionStatus, setW6ConnectionStatus] = useState("idle"); // "idle", "testing", "success", "failed"
+  const [w6ConnectionMessage, setW6ConnectionMessage] = useState("");
+
   
   // Onboarding site classification (Milestone M004)
   const [newSitePortfolio, setNewSitePortfolio] = useState("TSE");
@@ -1069,7 +1072,68 @@ export default function App() {
       setConnectionTestStatus("failed");
       setConnectionTestMessage("❌ Connection Failed: Network error or CORS block. Ensure the WordPress REST API is reachable.");
     });
+  }
+
+  const handleW6TestConnection = (site) => {
+    if (!site) return;
+    
+    let cleanUrl = site.url.trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = "https://" + cleanUrl;
+    }
+    cleanUrl = cleanUrl.replace(/\/+$/, "");
+    const endpoint = `${cleanUrl}/wp-json/wp/v2/users/me`;
+    
+    if (!site.credentials?.username || !site.credentials?.password) {
+      setW6ConnectionStatus("failed");
+      setW6ConnectionMessage("❌ Connection Failed: API Credentials are not configured for this website.");
+      showNotification("Connection Failed: Credentials not configured.");
+      return;
+    }
+
+    let credentials = "";
+    try {
+      credentials = window.btoa(site.credentials.username.trim() + ":" + site.credentials.password.trim());
+    } catch (e) {
+      setW6ConnectionStatus("failed");
+      setW6ConnectionMessage("❌ Connection Failed: Invalid credentials format.");
+      showNotification("Connection Failed: Invalid credentials format.");
+      return;
+    }
+
+    setW6ConnectionStatus("testing");
+    setW6ConnectionMessage("Testing WordPress API connection...");
+
+    fetch(endpoint, {
+      method: "GET",
+      headers: {
+        "Authorization": `Basic ${credentials}`,
+        "Content-Type": "application/json"
+      }
+    })
+    .then(response => {
+      if (response.status === 200) {
+        setW6ConnectionStatus("success");
+        setW6ConnectionMessage("✅ Connection Successful");
+        showNotification("WordPress connection verified successfully!");
+      } else if (response.status === 401 || response.status === 403) {
+        setW6ConnectionStatus("failed");
+        setW6ConnectionMessage("❌ Connection Failed: Invalid credentials or insufficient permissions.");
+        showNotification("Connection Failed: Invalid credentials.");
+      } else {
+        setW6ConnectionStatus("failed");
+        setW6ConnectionMessage(`❌ Connection Failed: Received status code ${response.status}.`);
+        showNotification(`Connection Failed: Status ${response.status}`);
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      setW6ConnectionStatus("failed");
+      setW6ConnectionMessage("❌ Connection Failed: Network error or CORS block.");
+      showNotification("Connection Failed: Network error.");
+    });
   };
+;
 
   const handleGenerateSentence = async (destPage, rec, srcPage, key, anchorText) => {
     setIsGenerating(prev => ({ ...prev, [key]: true }));
@@ -2163,12 +2227,24 @@ export default function App() {
     setIsImporting(true);
     showNotification(`Connecting to TSE Exporter for "${site.name}"...`);
     
-    await handleSyncWebsitePages(
+    const nowStr = new Date().toLocaleString();
+    const success = await handleSyncWebsitePages(
       site.id, 
       site.url, 
       site.credentials.username, 
       site.credentials.password
     );
+
+    setSites(prev => prev.map(s => {
+      if (s.id === siteId) {
+        return {
+          ...s,
+          lastSync: nowStr,
+          lastSuccessfulSync: success ? nowStr : (s.lastSuccessfulSync || "Never")
+        };
+      }
+      return s;
+    }));
 
     setIsImporting(false);
   };
@@ -7719,21 +7795,114 @@ export default function App() {
                         </div>
                       </div>
 
-                      {/* Placeholder Section: Website Settings */}
+                      {/* WordPress Connection Panel */}
                       <div style={{
-                        marginTop: '3rem',
-                        padding: '2.5rem',
-                        backgroundColor: 'var(--surface-color)',
-                        border: '1px solid var(--border-color)',
+                        marginTop: '2rem',
+                        padding: '2rem',
+                        backgroundColor: '#0c101b',
+                        border: '2px solid rgba(255, 255, 255, 0.28)',
                         borderRadius: '12px',
-                        textAlign: 'left'
+                        textAlign: 'left',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
                       }}>
-                        <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
-                          Website Settings
+                        <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.5rem 0', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+                          WordPress Connection
                         </h3>
-                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
-                          Placeholder: Future website-specific options will be available here.
-                        </p>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                          <div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Website URL</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSite?.url}</span>
+                          </div>
+                          
+                          <div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>API URL</span>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSite?.url}/wp-json/</span>
+                          </div>
+
+                          <div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>API Key Status</span>
+                            <span style={{
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              color: selectedSite?.credentials?.username ? '#10b981' : '#ef4444',
+                              backgroundColor: selectedSite?.credentials?.username ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                              border: selectedSite?.credentials?.username ? '1px solid rgba(16, 185, 129, 0.2)' : '1px solid rgba(239, 68, 68, 0.2)',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              display: 'inline-block'
+                            }}>
+                              {selectedSite?.credentials?.username ? "Configured" : "Not Configured"}
+                            </span>
+                          </div>
+
+                          <div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Connection Status</span>
+                            <span style={{
+                              fontSize: '0.85rem',
+                              fontWeight: 700,
+                              color: w6ConnectionStatus === "success" ? '#10b981' : (w6ConnectionStatus === "failed" ? '#ef4444' : '#f59e0b'),
+                              backgroundColor: w6ConnectionStatus === "success" ? 'rgba(16, 185, 129, 0.08)' : (w6ConnectionStatus === "failed" ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)'),
+                              border: w6ConnectionStatus === "success" ? '1px solid rgba(16, 185, 129, 0.2)' : (w6ConnectionStatus === "failed" ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)'),
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              display: 'inline-block'
+                            }}>
+                              {w6ConnectionStatus === "success" ? "Connected" : (w6ConnectionStatus === "failed" ? "Disconnected" : (selectedSite?.status || "Connected"))}
+                            </span>
+                          </div>
+                        </div>
+
+                        {w6ConnectionMessage && (
+                          <div style={{
+                            padding: '10px 16px',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            marginBottom: '1.5rem',
+                            backgroundColor: w6ConnectionStatus === "success" ? 'rgba(16, 185, 129, 0.08)' : (w6ConnectionStatus === "failed" ? 'rgba(239, 68, 68, 0.08)' : 'rgba(245, 158, 11, 0.08)'),
+                            border: w6ConnectionStatus === "success" ? '1px solid rgba(16, 185, 129, 0.15)' : (w6ConnectionStatus === "failed" ? '1px solid rgba(239, 68, 68, 0.15)' : '1px solid rgba(245, 158, 11, 0.15)'),
+                            color: w6ConnectionStatus === "success" ? '#10b981' : (w6ConnectionStatus === "failed" ? '#ef4444' : '#f59e0b')
+                          }}>
+                            {w6ConnectionMessage}
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '2rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1.5rem' }}>
+                          <button
+                            className="btn-secondary"
+                            onClick={() => handleW6TestConnection(selectedSite)}
+                            disabled={w6ConnectionStatus === "testing"}
+                            style={{ cursor: w6ConnectionStatus === "testing" ? 'not-allowed' : 'pointer' }}
+                          >
+                            {w6ConnectionStatus === "testing" ? "Testing..." : "Test Connection"}
+                          </button>
+                          
+                          <button
+                            className="btn-primary"
+                            onClick={() => handleImportPages(selectedSiteId)}
+                            disabled={isImporting}
+                            style={{ cursor: isImporting ? 'not-allowed' : 'pointer' }}
+                          >
+                            {isImporting ? "Syncing..." : "Sync from WordPress"}
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem' }}>
+                          <div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Last Sync</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSite?.lastSync || "Never"}</span>
+                          </div>
+
+                          <div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Pages Found</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>{pagesData[selectedSiteId]?.length || 0}</span>
+                          </div>
+
+                          <div>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Last Successful Sync</span>
+                            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSite?.lastSuccessfulSync || "Never"}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 );
