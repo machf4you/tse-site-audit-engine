@@ -4827,24 +4827,48 @@ export default function App() {
                                     {isExcluded ? "Excluded" : page.status || "Unconfigured"}
                                   </span>
                                 </td>
-                                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                                  {page.latestAudit && (
+                                                                <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                  {isConfigured && (
                                     <>
                                       <button 
-                                        className="btn-secondary site-btn-sm" 
-                                        style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important' }}
+                                        className="btn-primary site-btn-sm" 
+                                        style={{ 
+                                          display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px',
+                                          boxShadow: 'none', background: '#f97316', backgroundColor: '#f97316', borderColor: '#f97316',
+                                          color: '#ffffff', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                        }}
                                         onClick={() => {
                                           setSelectedPageUrl(page.pageUrl);
                                           setReviewPageUrl(page.pageUrl);
                                           setCurrentView("AUDIT_RESULTS");
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.backgroundColor = '#ea580c';
+                                          e.currentTarget.style.borderColor = '#ea580c';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = '#f97316';
+                                          e.currentTarget.style.borderColor = '#f97316';
                                         }}
                                       >
                                         Last Audit
                                       </button>
                                       <button
                                         className="btn-primary site-btn-sm"
-                                        style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important', boxShadow: 'none' }}
+                                        style={{ 
+                                          display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px',
+                                          boxShadow: 'none', background: '#10b981', backgroundColor: '#10b981', borderColor: '#10b981',
+                                          color: '#ffffff', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
+                                        }}
                                         onClick={() => handleAuditSinglePage(page.pageUrl)}
+                                        onMouseEnter={(e) => {
+                                          e.currentTarget.style.backgroundColor = '#059669';
+                                          e.currentTarget.style.borderColor = '#059669';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.currentTarget.style.backgroundColor = '#10b981';
+                                          e.currentTarget.style.borderColor = '#10b981';
+                                        }}
                                       >
                                         Audit Page
                                       </button>
