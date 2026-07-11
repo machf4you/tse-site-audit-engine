@@ -8476,217 +8476,191 @@ export default function App() {
                               Internal developer console to pull updates from GitHub and review build/deploy metadata.
                             </p>
 
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: '1rem',
-                            marginTop: '0.5rem'
-                          }}>
-                            {/* Branch */}
-                            <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
-                            }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Branch</span>
-                              <div style={{ fontSize: '1.25rem', fontWeight: 850, color: '#10b981', marginTop: '0.25rem', fontFamily: 'monospace' }}>
-                                {gitStatus.branch}
-                              </div>
+                            {/* Action Buttons Section */}
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                              <button
+                                className="btn-secondary"
+                                disabled={isCheckingUpdates}
+                                onClick={handleCheckUpdates}
+                                style={{
+                                  padding: '12px 24px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  fontSize: '0.95rem',
+                                  fontWeight: 750,
+                                  cursor: isCheckingUpdates ? 'not-allowed' : 'pointer'
+                                }}
+                              >
+                                {isCheckingUpdates ? "Checking..." : "🔄 Check for Updates"}
+                              </button>
+
+                              <button
+                                className="btn-primary"
+                                disabled={isGitPulling || behindCount === null || behindCount === 0}
+                                onClick={handleGitPull}
+                                style={{
+                                  padding: '12px 24px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  fontSize: '0.95rem',
+                                  fontWeight: 750,
+                                  opacity: (isGitPulling || behindCount === null || behindCount === 0) ? 0.5 : 1,
+                                  cursor: (isGitPulling || behindCount === null || behindCount === 0) ? 'not-allowed' : 'pointer'
+                                }}
+                              >
+                                {isGitPulling ? "Deploying..." : "⬇ Deploy Latest Version"}
+                              </button>
+
+                              <button
+                                className="btn-secondary"
+                                onClick={fetchGitStatus}
+                                style={{
+                                  padding: '12px 24px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  fontSize: '0.95rem',
+                                  fontWeight: 750,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                🔄 Refresh Status
+                              </button>
                             </div>
 
-                            {/* Last Pull Time */}
+                            {/* Informational Cards */}
                             <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                              gap: '1rem',
+                              marginTop: '0.5rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
-                                {gitStatus.lastPullStatus === 'success' ? 'Last Successful Pull' : 'Last Pull Attempt'}
-                              </span>
-                              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.45rem' }}>
-                                {gitStatus.lastPullTime ? new Date(gitStatus.lastPullTime).toLocaleString() : 'Never'}
-                              </div>
-                            </div>
-
-                            {/* Status */}
-                            <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
-                            }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Pull Status</span>
-                              <div style={{ fontSize: '1rem', fontWeight: 700, color: gitStatus.lastPullStatus === 'success' ? '#10b981' : (gitStatus.lastPullStatus === 'failure' ? '#ef4444' : 'var(--text-secondary)'), marginTop: '0.45rem', textTransform: 'capitalize' }}>
-                                {gitStatus.lastPullStatus === 'success' ? 'Successful' : (gitStatus.lastPullStatus === 'failure' ? 'Failed' : 'No Status')}
-                              </div>
-                            </div>
-
-                            {/* Update Status Card */}
-                            <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
-                            }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Repository Status</span>
+                              {/* Branch */}
                               <div style={{
-                                fontSize: '1.15rem',
-                                fontWeight: 800,
-                                color: behindCount === 0 ? '#10b981' : (behindCount > 0 ? '#ef4444' : 'var(--text-secondary)'),
-                                marginTop: '0.35rem'
+                                backgroundColor: '#070b13',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                padding: '1.25rem'
                               }}>
-                                {behindCount === null ? "Not Checked" : (behindCount === 0 ? "Up to date" : (behindCount === 1 ? "1 update available" : `${behindCount} updates available`))}
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Branch</span>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 850, color: '#10b981', marginTop: '0.25rem', fontFamily: 'monospace' }}>
+                                  {gitStatus.branch}
+                                </div>
                               </div>
-                            </div>
-                          </div>
 
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-                            gap: '1.25rem',
-                            marginTop: '0.5rem'
-                          }}>
-                            {/* Previous Commit */}
-                            <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
-                            }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Previous Commit</span>
-                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                                {gitStatus.previousCommit}
+                              {/* Last Pull Time */}
+                              <div style={{
+                                backgroundColor: '#070b13',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                padding: '1.25rem'
+                              }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                  {gitStatus.lastPullStatus === 'success' ? 'Last Successful Pull' : 'Last Pull Attempt'}
+                                </span>
+                                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.45rem' }}>
+                                  {gitStatus.lastPullTime ? new Date(gitStatus.lastPullTime).toLocaleString() : 'Never'}
+                                </div>
                               </div>
-                            </div>
 
-                            {/* Current Commit */}
-                            <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
-                            }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Local Commit</span>
-                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                                {gitStatus.currentCommit}
+                              {/* Status */}
+                              <div style={{
+                                backgroundColor: '#070b13',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                padding: '1.25rem'
+                              }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Pull Status</span>
+                                <div style={{ fontSize: '1rem', fontWeight: 700, color: gitStatus.lastPullStatus === 'success' ? '#10b981' : (gitStatus.lastPullStatus === 'failure' ? '#ef4444' : 'var(--text-secondary)'), marginTop: '0.45rem', textTransform: 'capitalize' }}>
+                                  {gitStatus.lastPullStatus === 'success' ? 'Successful' : (gitStatus.lastPullStatus === 'failure' ? 'Failed' : 'No Status')}
+                                </div>
                               </div>
-                            </div>
-                          </div>
 
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-                            gap: '1.25rem',
-                            marginTop: '0.5rem'
-                          }}>
-                            {/* Latest GitHub Commit */}
-                            <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
-                            }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Latest GitHub Commit</span>
-                              <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                                {latestGithubCommit === 'unknown' ? "Unable to retrieve latest GitHub commit" : latestGithubCommit}
+                              {/* Time Checked */}
+                              <div style={{
+                                backgroundColor: '#070b13',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                padding: '1.25rem'
+                              }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Update Check</span>
+                                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.35rem' }}>
+                                  {timeChecked ? new Date(timeChecked).toLocaleString() : 'Never'}
+                                </div>
                               </div>
                             </div>
 
-                            {/* Time Checked */}
                             <div style={{
-                              backgroundColor: '#070b13',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              padding: '1.25rem'
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                              gap: '1.25rem',
+                              marginTop: '0.5rem'
                             }}>
-                              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Last Update Check</span>
-                              <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '0.35rem' }}>
-                                {timeChecked ? new Date(timeChecked).toLocaleString() : 'Never'}
+                              {/* Current Commit */}
+                              <div style={{
+                                backgroundColor: '#070b13',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                padding: '1.25rem'
+                              }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Current Local Commit</span>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                  {gitStatus.currentCommit}
+                                </div>
+                              </div>
+
+                              {/* Latest GitHub Commit */}
+                              <div style={{
+                                backgroundColor: '#070b13',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                padding: '1.25rem'
+                              }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Latest GitHub Commit</span>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                  {latestGithubCommit === 'unknown' ? "Unable to retrieve latest GitHub commit" : latestGithubCommit}
+                                </div>
+                              </div>
+
+                              {/* Previous Commit */}
+                              <div style={{
+                                backgroundColor: '#070b13',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                padding: '1.25rem'
+                              }}>
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>Previous Commit</span>
+                                <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)', marginTop: '0.35rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                  {gitStatus.previousCommit}
+                                </div>
                               </div>
                             </div>
-                          </div>
 
-                          {/* Alert banner if updates available */}
-                          {behindCount > 0 && (
-                            <div style={{
-                              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                              border: '1px solid #10b981',
-                              borderRadius: '8px',
-                              padding: '1rem',
-                              color: '#10b981',
-                              fontSize: '0.9rem',
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '8px'
-                            }}>
-                              <span>📢</span> Updates are available. You can now safely pull the latest version.
+                            {/* Scrolling Log Window */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+                              <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Deployment Log / Build Output</span>
+                              <pre style={{
+                                margin: 0,
+                                padding: '1.25rem',
+                                backgroundColor: '#030508',
+                                border: '1px solid rgba(255, 255, 255, 0.06)',
+                                borderRadius: '8px',
+                                color: '#cbd5e1',
+                                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                fontSize: '0.85rem',
+                                lineHeight: 1.5,
+                                maxHeight: '300px',
+                                overflowY: 'auto',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-all'
+                              }}>
+                                {gitPullLogs || "No logs available. Check for updates or click 'Deploy Latest Version' to run."}
+                              </pre>
                             </div>
-                          )}
-
-                          {/* Action Buttons Section */}
-                          <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                            <button
-                              className="btn-secondary"
-                              disabled={isCheckingUpdates}
-                              onClick={handleCheckUpdates}
-                              style={{
-                                padding: '12px 24px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '0.95rem',
-                                fontWeight: 750,
-                                cursor: isCheckingUpdates ? 'not-allowed' : 'pointer'
-                              }}
-                            >
-                              {isCheckingUpdates ? "Checking..." : "🔄 Check for Updates"}
-                            </button>
-
-                            <button
-                              className="btn-primary"
-                              disabled={isGitPulling || behindCount === null || behindCount === 0}
-                              onClick={handleGitPull}
-                              style={{
-                                padding: '12px 24px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                fontSize: '0.95rem',
-                                fontWeight: 750,
-                                opacity: (isGitPulling || behindCount === null || behindCount === 0) ? 0.5 : 1,
-                                cursor: (isGitPulling || behindCount === null || behindCount === 0) ? 'not-allowed' : 'pointer'
-                              }}
-                            >
-                              {isGitPulling ? "Deploying..." : "⬇ Deploy Latest Version"}
-                            </button>
                           </div>
-
-                          {/* Scrolling Log Window */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
-                            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Deployment Log</span>
-                            <pre style={{
-                              margin: 0,
-                              padding: '1.25rem',
-                              backgroundColor: '#030508',
-                              border: '1px solid rgba(255, 255, 255, 0.06)',
-                              borderRadius: '8px',
-                              color: '#cbd5e1',
-                              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                              fontSize: '0.85rem',
-                              lineHeight: 1.5,
-                              maxHeight: '300px',
-                              overflowY: 'auto',
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-all'
-                            }}>
-                              {gitPullLogs || "No logs available. Check for updates or click 'Deploy Latest Version' to run."}
-                            </pre>
-                          </div>
-                        </div>
-                      )})()}
+                        )})()}
 
                       {/* Coming Soon placeholders for other settings sub-pages */}
                       {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && (
