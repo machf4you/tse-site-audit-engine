@@ -6398,7 +6398,7 @@ export default function App() {
                     onMouseEnter={() => setIsBackHovered(true)}
                     onMouseLeave={() => setIsBackHovered(false)}
                   >
-                    ← Back to Website Dashboard
+                    ← Back to W2 – Website Dashboard
                   </button>
                 </div>
 
@@ -6457,9 +6457,6 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-
-                {/* Stepper */}
-                <WorkflowStepper currentView={currentView} />
 
                 {/* Table section */}
                 <div style={{ marginTop: '2rem' }}>
