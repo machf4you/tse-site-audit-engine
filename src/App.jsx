@@ -3200,7 +3200,7 @@ export default function App() {
     );
   };
 
-  const renderManagementCard = ({ title, subtitle, items, badge, accentColor, IconComponent, onClick }) => {
+  const renderManagementCard = ({ title, subtitle, items, badge, accentColor, IconComponent, onClick, buttonText = "Open Module" }) => {
     return (
       <div 
         onClick={onClick}
@@ -3316,7 +3316,7 @@ export default function App() {
             onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
             onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
           >
-            Open Module
+            {buttonText}
             <ChevronRight size={14} />
           </button>
           <span style={{ 
@@ -6151,7 +6151,8 @@ export default function App() {
                     badge: "W3 | Page Management",
                     accentColor: "#10b981",
                     IconComponent: FileText,
-                    onClick: () => setCurrentView("WEBSITES_PAGE_MGMT")
+                    onClick: () => setCurrentView("WEBSITES_PAGE_MGMT"),
+                    buttonText: "Manage Pages"
                   })}
 
                   {renderManagementCard({
@@ -6169,7 +6170,8 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("INTERNAL_LINKING");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    }
+                    },
+                    buttonText: "Review Links"
                   })}
 
                   {renderManagementCard({
@@ -6187,7 +6189,8 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("SITE_ANALYSIS");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    }
+                    },
+                    buttonText: "Open Analysis"
                   })}
 
                   {renderManagementCard({
@@ -6205,7 +6208,8 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("WEBSITE_SETTINGS");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    }
+                    },
+                    buttonText: "Website Settings"
                   })}
                 </div>
               </div>
@@ -6213,7 +6217,7 @@ export default function App() {
               {/* Overview & Activity Section */}
               <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.5rem 0', letterSpacing: '0.03em' }}>
-                  OVERVIEW & ACTIVITY
+                  WEBSITE INTELLIGENCE
                 </h3>
                 <div style={{
                   display: 'grid',
@@ -6337,12 +6341,12 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Card 4: Crawl Status */}
+                  {/* Card 4: Website Status */}
                   <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '180px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>
                         <Server size={16} style={{ color: '#10b981' }} />
-                        Crawl Status
+                        Website Status
                       </div>
                       <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer' }}>View Details</span>
                     </div>
