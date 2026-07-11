@@ -7243,7 +7243,7 @@ export default function App() {
                               }}
                             >
                               <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                {row.item}
+                                {row.item === "Title Tag" ? "Meta Title" : row.item}
                               </td>
                               <td style={{ padding: '16px 20px', color: '#cbd5e1', wordBreak: 'break-word', fontFamily: (row.item === 'H1' || row.item === 'Title Tag') ? 'monospace' : 'inherit' }}>
                                 {row.current}
@@ -7325,7 +7325,7 @@ export default function App() {
                             >
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', textAlign: 'left' }}>
                                 <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>
-                                  Issue {idx + 1}: {failItem.item}
+                                  Issue {idx + 1}: {failItem.item === "Title Tag" ? "Meta Title" : failItem.item}
                                 </span>
                                 <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
                                   {failItem.action}
@@ -7361,7 +7361,7 @@ export default function App() {
                                       successCheck: "Page Auditor will verify automatically.",
                                       createdDate: new Date().toISOString().split('T')[0],
                                       completedDate: null,
-                                      taskTitle: `Missing/Optimizable ${failItem.item}`,
+                                      taskTitle: `Missing/Optimizable ${failItem.item === "Title Tag" ? "Meta Title" : failItem.item}`,
                                       currentVersion: "Standard",
                                       requiredVersion: "Optimized",
                                       whyItMatters: "General on-page SEO improvement."
