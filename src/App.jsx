@@ -637,7 +637,7 @@ const INITIAL_SITES = [
     id: "bathroom-upgrades",
     name: "Bathroom Upgrades",
     url: BU_URL,
-    status: "Connected",
+    status: "Setup Required",
     lastAudit: isAutomationViewTemp ? "16 May 2026" : null,
     tasks: initialBUData.tasks
   },
@@ -645,7 +645,7 @@ const INITIAL_SITES = [
     id: "the-search-equation",
     name: "The Search Equation",
     url: exporterData["the-search-equation"].site_url,
-    status: "Connected",
+    status: "Setup Required",
     lastAudit: null,
     tasks: []
   }
@@ -1116,14 +1116,17 @@ export default function App() {
         setW6ConnectionStatus("success");
         setW6ConnectionMessage("✅ Connection Successful");
         showNotification("WordPress connection verified successfully!");
+        setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Connected" } : s));
       } else if (response.status === 401 || response.status === 403) {
         setW6ConnectionStatus("failed");
         setW6ConnectionMessage("❌ Connection Failed: Invalid credentials or insufficient permissions.");
         showNotification("Connection Failed: Invalid credentials.");
+        setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Disconnected" } : s));
       } else {
         setW6ConnectionStatus("failed");
         setW6ConnectionMessage(`❌ Connection Failed: Received status code ${response.status}.`);
         showNotification(`Connection Failed: Status ${response.status}`);
+        setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Disconnected" } : s));
       }
     })
     .catch(err => {
@@ -1131,6 +1134,7 @@ export default function App() {
       setW6ConnectionStatus("failed");
       setW6ConnectionMessage("❌ Connection Failed: Network error or CORS block.");
       showNotification("Connection Failed: Network error.");
+      setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Disconnected" } : s));
     });
   };
 ;
