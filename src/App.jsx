@@ -725,8 +725,38 @@ const getComparisonContent = (task, pageObj) => {
   const targetPhrase = task.targetPhrase || pageObj?.targetPhrase || "keyword";
   const capitalizedTarget = targetPhrase.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
+  // Try to find direct audited value from latest audit results if available
+  let auditedCurrent = "";
+  if (pageObj?.latestAudit?.results) {
+    let auditItemName = "";
+    if (issue.toLowerCase().includes("title tag") || issue.toLowerCase().includes("meta title")) {
+      auditItemName = "Title Tag";
+    } else if (issue.toLowerCase().includes("meta description")) {
+      auditItemName = "Meta Description";
+    } else if (issue.toLowerCase().includes("h1")) {
+      auditItemName = "H1";
+    } else if (issue.toLowerCase().includes("h2 count")) {
+      auditItemName = "H2 Count";
+    } else if (issue.toLowerCase().includes("word count")) {
+      auditItemName = "Word Count";
+    } else if (issue.toLowerCase().includes("internal link count")) {
+      auditItemName = "Internal Link Count";
+    } else if (issue.toLowerCase().includes("image count")) {
+      auditItemName = "Image Count";
+    } else if (issue.toLowerCase().includes("images missing alt text")) {
+      auditItemName = "Images Missing Alt Text";
+    }
+
+    if (auditItemName) {
+      const match = pageObj.latestAudit.results.find(r => r.item === auditItemName);
+      if (match) {
+        auditedCurrent = match.current;
+      }
+    }
+  }
+
   if (issue.toLowerCase().includes("title tag") || issue.toLowerCase().includes("meta title")) {
-    const current = pageObj?.crawlData?.title || pageObj?.pageTitle || "";
+    const current = auditedCurrent || pageObj?.pageTitle || pageObj?.crawlData?.title || "";
     const required = current 
       ? (current.toLowerCase().includes(targetPhrase.toLowerCase()) 
           ? current 
@@ -736,7 +766,7 @@ const getComparisonContent = (task, pageObj) => {
   }
   
   if (issue.toLowerCase().includes("meta description")) {
-    const current = pageObj?.crawlData?.metaDescription || pageObj?.crawlData?.description || "";
+    const current = auditedCurrent || pageObj?.crawlData?.metaDescription || pageObj?.crawlData?.description || "";
     const required = `Looking for professional ${targetPhrase} in South East London? We provide high-quality, reliable solutions tailored to your needs. Get your free quote today!`;
     return { current: current || "No meta description found.", required };
   }
@@ -8036,13 +8066,6 @@ export default function App() {
                         <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{activeTask.taskTitle}</span>
                       </div>
 
-                      <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
-                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>Required Version</span>
-                        <pre style={{ fontFamily: 'monospace', fontSize: '0.85rem', whiteSpace: 'pre-wrap', color: '#cbd5e1', margin: 0 }}>
-                          {activeTask.requiredVersion}
-                        </pre>
-                      </div>
-
                       <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.01)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                         <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>Why it matters</span>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
@@ -8082,7 +8105,7 @@ export default function App() {
                             {/* 2. Recommended Value */}
                             <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)', textAlign: 'left', marginBottom: '1.25rem' }}>
                               <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
-                                Recommended Value
+                                Recommended {activeTask.taskTitle.toLowerCase().includes("meta description") ? "Meta Description" : "Meta Title"}
                               </span>
                               <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#34d399', wordBreak: 'break-all', fontWeight: 600 }}>
                                 {activeTask.requiredVersion || "Not generated"}
