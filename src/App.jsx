@@ -1283,6 +1283,82 @@ export default function App() {
     }
   };
 
+  const starterPackUrls = [
+    "https://www.crunchbase.com/",
+    "https://www.openstreetmap.org/",
+    "https://www.geonames.org/",
+    "https://www.wikidata.org/",
+    "https://www.apsense.com/",
+    "https://www.freeindex.co.uk/",
+    "https://writeupcafe.com/",
+    "https://www.yell.com/",
+    "https://www.lacartes.com/",
+    "https://www.thomsonlocal.com/",
+    "https://sites.google.com/",
+    "https://medium.com/",
+    "https://www.openpr.com/",
+    "https://www.prlog.org/",
+    "https://seeklogo.com/",
+    "https://www.storeboard.com/",
+    "https://www.brownbook.net/",
+    "https://realtytimes.com/",
+    "https://www.linkcentre.com/",
+    "https://www.bedesworld.co.uk/"
+  ];
+
+  const getStarterPackLinkName = (url) => {
+    try {
+      let hostname = new URL(url).hostname;
+      hostname = hostname.replace("www.", "");
+      let parts = hostname.split('.');
+      let name = parts[0];
+      if (name === "sites" && parts[1] === "google") {
+        return "Google Sites";
+      }
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch (e) {
+      return "Starter Link";
+    }
+  };
+
+  const handleImportStarterPack = () => {
+    setSites(prevSites => prevSites.map(s => {
+      if (s.id === selectedSiteId) {
+        const currentLinks = s.externalLinks || [];
+        const existingUrls = new Set(currentLinks.map(l => l.sourceUrl.toLowerCase().replace(/\/+$/, "")));
+        
+        const newLinksToAdd = [];
+        starterPackUrls.forEach(url => {
+          const normalizedUrl = url.toLowerCase().replace(/\/+$/, "");
+          if (!existingUrls.has(normalizedUrl)) {
+            newLinksToAdd.push({
+              id: `ext-lnk-starter-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+              linkName: getStarterPackLinkName(url),
+              sourceUrl: url,
+              targetUrl: "",
+              linkType: "Starter Pack",
+              status: "Pending",
+              indexed: "Unknown",
+              dateAdded: "",
+              lastChecked: "",
+              notes: ""
+            });
+          }
+        });
+
+        if (newLinksToAdd.length === 0) {
+          showNotification("Starter pack already imported or all links exist.");
+          return s;
+        }
+
+        const updatedLinks = [...currentLinks, ...newLinksToAdd];
+        showNotification(`Imported ${newLinksToAdd.length} starter backlink(s)!`);
+        return { ...s, externalLinks: updatedLinks };
+      }
+      return s;
+    }));
+  };
+
   const handleDeleteWebsite = () => {
     if (!editingSiteId) return;
     const site = sites.find(s => s.id === editingSiteId);
@@ -6770,25 +6846,34 @@ export default function App() {
                                   <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                                     External Links Manager
                                   </h3>
-                                  <button
-                                    className="btn-primary"
-                                    onClick={() => {
-                                      setEditingExternalLinkId(null);
-                                      setExtLinkName("");
-                                      setExtSourceUrl("");
-                                      setExtTargetUrl("");
-                                      setExtLinkType("Backlink");
-                                      setExtStatus("Pending");
-                                      setExtIndexed("Unknown");
-                                      setExtDateAdded(new Date().toISOString().split('T')[0]);
-                                      setExtLastChecked("Never");
-                                      setExtNotes("");
-                                      setIsExternalLinkModalOpen(true);
-                                    }}
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
-                                  >
-                                    + Add External Link
-                                  </button>
+                                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button
+                                      className="btn-secondary"
+                                      onClick={handleImportStarterPack}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
+                                    >
+                                      📥 Import Starter Pack
+                                    </button>
+                                    <button
+                                      className="btn-primary"
+                                      onClick={() => {
+                                        setEditingExternalLinkId(null);
+                                        setExtLinkName("");
+                                        setExtSourceUrl("");
+                                        setExtTargetUrl("");
+                                        setExtLinkType("Backlink");
+                                        setExtStatus("Pending");
+                                        setExtIndexed("Unknown");
+                                        setExtDateAdded(new Date().toISOString().split('T')[0]);
+                                        setExtLastChecked("Never");
+                                        setExtNotes("");
+                                        setIsExternalLinkModalOpen(true);
+                                      }}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
+                                    >
+                                      + Add External Link
+                                    </button>
+                                  </div>
                                 </div>
 
                                 {/* External Links Table */}
