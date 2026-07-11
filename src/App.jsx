@@ -3971,7 +3971,7 @@ export default function App() {
                         const totalPages = sitePages.length;
                         const configuredPages = sitePages.filter(p => p.status === "Configured").length;
                         const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
-                        const displayTitle = site.id === "bathroom-upgrades" ? "bathroomupgrades.co.uk" : site.name;
+                        const displayTitle = site.name;
                         
                         return (
                           <div 
