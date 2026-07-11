@@ -3833,7 +3833,7 @@ export default function App() {
             Websites
           </button>
           
-          <button 
+                    <button 
             onClick={() => {
               setSelectedSiteId(null);
               setCurrentView("SETTINGS");
@@ -3846,7 +3846,7 @@ export default function App() {
               padding: '8px 4px', transition: 'all 0.2s ease', outline: 'none'
             }}
           >
-            Settings
+            Global Settings
           </button>
         </div>
         {/* User profile removed */}
