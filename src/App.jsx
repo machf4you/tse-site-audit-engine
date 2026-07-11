@@ -6205,10 +6205,7 @@ export default function App() {
                     badge: "W6 | Website Settings",
                     accentColor: "#f59e0b",
                     IconComponent: Sliders,
-                    onClick: () => {
-                      setComingSoonModule("WEBSITE_SETTINGS");
-                      setCurrentView("WEBSITES_COMING_SOON");
-                    },
+                    onClick: () => setCurrentView("SETTINGS"),
                     buttonText: "Open Settings"
                   })}
                 </div>
