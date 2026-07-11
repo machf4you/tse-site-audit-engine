@@ -6364,6 +6364,8 @@ export default function App() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
           {/* STAGE 3: W3 PAGE MANAGEMENT (Moved from W2) */}
           {currentView === "WEBSITES_PAGE_MGMT" && selectedSiteId && (() => {
             const sitePages = sortPagesForSEO(pagesData[selectedSiteId] || []);
@@ -6714,10 +6716,6 @@ export default function App() {
               </div>
             );
           })()}
-
-
-            </div>
-          )}
 
           {/* STAGE 2: AUDIT CONFIGURATION */}
           {currentView === "AUDIT_CONFIG" && selectedSiteId && (() => {
