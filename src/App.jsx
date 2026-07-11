@@ -725,7 +725,7 @@ const getComparisonContent = (task, pageObj) => {
   const targetPhrase = task.targetPhrase || pageObj?.targetPhrase || "keyword";
   const capitalizedTarget = targetPhrase.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-  if (issue.toLowerCase().includes("title tag")) {
+  if (issue.toLowerCase().includes("title tag") || issue.toLowerCase().includes("meta title")) {
     const current = pageObj?.crawlData?.title || pageObj?.pageTitle || "";
     const required = current 
       ? (current.toLowerCase().includes(targetPhrase.toLowerCase()) 
@@ -2610,6 +2610,16 @@ export default function App() {
     if (!existingTask) {
       // Create on the fly
       const nextTaskId = `t-${site.id}-dyn-${Date.now()}`;
+      const sitePages = pagesData[site.id] || [];
+      const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+
+      // Generate a temporary task to evaluate the correct recommendation
+      const tempTask = {
+        taskTitle: `Missing/Optimizable ${failItem.item === "Title Tag" ? "Meta Title" : failItem.item}`,
+        targetPhrase: targetPhrase || "None"
+      };
+      const { required } = getComparisonContent(tempTask, pageObj);
+
       const newTask = {
         id: nextTaskId,
         taskId: nextTaskId,
@@ -2634,7 +2644,7 @@ export default function App() {
         completedDate: null,
         taskTitle: `Missing/Optimizable ${failItem.item === "Title Tag" ? "Meta Title" : failItem.item}`,
         currentVersion: failItem.current || "Standard",
-        requiredVersion: failItem.action || "Optimized",
+        requiredVersion: required || failItem.action || "Optimized",
         whyItMatters: "General on-page SEO improvement."
       };
 
@@ -2642,11 +2652,6 @@ export default function App() {
       setSites(prev => prev.map(s => s.id === site.id ? { ...s, tasks: updatedTasks } : s));
 
       setSelectedTaskId(nextTaskId);
-      
-      const sitePages = pagesData[site.id] || [];
-      const pageObj = sitePages.find(p => p.pageUrl === relUrl);
-      const { required } = getComparisonContent(newTask, pageObj);
-
       setEditingContent(required || failItem.action || "");
       setVerificationStatus("idle");
       setVerificationError("");
@@ -8056,28 +8061,97 @@ export default function App() {
 
                   {/* Right Column: Simulated WordPress Text Editor */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h3 className="section-title-custom" style={{ fontSize: '1.05rem' }}>Simulated WordPress Field</h3>
-                      {verificationStatus !== "success" && verificationStatus !== "loading" && (
-                        <button className="btn-secondary btn-sm" onClick={handleApplySuggestion}>
-                          Paste Required Text
-                        </button>
-                      )}
-                    </div>
+                    {(() => {
+                      const isMetaTask = activeTask.taskTitle.toLowerCase().includes("meta title") || 
+                                         activeTask.taskTitle.toLowerCase().includes("meta description") ||
+                                         activeTask.taskTitle.toLowerCase().includes("title tag");
 
-                    <textarea 
-                      value={editingContent}
-                      onChange={(e) => setEditingContent(e.target.value)}
-                      disabled={verificationStatus === "loading" || verificationStatus === "success"}
-                      rows={6}
-                      style={{ 
-                        width: '100%',
-                        backgroundColor: '#07090b', padding: '1rem', borderRadius: '8px', 
-                        fontFamily: 'monospace', fontSize: '0.9rem', color: '#f3f4f6',
-                        border: '1px solid var(--border-color)', resize: 'vertical',
-                        lineHeight: 1.4
-                      }}
-                    />
+                      if (isMetaTask) {
+                        return (
+                          <div>
+                            {/* 1. Current Value */}
+                            <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'left', marginBottom: '1.25rem' }}>
+                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
+                                Current {activeTask.taskTitle.toLowerCase().includes("meta description") ? "Meta Description" : "Meta Title"}
+                              </span>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#cbd5e1', wordBreak: 'break-all' }}>
+                                {activeTask.currentVersion || "Not found"}
+                              </div>
+                            </div>
+
+                            {/* 2. Recommended Value */}
+                            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)', textAlign: 'left', marginBottom: '1.25rem' }}>
+                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
+                                Recommended Value
+                              </span>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#34d399', wordBreak: 'break-all', fontWeight: 600 }}>
+                                {activeTask.requiredVersion || "Not generated"}
+                              </div>
+                            </div>
+
+                            {/* 3. Editable WordPress Field */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                Editable WordPress Field
+                              </span>
+                              {verificationStatus !== "success" && verificationStatus !== "loading" && (
+                                <button 
+                                  className="btn-secondary btn-sm" 
+                                  onClick={() => setEditingContent(activeTask.requiredVersion || "")}
+                                  style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                                >
+                                  Reset to Recommended
+                                </button>
+                              )}
+                            </div>
+                            <textarea 
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              disabled={verificationStatus === "loading" || verificationStatus === "success"}
+                              rows={activeTask.taskTitle.toLowerCase().includes("meta description") ? 4 : 2}
+                              style={{ 
+                                width: '100%',
+                                backgroundColor: '#07090b', padding: '1rem', borderRadius: '8px', 
+                                fontFamily: 'monospace', fontSize: '0.9rem', color: '#f3f4f6',
+                                border: '1px solid var(--border-color)', resize: 'vertical',
+                                lineHeight: 1.4, marginBottom: '1rem'
+                              }}
+                            />
+                          </div>
+                        );
+                      }
+
+                      // Default (non-meta) layout
+                      return (
+                        <>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 className="section-title-custom" style={{ fontSize: '1.05rem' }}>Simulated WordPress Field</h3>
+                            {verificationStatus !== "success" && verificationStatus !== "loading" && (
+                              <button className="btn-secondary btn-sm" onClick={handleApplySuggestion}>
+                                Paste Required Text
+                              </button>
+                            )}
+                          </div>
+
+                          <textarea 
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            disabled={verificationStatus === "loading" || verificationStatus === "success"}
+                            rows={6}
+                            style={{ 
+                              width: '100%',
+                              backgroundColor: '#07090b', padding: '1rem', borderRadius: '8px', 
+                              fontFamily: 'monospace', fontSize: '0.9rem', color: '#f3f4f6',
+                              border: '1px solid var(--border-color)', resize: 'vertical',
+                              lineHeight: 1.4
+                            }}
+                          />
+                        </>
+                      );
+                    })()}
+
+                    {/* Verification and Alerts below textareas */}
+                    {/* (This makes sure the original alerts block matches up) */}
 
                     {verificationStatus === "loading" && (
                       <div className="text-center mt-4">
