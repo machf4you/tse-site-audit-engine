@@ -7812,16 +7812,44 @@ export default function App() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                           <div>
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Website URL</span>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSite?.url}</span>
+                            <span 
+                              title={selectedSite?.url}
+                              style={{ 
+                                fontSize: '0.95rem', 
+                                fontWeight: 600, 
+                                color: 'var(--text-primary)',
+                                textOverflow: 'ellipsis',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                maxWidth: '100%'
+                              }}
+                            >
+                              {selectedSite?.url}
+                            </span>
                           </div>
                           
                           <div>
                             <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>API URL</span>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSite?.url}/wp-json/</span>
+                            <span 
+                              title={`${selectedSite?.url}/wp-json/`}
+                              style={{ 
+                                fontSize: '0.95rem', 
+                                fontWeight: 600, 
+                                color: 'var(--text-primary)',
+                                textOverflow: 'ellipsis',
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                display: 'block',
+                                maxWidth: '100%'
+                              }}
+                            >
+                              {selectedSite?.url}/wp-json/
+                            </span>
                           </div>
 
                           <div>
-                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>API Key Status</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Credentials Status</span>
                             <span style={{
                               fontSize: '0.85rem',
                               fontWeight: 700,
