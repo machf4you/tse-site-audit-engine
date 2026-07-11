@@ -798,7 +798,15 @@ export default function App() {
     const saved = typeof window !== 'undefined' ? localStorage.getItem("tse_sites_data") : null;
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map(s => {
+            if (!s.credentials?.username || !s.credentials?.password) {
+              return { ...s, status: "Setup Required" };
+            }
+            return s;
+          });
+        }
       } catch (e) {
         console.error("Failed to parse saved sites data:", e);
       }
@@ -3923,8 +3931,7 @@ export default function App() {
                             >
                               {site.url} <ExternalLink size={12} />
                             </a>
-
-                            {/* Website Health Status (Operational Readiness) */}
+                {/* Website Health Status (Operational Readiness) */}
                             <div className="site-health-status" style={{ marginTop: '1.25rem', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '12px', backgroundColor: 'rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                               <div style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '8px', marginBottom: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span>STATUS</span>
@@ -3938,18 +3945,18 @@ export default function App() {
                                   padding: '3px 8px',
                                   borderRadius: '4px',
                                   fontSize: '0.75rem',
-                                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                                  color: '#34d399',
-                                  border: '1px solid rgba(16, 185, 129, 0.15)'
+                                  backgroundColor: (site.status === "Connected" && site.credentials?.username) ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                                  color: (site.status === "Connected" && site.credentials?.username) ? '#34d399' : '#fbbf24',
+                                  border: (site.status === "Connected" && site.credentials?.username) ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(245, 158, 11, 0.15)'
                                 }}>
-                                  Connected
+                                  {(site.status === "Connected" && site.credentials?.username) ? "Connected" : "Setup Required"}
                                 </span>
                               </div>
 
                               {/* WordPress API */}
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
                                 <span style={{ color: 'var(--text-secondary)' }}>WordPress API</span>
-                                {site.status === "Connected" ? (
+                                {(site.status === "Connected" && site.credentials?.username) ? (
                                   <span style={{
                                     fontWeight: 700,
                                     padding: '3px 8px',
