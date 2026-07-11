@@ -6080,7 +6080,7 @@ export default function App() {
                             };
 
                             const linkResults = configuredPagesList.map(page => {
-                              const audit = runPageAudit(page.pageUrl, page.targetPhrase, page.pageTitle, site.id, page);
+                              const audit = runPageAudit(page.pageUrl, page.targetPhrase, page.pageTitle, selectedSiteId, page);
                               const linkCheck = audit.find(r => r.item === "Internal Link Count") || {
                                 status: "Fail",
                                 action: "No crawl data available.",
