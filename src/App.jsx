@@ -9143,7 +9143,7 @@ export default function App() {
                       />
                     </div>
 
-                    {/* Connection Status */}
+                                        {/* Connection Status */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Connection Status</label>
                       <div style={{
@@ -9156,11 +9156,17 @@ export default function App() {
                           width: '8px',
                           height: '8px',
                           borderRadius: '50%',
-                          backgroundColor: (sites.find(s => s.id === editingSiteId)?.status === "Connected") ? '#10b981' : '#fbbf24',
+                          backgroundColor: (() => {
+                            const site = sites.find(s => s.id === editingSiteId);
+                            return (site?.status === "Connected" && site?.credentials?.username) ? '#10b981' : '#fbbf24';
+                          })(),
                           display: 'inline-block',
                           marginRight: '8px'
                         }}></span>
-                        {(sites.find(s => s.id === editingSiteId)?.status === "Connected") ? "Connected" : "Setup Required"}
+                        {(() => {
+                          const site = sites.find(s => s.id === editingSiteId);
+                          return (site?.status === "Connected" && site?.credentials?.username) ? "Connected" : "Setup Required";
+                        })()}
                       </div>
                     </div>
                   </div>
