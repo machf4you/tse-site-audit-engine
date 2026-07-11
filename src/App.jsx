@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
-  ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, ChevronDown, Globe, FileText,
+  ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, ChevronDown, Globe, FileText, Link, Clock, Brain,
   Lock, AlertTriangle, Sliders, Database,
   Home, MessageSquare, Download, Search, Network, Megaphone, Bell, HelpCircle, Activity, Plus, Rocket, Code, Calendar, LayoutGrid, List, LogOut
 } from 'lucide-react';
@@ -663,7 +663,7 @@ const INITIAL_PAGES_DATA = {
 const WorkflowStepper = ({ currentView }) => {
   const steps = [
     { label: "Connected Website", views: ["CONNECTED_SITES"] },
-    { label: "Website Management", views: ["WEBSITES_CONFIG", "AUDIT_CONFIG"] },
+    { label: "Website Management", views: ["WEBSITES_CONFIG", "WEBSITES_PAGE_MGMT", "WEBSITES_COMING_SOON", "AUDIT_CONFIG"] },
     { label: "Audit", views: ["AUDIT_RUNNING", "AUDIT_RESULTS"] },
     { label: "Work Actions", views: ["TASK_FOCUS", "EDIT"] }
   ];
@@ -842,6 +842,7 @@ export default function App() {
   const [inputParentPage, setInputParentPage] = useState("");
   const [modalMode, setModalMode] = useState("edit"); // edit, add
   const [currentFilter, setCurrentFilter] = useState("all"); // all, configured, unconfigured, planned
+  const [comingSoonModule, setComingSoonModule] = useState("");
   const [selectedPageUrl, setSelectedPageUrl] = useState(null);
   const [reviewPageUrl, setReviewPageUrl] = useState("");
   
@@ -3199,6 +3200,141 @@ export default function App() {
     );
   };
 
+  const renderManagementCard = ({ title, subtitle, items, badge, accentColor, IconComponent, onClick }) => {
+    return (
+      <div 
+        onClick={onClick}
+        style={{
+          backgroundColor: '#0c101b',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: '12px',
+          padding: '2rem',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '380px',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          cursor: 'pointer',
+          textAlign: 'left'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = 'translateY(-4px)';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+          e.currentTarget.style.boxShadow = `0 12px 24px -8px ${accentColor}25, 0 4px 20px rgba(0,0,0,0.2)`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = 'none';
+          e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.05)';
+          e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.15)';
+        }}
+      >
+        <div>
+          {/* Card Icon & Title Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '1.25rem' }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              backgroundColor: `${accentColor}10`,
+              border: `1px solid ${accentColor}25`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: accentColor,
+              flexShrink: 0
+            }}>
+              <IconComponent size={20} />
+            </div>
+            <h3 style={{
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              color: 'var(--text-primary)',
+              margin: 0
+            }}>
+              {title}
+            </h3>
+          </div>
+
+          {/* Description */}
+          <p style={{
+            fontSize: '0.85rem',
+            color: 'var(--text-secondary)',
+            lineHeight: 1.5,
+            margin: '0 0 1.5rem 0'
+          }}>
+            {subtitle}
+          </p>
+
+          {/* Checklist Items */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '2rem' }}>
+            {items.map((item, index) => (
+              <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '16px',
+                  height: '16px',
+                  borderRadius: '50%',
+                  backgroundColor: `${accentColor}12`,
+                  border: `1px solid ${accentColor}30`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: accentColor,
+                  flexShrink: 0
+                }}>
+                  <Check size={10} strokeWidth={3} />
+                </div>
+                <span style={{ fontSize: '0.825rem', color: 'var(--text-primary)', fontWeight: 500 }}>
+                  {item}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer elements */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'auto' }}>
+          <button
+            style={{
+              width: '100%',
+              backgroundColor: accentColor,
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 16px',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease',
+              outline: 'none'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
+          >
+            Open Module
+            <ChevronRight size={14} />
+          </button>
+          <span style={{ 
+            fontSize: '0.7rem', 
+            fontWeight: 800, 
+            color: accentColor, 
+            letterSpacing: '0.05em', 
+            textTransform: 'uppercase',
+            textAlign: 'center',
+            marginTop: '4px'
+          }}>
+            {badge}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   const renderPlatformLayout = (activeMenu, contentJSX) => {
     return (
       <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#07090e', color: 'var(--text-primary)', width: '100vw' }}>
@@ -3451,7 +3587,16 @@ export default function App() {
         <div className="hub-navigation" style={{ display: 'flex', gap: '24px', marginLeft: '80px', marginRight: 'auto' }}>
           <button 
             onClick={() => {
-              if (currentView === "SETTINGS" || currentView === "SITE_ANALYSIS") {
+              if (
+                currentView === "SETTINGS" || 
+                currentView === "SITE_ANALYSIS" || 
+                currentView === "WEBSITES_CONFIG" || 
+                currentView === "WEBSITES_PAGE_MGMT" || 
+                currentView === "WEBSITES_COMING_SOON" ||
+                currentView === "AUDIT_CONFIG" ||
+                currentView === "AUDIT_RUNNING" ||
+                currentView === "AUDIT_RESULTS"
+              ) {
                 setCurrentView("CONNECTED_SITES");
               }
             }} 
@@ -5986,151 +6131,589 @@ export default function App() {
                 );
               })()}
 
-              {/* Table section */}
-              <div>
+              {/* Management Modules Grid */}
+              <div style={{ textAlign: 'left', marginBottom: '2.5rem' }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                  gap: '1.5rem',
+                  marginBottom: '2.5rem'
+                }}>
+                  {renderManagementCard({
+                    title: "Page Management",
+                    subtitle: "Configure pages, targets, priorities and page settings.",
+                    items: [
+                      "Set target keywords and priorities",
+                      "Manage page configuration",
+                      "Include / exclude pages",
+                      "Bulk actions and exports"
+                    ],
+                    badge: "W3 | Page Management",
+                    accentColor: "#10b981",
+                    IconComponent: FileText,
+                    onClick: () => setCurrentView("WEBSITES_PAGE_MGMT")
+                  })}
 
+                  {renderManagementCard({
+                    title: "Internal Linking",
+                    subtitle: "Review internal linking, orphan pages and AI recommendations.",
+                    items: [
+                      "Internal link analysis",
+                      "Orphan and weak pages",
+                      "AI link recommendations",
+                      "Link opportunities report"
+                    ],
+                    badge: "W4 | Internal Linking",
+                    accentColor: "#8b5cf6",
+                    IconComponent: Link,
+                    onClick: () => {
+                      setComingSoonModule("INTERNAL_LINKING");
+                      setCurrentView("WEBSITES_COMING_SOON");
+                    }
+                  })}
 
-                <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--surface-color)', backdropFilter: 'blur(12px)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)' }}>
-                  <table className="audit-config-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}>Page</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}>Type</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '100px' }}>Priority</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}>Target</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}>Status</th>
-                        <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const sortedPages = sortPagesForSEO(pagesData[selectedSiteId] || []);
-                        console.log("[DIAGNOSTIC] sortedPages immediately before rendering in W2:", sortedPages);
-                        const filteredPages = sortedPages.filter(page => {
-                          const isExcluded = isPageExcluded(page);
-                          if (currentFilter === "all") return !isExcluded;
-                          if (currentFilter === "configured") return page.status === "Configured" && !isExcluded;
-                          if (currentFilter === "unconfigured") return page.status === "Unconfigured" && !isExcluded;
-                          if (currentFilter === "action_required") return (page.status === "Configured" || page.status === "Unconfigured") && !isExcluded;
-                          if (currentFilter === "excluded") return isExcluded;
-                          return !isExcluded;
-                        });
+                  {renderManagementCard({
+                    title: "Site Analysis",
+                    subtitle: "Review audit scores, optimisation opportunities and issues.",
+                    items: [
+                      "On-page SEO audit",
+                      "Technical SEO issues",
+                      "Content optimisation",
+                      "Performance insights"
+                    ],
+                    badge: "W5 | Site Analysis",
+                    accentColor: "#3b82f6",
+                    IconComponent: Activity,
+                    onClick: () => {
+                      setComingSoonModule("SITE_ANALYSIS");
+                      setCurrentView("WEBSITES_COMING_SOON");
+                    }
+                  })}
 
-                        if (filteredPages.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan="7" style={{ padding: '3rem 2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                No pages found matching the active filter.
-                              </td>
-                            </tr>
-                          );
-                        }
-
-                        return filteredPages.map((page, idx) => {
-                          if (idx === 0) {
-                            console.log("[TSE RUNTIME CELL LOG FIRST ROW]", {
-                              pageUrl: page.pageUrl,
-                              status: page.status,
-                              assignedType: page.assignedType,
-                              getPageAuditorAssignedType: getPageAuditorAssignedType(page),
-                              getPageType: getPageType(page)
-                            });
-                          }
-                          const isExcluded = isPageExcluded(page);
-                          const isConfigured = page.status === "Configured" && !isExcluded;
-                          const isSelected = selectedPageUrl === page.pageUrl;
-                          
-                          return (
-                            <tr 
-                              key={page.pageUrl} 
-                              className={`config-table-row ${isSelected ? 'active' : ''}`}
-                              onClick={() => setSelectedPageUrl(isSelected ? null : page.pageUrl)}
-                              style={{ 
-                                borderBottom: idx < filteredPages.length - 1 ? '1px solid var(--border-color)' : 'none',
-                                cursor: 'pointer',
-                                backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                                <div style={{ fontFamily: 'monospace', color: '#60a5fa', fontWeight: 600 }}>{page.pageUrl}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '350px' }}>{page.proposedPageTitle || page.pageTitle}</div>
-                              </td>
-                              <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap' }}>
-                                {(() => {
-                                  const type = getPageType(page);
-                                  return type;
-                                })()}
-                              </td>
-                              <td style={{ padding: '16px 20px', color: '#cbd5e1', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                                {page.priority || "—"}
-                              </td>
-                              <td style={{ padding: '16px 20px', fontStyle: isConfigured && page.targetPhrase ? 'normal' : 'italic', color: isConfigured && page.targetPhrase ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: isConfigured && page.targetPhrase ? 600 : 400, whiteSpace: 'nowrap' }}>
-                                {isExcluded ? "Excluded" : page.targetPhrase || "No Target Assigned"}
-                              </td>
-                              <td style={{ padding: '16px 20px', whiteSpace: 'nowrap' }}>
-                                {isExcluded ? (
-                                  <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(148, 163, 184, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
-                                    <span style={{ color: '#94a3b8', fontWeight: 'bold' }}>⊘</span> Excluded
-                                  </span>
-                                ) : isConfigured ? (
-                                  <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#34d399', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
-                                    Configured
-                                  </span>
-                                ) : (
-                                  <span className="status-badge-custom" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#f87171', fontSize: '0.85rem', fontWeight: 600, backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '4px 10px', borderRadius: '9999px' }}>
-                                    Unconfigured
-                                  </span>
-                                )}
-                              </td>
-                              <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }} onClick={(e) => e.stopPropagation()}>
-                                {isConfigured && (
-                                  <>
-                                    <button
-                                      className="btn-primary site-btn-sm"
-                                      style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px', boxShadow: 'none', background: '#f97316', backgroundColor: '#f97316', borderColor: '#f97316' }}
-                                      onClick={() => {
-                                        setReviewPageUrl(page.pageUrl);
-                                        setCurrentView("AUDIT_RESULTS");
-                                      }}
-                                      onMouseOver={(e) => {
-                                        e.currentTarget.style.background = '#ea580c';
-                                        e.currentTarget.style.backgroundColor = '#ea580c';
-                                        e.currentTarget.style.borderColor = '#ea580c';
-                                      }}
-                                      onMouseOut={(e) => {
-                                        e.currentTarget.style.background = '#f97316';
-                                        e.currentTarget.style.backgroundColor = '#f97316';
-                                        e.currentTarget.style.borderColor = '#f97316';
-                                      }}
-                                    >
-                                      Last Audit
-                                    </button>
-                                    <button
-                                      className="btn-primary site-btn-sm"
-                                      style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important', boxShadow: 'none' }}
-                                      onClick={() => handleAuditSinglePage(page.pageUrl)}
-                                    >
-                                      Audit Page
-                                    </button>
-                                  </>
-                                )}
-                                <button 
-                                  className="btn-secondary site-btn-sm" 
-                                  style={{ display: 'inline-flex', width: 'auto', padding: '6px 12px !important' }}
-                                  onClick={() => handleOpenConfigModal(page)}
-                                >
-                                  {isConfigured ? "Edit" : "Configure"}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        });
-                      })()}
-                    </tbody>
-                  </table>
+                  {renderManagementCard({
+                    title: "Website Settings",
+                    subtitle: "Manage website options, platform, portfolio and configuration.",
+                    items: [
+                      "Website classification",
+                      "Platform and API settings",
+                      "Portfolio management",
+                      "General configuration"
+                    ],
+                    badge: "W6 | Website Settings",
+                    accentColor: "#f59e0b",
+                    IconComponent: Sliders,
+                    onClick: () => {
+                      setComingSoonModule("WEBSITE_SETTINGS");
+                      setCurrentView("WEBSITES_COMING_SOON");
+                    }
+                  })}
                 </div>
               </div>
+
+              {/* Overview & Activity Section */}
+              <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.5rem 0', letterSpacing: '0.03em' }}>
+                  OVERVIEW & ACTIVITY
+                </h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: '1.5rem',
+                  marginBottom: '2.5rem'
+                }}>
+                  {/* Card 1: Recent Activity */}
+                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>
+                        <Clock size={16} style={{ color: 'var(--text-secondary)' }} />
+                        Recent Activity
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer' }}>View All</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {[
+                        { text: "WordPress sync completed", time: "Today, 09:15" },
+                        { text: "2 new pages discovered", time: "Today, 09:15" },
+                        { text: "Audit completed", time: "Yesterday, 14:32" },
+                        { text: "Page configuration updated", time: "Yesterday, 11:05" }
+                      ].map((act, index) => (
+                        <div key={index} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', borderBottom: '1px solid rgba(255,255,255,0.02)', paddingBottom: '6px' }}>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{act.text}</span>
+                          <span style={{ color: 'var(--text-secondary)' }}>{act.time}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Card 2: Last Audit */}
+                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '180px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>
+                        <Award size={16} style={{ color: '#10b981' }} />
+                        Last Audit
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer' }}>View Report</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                      <div style={{ position: 'relative', width: '64px', height: '64px', flexShrink: 0 }}>
+                        <svg width="64" height="64" viewBox="0 0 36 36">
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke="rgba(255, 255, 255, 0.05)"
+                            strokeWidth="3.5"
+                          />
+                          <path
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="3.5"
+                            strokeDasharray="78, 100"
+                          />
+                        </svg>
+                        <div style={{
+                          position: 'absolute',
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.95rem',
+                          fontWeight: 800,
+                          color: '#ffffff'
+                        }}>
+                          78
+                          <span style={{ fontSize: '0.55rem', color: 'var(--text-secondary)', fontWeight: 500, marginTop: '-2px' }}>/100</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Overall Score</span>
+                        <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>Good</span>
+                        <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Audit completed:<br />Yesterday, 14:32</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 3: AI Recommendations */}
+                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>
+                        <Brain size={16} style={{ color: '#8b5cf6' }} />
+                        AI Recommendations
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer' }}>View All</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                          <span style={{ fontSize: '1.65rem', fontWeight: 800, color: '#8b5cf6' }}>12</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Available</span>
+                        </div>
+                        <span style={{ display: 'block', fontSize: '0.725rem', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.3 }}>
+                          Improve internal linking and technical SEO.
+                        </span>
+                        <button
+                          style={{
+                            background: 'none',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            borderRadius: '6px',
+                            padding: '3px 8px',
+                            color: '#8b5cf6',
+                            fontSize: '0.725rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            outline: 'none'
+                          }}
+                        >
+                          View Recommendations <ChevronRight size={10} />
+                        </button>
+                      </div>
+                      <div style={{ color: '#8b5cf6', opacity: 0.8, flexShrink: 0 }}>
+                        <Brain size={40} strokeWidth={1.5} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Crawl Status */}
+                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', padding: '1.5rem', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '180px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 700, fontSize: '0.95rem' }}>
+                        <Server size={16} style={{ color: '#10b981' }} />
+                        Crawl Status
+                      </div>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--accent-color)', fontWeight: 600, cursor: 'pointer' }}>View Details</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
+                      <div style={{ textAlign: 'left' }}>
+                        <span style={{ display: 'block', fontSize: '1.1rem', fontWeight: 800, color: '#10b981', marginBottom: '4px' }}>Success</span>
+                        <span style={{ display: 'block', fontSize: '0.725rem', color: 'var(--text-secondary)' }}>Last crawl: Today, 09:15</span>
+                        <span style={{ display: 'block', fontSize: '0.725rem', color: 'var(--text-secondary)', marginTop: '2px' }}>Pages crawled: {(() => {
+                          const sitePages = pagesData[selectedSiteId] || [];
+                          return sitePages.length;
+                        })()}</span>
+                        <span style={{ display: 'block', fontSize: '0.725rem', color: 'var(--text-secondary)', marginTop: '2px' }}>New pages found: 2</span>
+                      </div>
+                      <div style={{ color: '#10b981', flexShrink: 0 }}>
+                        <CheckCircle size={38} strokeWidth={1.5} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+          {/* STAGE 3: W3 PAGE MANAGEMENT (Moved from W2) */}
+          {currentView === "WEBSITES_PAGE_MGMT" && selectedSiteId && (() => {
+            const sitePages = sortPagesForSEO(pagesData[selectedSiteId] || []);
+            const siteName = sites.find(s => s.id === selectedSiteId)?.name;
+            const selectedSite = sites.find(s => s.id === selectedSiteId);
+
+            return (
+              <div>
+                {/* Back to Website Dashboard */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                  <button 
+                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.35rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      color: 'var(--accent-color)',
+                      padding: '8px 16px',
+                      marginLeft: '-16px',
+                      textDecoration: isBackHovered ? 'underline' : 'none',
+                      opacity: isBackHovered ? 0.95 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease',
+                      outline: 'none'
+                    }}
+                    onMouseEnter={() => setIsBackHovered(true)}
+                    onMouseLeave={() => setIsBackHovered(false)}
+                  >
+                    ← Back to Website Dashboard
+                  </button>
+                </div>
+
+                {/* Header section */}
+                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{
+                        fontFamily: 'Inter, sans-serif',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: 'rgba(16, 185, 129, 0.85)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                        border: '1px solid rgba(16, 185, 129, 0.15)',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '0.5rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        W3 | Page Management
+                      </div>
+                      <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        {selectedSite?.name}
+                      </h2>
+                      <a 
+                        href={selectedSite?.url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="site-url-link"
+                        style={{ display: 'block', fontSize: '0.9rem', marginTop: '0.35rem', textAlign: 'left' }}
+                      >
+                        {selectedSite?.url} <ExternalLink size={12} />
+                      </a>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      <button 
+                        className="btn-secondary" 
+                        onClick={() => handleImportPages(selectedSiteId)}
+                        disabled={isImporting}
+                        style={{ cursor: isImporting ? 'not-allowed' : 'pointer', opacity: isImporting ? 0.7 : 1 }}
+                      >
+                        {isImporting ? "Syncing..." : "Sync from WordPress"}
+                      </button>
+                      <button 
+                        className="btn-primary"
+                        onClick={() => {
+                          setSingleAuditPageUrl(null);
+                          setCurrentView("AUDIT_CONFIG");
+                        }}
+                      >
+                        Run Audit <Play size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Stepper */}
+                <WorkflowStepper currentView={currentView} />
+
+                {/* Table section */}
+                <div style={{ marginTop: '2rem' }}>
+                  <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--surface-color)', backdropFilter: 'blur(12px)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)' }}>
+                    <table className="audit-config-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}>Page</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}>Type</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '100px' }}>Priority</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}>Target</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}>Status</th>
+                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          const filteredPages = sitePages.filter(page => {
+                            const isExcluded = isPageExcluded(page);
+                            if (currentFilter === "all") return !isExcluded;
+                            if (currentFilter === "configured") return page.status === "Configured" && !isExcluded;
+                            if (currentFilter === "unconfigured") return page.status === "Unconfigured" && !isExcluded;
+                            if (currentFilter === "action_required") return (page.status === "Configured" || page.status === "Unconfigured") && !isExcluded;
+                            if (currentFilter === "excluded") return isExcluded;
+                            return !isExcluded;
+                          });
+
+                          if (filteredPages.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                  No pages match the current criteria.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return filteredPages.map((page) => {
+                            const isConfigured = page.status === "Configured";
+                            const isExcluded = isPageExcluded(page);
+                            return (
+                              <tr key={page.pageUrl} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s' }} className="table-row-hover">
+                                <td style={{ padding: '16px 20px', textAlign: 'left' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{page.pageName || "Unnamed Page"}</span>
+                                    <a href={page.pageUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textDecoration: 'none' }} className="flex align-center gap-1">
+                                      {page.pageUrl} <ExternalLink size={10} />
+                                    </a>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{page.assignedType || "Supporting Page"}</td>
+                                <td style={{ padding: '16px 20px' }}>
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    backgroundColor: page.priority === "High" ? 'rgba(239, 68, 68, 0.1)' : page.priority === "Medium" ? 'rgba(245, 158, 11, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                                    color: page.priority === "High" ? '#ef4444' : page.priority === "Medium" ? '#f59e0b' : '#9ca3af'
+                                  }}>
+                                    {page.priority || "Medium"}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{page.targetKeyword || "Not Set"}</td>
+                                <td style={{ padding: '16px 20px' }}>
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    backgroundColor: isExcluded ? 'rgba(107,114,128,0.1)' : page.status === "Configured" ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                    color: isExcluded ? '#9ca3af' : page.status === "Configured" ? '#10b981' : '#ef4444'
+                                  }}>
+                                    {isExcluded ? "Excluded" : page.status || "Unconfigured"}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                  {page.latestAudit && (
+                                    <>
+                                      <button 
+                                        className="btn-secondary site-btn-sm" 
+                                        style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important' }}
+                                        onClick={() => {
+                                          setSelectedPageUrl(page.pageUrl);
+                                          setReviewPageUrl(page.pageUrl);
+                                          setCurrentView("AUDIT_RESULTS");
+                                        }}
+                                      >
+                                        Last Audit
+                                      </button>
+                                      <button
+                                        className="btn-primary site-btn-sm"
+                                        style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '6px 12px !important', boxShadow: 'none' }}
+                                        onClick={() => handleAuditSinglePage(page.pageUrl)}
+                                      >
+                                        Audit Page
+                                      </button>
+                                    </>
+                                  )}
+                                  <button 
+                                    className="btn-secondary site-btn-sm" 
+                                    style={{ display: 'inline-flex', width: 'auto', padding: '6px 12px !important' }}
+                                    onClick={() => handleOpenConfigModal(page)}
+                                  >
+                                    {isConfigured ? "Edit" : "Configure"}
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* STAGE 4: W4–W6 PLACEHOLDER MODULES */}
+          {currentView === "WEBSITES_COMING_SOON" && selectedSiteId && (() => {
+            const selectedSite = sites.find(s => s.id === selectedSiteId);
+            
+            const getModuleParams = () => {
+              switch (comingSoonModule) {
+                case "INTERNAL_LINKING":
+                  return { badge: "W4 | Internal Linking", title: "Internal Linking", accent: "#8b5cf6", icon: Link, description: "Review internal linking patterns, orphan pages, AI anchor text recommendations, and internal PageRank flow." };
+                case "SITE_ANALYSIS":
+                  return { badge: "W5 | Site Analysis", title: "Site Analysis", accent: "#3b82f6", icon: Activity, description: "Review automated audit reports, overall SEO performance opportunities, and technical web vitals issues." };
+                case "WEBSITE_SETTINGS":
+                  return { badge: "W6 | Website Settings", title: "Website Settings", accent: "#f59e0b", icon: Sliders, description: "Manage database credentials, platform options, theme integrations, and API keys." };
+                default:
+                  return { badge: "W4 | Module Placeholder", title: "Dashboard Module", accent: "#10b981", icon: Globe, description: "This management module is currently under development." };
+              }
+            };
+
+            const { badge, title, accent, icon: ModuleIcon, description } = getModuleParams();
+
+            return (
+              <div>
+                {/* Back navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                  <button 
+                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.35rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      color: 'var(--accent-color)',
+                      padding: '8px 16px',
+                      marginLeft: '-16px',
+                      outline: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    ← Back to Website Dashboard
+                  </button>
+                </div>
+
+                {/* Header Details */}
+                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: `${accent}cc`,
+                        backgroundColor: `${accent}0c`,
+                        border: `1px solid ${accent}25`,
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '0.5rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        {badge}
+                      </div>
+                      <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        {selectedSite?.name}
+                      </h2>
+                      <span style={{ display: 'block', fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
+                        {selectedSite?.url}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Placeholder */}
+                <div style={{
+                  padding: '6rem 3rem',
+                  maxWidth: '650px',
+                  margin: '0 auto',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '24px',
+                  backgroundColor: '#0c101b',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '16px',
+                    backgroundColor: `${accent}10`,
+                    border: `1px solid ${accent}25`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: accent,
+                    marginBottom: '8px'
+                  }}>
+                    <ModuleIcon size={32} />
+                  </div>
+                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    {title} Module
+                  </h3>
+                  <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+                    {description}
+                  </p>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+                    border: '1px solid rgba(251, 191, 36, 0.2)',
+                    color: '#fbbf24',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block' }}></span>
+                    Coming Soon
+                  </div>
+                  <button
+                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                    className="btn-secondary"
+                    style={{ marginTop: '16px', padding: '10px 20px' }}
+                  >
+                    ← Return to Website Dashboard
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
 
             </div>
           )}
