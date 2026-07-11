@@ -663,7 +663,7 @@ const INITIAL_PAGES_DATA = {
 const WorkflowStepper = ({ currentView }) => {
   const steps = [
     { label: "Connected Website", views: ["CONNECTED_SITES"] },
-    { label: "Website Management", views: ["WEBSITES_CONFIG", "WEBSITES_PAGE_MGMT", "WEBSITES_COMING_SOON", "AUDIT_CONFIG"] },
+    { label: "Website Management", views: ["WEBSITES_CONFIG", "WEBSITES_PAGE_MGMT", "WEBSITES_INTERNAL_LINKING", "WEBSITES_COMING_SOON", "AUDIT_CONFIG"] },
     { label: "Audit", views: ["AUDIT_RUNNING", "AUDIT_RESULTS"] },
     { label: "Work Actions", views: ["TASK_FOCUS", "EDIT"] }
   ];
@@ -6167,10 +6167,7 @@ export default function App() {
                     badge: "W4 | Internal Linking",
                     accentColor: "#8b5cf6",
                     IconComponent: Link,
-                    onClick: () => {
-                      setComingSoonModule("INTERNAL_LINKING");
-                      setCurrentView("WEBSITES_COMING_SOON");
-                    },
+                    onClick: () => setCurrentView("WEBSITES_INTERNAL_LINKING"),
                     buttonText: "Open Links"
                   })}
 
@@ -6398,7 +6395,7 @@ export default function App() {
                     onMouseEnter={() => setIsBackHovered(true)}
                     onMouseLeave={() => setIsBackHovered(false)}
                   >
-                    ← Back to W2 – Website Dashboard
+                    ← Back to W2 | Website Dashboard
                   </button>
                 </div>
 
@@ -6571,6 +6568,139 @@ export default function App() {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* STAGE 3.5: W4 INTERNAL LINKING SHELL */}
+          {currentView === "WEBSITES_INTERNAL_LINKING" && selectedSiteId && (() => {
+            const selectedSite = sites.find(s => s.id === selectedSiteId);
+            return (
+              <div>
+                {/* Back navigation */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                  <button 
+                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '1.35rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      color: 'var(--accent-color)',
+                      padding: '8px 16px',
+                      marginLeft: '-16px',
+                      textDecoration: isBackHovered ? 'underline' : 'none',
+                      opacity: isBackHovered ? 0.95 : 1,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s ease',
+                      outline: 'none'
+                    }}
+                    onMouseEnter={() => setIsBackHovered(true)}
+                    onMouseLeave={() => setIsBackHovered(false)}
+                  >
+                    ← Back to W2 | Website Dashboard
+                  </button>
+                </div>
+
+                {/* Header Details */}
+                <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: '#8b5cf6cc',
+                        backgroundColor: '#8b5cf60c',
+                        border: '1px solid #8b5cf625',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        display: 'inline-block',
+                        marginBottom: '0.5rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        W4 | Internal Linking
+                      </div>
+                      <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                        {selectedSite?.name}
+                      </h2>
+                      <a 
+                        href={selectedSite?.url} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="site-url-link"
+                        style={{ display: 'block', fontSize: '0.9rem', marginTop: '0.35rem', textAlign: 'left' }}
+                      >
+                        {selectedSite?.url} <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Placeholder */}
+                <div style={{
+                  padding: '6rem 3rem',
+                  maxWidth: '650px',
+                  margin: '0 auto',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '24px',
+                  backgroundColor: '#0c101b',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)'
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '16px',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    border: '1px solid rgba(139, 92, 246, 0.25)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#8b5cf6',
+                    marginBottom: '8px'
+                  }}>
+                    <Link size={32} />
+                  </div>
+                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                    Internal Linking Module
+                  </h3>
+                  <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+                    Review internal linking patterns, orphan pages, AI anchor text recommendations, and internal PageRank flow.
+                  </p>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '6px 14px',
+                    borderRadius: '20px',
+                    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+                    border: '1px solid rgba(251, 191, 36, 0.2)',
+                    color: '#fbbf24',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
+                  }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fbbf24', display: 'inline-block' }}></span>
+                    Coming Soon
+                  </div>
+                  <button
+                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                    className="btn-secondary"
+                    style={{ marginTop: '16px', padding: '10px 20px' }}
+                  >
+                    ← Return to Website Dashboard
+                  </button>
                 </div>
               </div>
             );
