@@ -6151,7 +6151,8 @@ export default function App() {
                     badge: "W3 | Page Management",
                     accentColor: "#10b981",
                     IconComponent: FileText,
-                    onClick: () => setCurrentView("WEBSITES_PAGE_MGMT")
+                    onClick: () => setCurrentView("WEBSITES_PAGE_MGMT"),
+                    buttonText: "Open Pages"
                   })}
 
                   {renderManagementCard({
@@ -6169,7 +6170,8 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("INTERNAL_LINKING");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    }
+                    },
+                    buttonText: "Open Links"
                   })}
 
                   {renderManagementCard({
@@ -6187,7 +6189,8 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("SITE_ANALYSIS");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    }
+                    },
+                    buttonText: "View Analysis"
                   })}
 
                   {renderManagementCard({
@@ -6205,7 +6208,8 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("WEBSITE_SETTINGS");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    }
+                    },
+                    buttonText: "Open Settings"
                   })}
                 </div>
               </div>
