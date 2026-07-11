@@ -757,11 +757,43 @@ const getComparisonContent = (task, pageObj) => {
 
   if (issue.toLowerCase().includes("title tag") || issue.toLowerCase().includes("meta title")) {
     const current = auditedCurrent || pageObj?.pageTitle || pageObj?.crawlData?.title || "";
-    const required = current 
-      ? (current.toLowerCase().includes(targetPhrase.toLowerCase()) 
-          ? current 
-          : `${capitalizedTarget} | ${current.includes("|") ? current.split("|").slice(1).join("|").trim() : current}`) 
-      : `${capitalizedTarget} | Page`;
+    
+    let required = current;
+    const titleMatch = current.toLowerCase().includes(targetPhrase.toLowerCase());
+    const titleLengthOk = current.length >= 30 && current.length <= 65;
+    
+    if (!current || !titleMatch || !titleLengthOk) {
+      if (current) {
+        if (!titleMatch) {
+          let baseTitle = current.includes("|") ? current.split("|").slice(1).join("|").trim() : current;
+          if (!baseTitle) baseTitle = current;
+          required = `${capitalizedTarget} | ${baseTitle}`;
+        } else {
+          if (current.length > 65) {
+            let baseTitle = current.split("|")[0].trim();
+            if (baseTitle.length > 65) {
+              baseTitle = baseTitle.slice(0, 62) + "...";
+            }
+            required = baseTitle;
+          } else {
+            required = `${current} | Professional Services`;
+          }
+        }
+      } else {
+        required = `${capitalizedTarget} | Professional Services`;
+      }
+      
+      if (required.length > 65) {
+        required = required.slice(0, 65);
+      }
+      if (required.length < 30) {
+        required = `${required} | South East London`;
+        if (required.length > 65) {
+          required = required.slice(0, 65);
+        }
+      }
+    }
+    
     return { current: current || "No title tag found.", required };
   }
   
