@@ -8976,9 +8976,9 @@ export default function App() {
             }}>
               <div style={{
                 backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '16px', padding: '2rem', maxWidth: '480px', width: '100%',
+                borderRadius: '16px', padding: '2rem 2.5rem', maxWidth: '720px', width: '100%',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
-                textAlign: 'left', maxHeight: '90vh', overflowY: 'auto'
+                textAlign: 'left'
               }}>
                 <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
                   Edit Website
@@ -8987,132 +8987,155 @@ export default function App() {
                   Modify settings, credentials, or delete this connected website from the local engine database.
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.75rem' }}>
-                  {/* Website Name */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Website Name</label>
-                    <input 
-                      type="text"
-                      value={editSiteName}
-                      onChange={(e) => setEditSiteName(e.target.value)}
-                      placeholder="e.g. Bathroom Upgrades"
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                  {/* Left Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Website Name */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Website Name</label>
+                      <input 
+                        type="text"
+                        value={editSiteName}
+                        onChange={(e) => setEditSiteName(e.target.value)}
+                        placeholder="e.g. Bathroom Upgrades"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    {/* Portfolio */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Portfolio</label>
+                      <select
+                        value={editSitePortfolio}
+                        onChange={(e) => setEditSitePortfolio(e.target.value)}
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        <option value="TSE">TSE</option>
+                        <option value="Chili">Chili</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+
+                    {/* WordPress API URL */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress API URL</label>
+                      <input 
+                        type="text"
+                        value={editSiteApiUrl}
+                        onChange={(e) => setEditSiteApiUrl(e.target.value)}
+                        placeholder="https://www.bathroomupgrades.co.uk/wp-json/"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+
+                    {/* WordPress Application Password */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Application Password</label>
+                      <input 
+                        type="password"
+                        value={editSitePassword}
+                        onChange={(e) => setEditSitePassword(e.target.value)}
+                        placeholder="xxxx xxxx xxxx xxxx"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  {/* Website URL */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Website URL</label>
-                    <input 
-                      type="text"
-                      value={editSiteUrl}
-                      onChange={(e) => setEditSiteUrl(e.target.value)}
-                      placeholder="https://www.bathroomupgrades.co.uk"
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
+                  {/* Right Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Website URL */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Website URL</label>
+                      <input 
+                        type="text"
+                        value={editSiteUrl}
+                        onChange={(e) => setEditSiteUrl(e.target.value)}
+                        placeholder="https://www.bathroomupgrades.co.uk"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
 
-                  {/* WordPress API URL */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress API URL</label>
-                    <input 
-                      type="text"
-                      value={editSiteApiUrl}
-                      onChange={(e) => setEditSiteApiUrl(e.target.value)}
-                      placeholder="https://www.bathroomupgrades.co.uk/wp-json/"
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
+                    {/* Platform */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Platform</label>
+                      <select
+                        value={editSitePlatform}
+                        onChange={(e) => setEditSitePlatform(e.target.value)}
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        <option value="WordPress">WordPress</option>
+                        <option value="Magento">Magento</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
 
-                  {/* Username */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Username</label>
-                    <input 
-                      type="text"
-                      value={editSiteUsername}
-                      onChange={(e) => setEditSiteUsername(e.target.value)}
-                      placeholder="admin"
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
+                    {/* WordPress Username */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Username</label>
+                      <input 
+                        type="text"
+                        value={editSiteUsername}
+                        onChange={(e) => setEditSiteUsername(e.target.value)}
+                        placeholder="admin"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
 
-                  {/* Application Password */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Application Password</label>
-                    <input 
-                      type="password"
-                      value={editSitePassword}
-                      onChange={(e) => setEditSitePassword(e.target.value)}
-                      placeholder="xxxx xxxx xxxx xxxx"
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                    {/* Connection Status */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Connection Status</label>
+                      <div style={{
+                        width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
                         borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  {/* Portfolio Select */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                      Portfolio
-                    </label>
-                    <select
-                      value={editSitePortfolio}
-                      onChange={(e) => setEditSitePortfolio(e.target.value)}
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="TSE">TSE</option>
-                      <option value="Chili">Chili</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  {/* Platform Select */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                      Platform
-                    </label>
-                    <select
-                      value={editSitePlatform}
-                      onChange={(e) => setEditSitePlatform(e.target.value)}
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="WordPress">WordPress</option>
-                      <option value="Magento">Magento</option>
-                      <option value="Other">Other</option>
-                    </select>
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', display: 'flex',
+                        alignItems: 'center', height: '42px', boxSizing: 'border-box'
+                      }}>
+                        <span style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: (sites.find(s => s.id === editingSiteId)?.status === "Connected") ? '#10b981' : '#fbbf24',
+                          display: 'inline-block',
+                          marginRight: '8px'
+                        }}></span>
+                        {(sites.find(s => s.id === editingSiteId)?.status === "Connected") ? "Connected" : "Setup Required"}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
