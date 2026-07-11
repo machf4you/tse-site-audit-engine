@@ -6140,7 +6140,7 @@ export default function App() {
                   marginBottom: '2.5rem'
                 }}>
                   {renderManagementCard({
-                    title: "Page Management",
+                    title: "Manage Pages",
                     subtitle: "Configure pages, targets, priorities and page settings.",
                     items: [
                       "Set target keywords and priorities",
@@ -6151,12 +6151,11 @@ export default function App() {
                     badge: "W3 | Page Management",
                     accentColor: "#10b981",
                     IconComponent: FileText,
-                    onClick: () => setCurrentView("WEBSITES_PAGE_MGMT"),
-                    buttonText: "Manage Pages"
+                    onClick: () => setCurrentView("WEBSITES_PAGE_MGMT")
                   })}
 
                   {renderManagementCard({
-                    title: "Internal Linking",
+                    title: "Review Links",
                     subtitle: "Review internal linking, orphan pages and AI recommendations.",
                     items: [
                       "Internal link analysis",
@@ -6170,12 +6169,11 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("INTERNAL_LINKING");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    },
-                    buttonText: "Review Links"
+                    }
                   })}
 
                   {renderManagementCard({
-                    title: "Site Analysis",
+                    title: "Open Analysis",
                     subtitle: "Review audit scores, optimisation opportunities and issues.",
                     items: [
                       "On-page SEO audit",
@@ -6189,8 +6187,7 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("SITE_ANALYSIS");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    },
-                    buttonText: "Open Analysis"
+                    }
                   })}
 
                   {renderManagementCard({
@@ -6208,8 +6205,7 @@ export default function App() {
                     onClick: () => {
                       setComingSoonModule("WEBSITE_SETTINGS");
                       setCurrentView("WEBSITES_COMING_SOON");
-                    },
-                    buttonText: "Website Settings"
+                    }
                   })}
                 </div>
               </div>
