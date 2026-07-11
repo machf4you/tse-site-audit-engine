@@ -7564,163 +7564,179 @@ export default function App() {
               {selectedSiteId ? (() => {
                 const selectedSite = sites.find(s => s.id === selectedSiteId);
                 return (
-                  <div>
-                    {/* Back navigation */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
-                      <button 
-                        onClick={() => setCurrentView("WEBSITES_CONFIG")}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          fontSize: '1.35rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          color: 'var(--accent-color)',
-                          padding: '8px 16px',
-                          marginLeft: '-16px',
-                          textDecoration: isBackHovered ? 'underline' : 'none',
-                          opacity: isBackHovered ? 0.95 : 1,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          transition: 'all 0.2s ease',
-                          outline: 'none'
-                        }}
-                        onMouseEnter={() => setIsBackHovered(true)}
-                        onMouseLeave={() => setIsBackHovered(false)}
-                      >
-                        ← Back to W2 | Website Dashboard
-                      </button>
-                    </div>
+                    <div>
+                      {/* Back navigation */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
+                        <button 
+                          onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            fontSize: '1.35rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            color: 'var(--accent-color)',
+                            padding: '8px 16px',
+                            marginLeft: '-16px',
+                            textDecoration: isBackHovered ? 'underline' : 'none',
+                            opacity: isBackHovered ? 0.95 : 1,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onMouseEnter={() => setIsBackHovered(true)}
+                          onMouseLeave={() => setIsBackHovered(false)}
+                        >
+                          ← Back to W2 | Website Dashboard
+                        </button>
+                      </div>
 
-                    {/* Header Details */}
-                    <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                        <div style={{ textAlign: 'left' }}>
-                          <div style={{
-                            fontSize: '0.7rem',
-                            fontWeight: 700,
-                            color: '#f59e0bcc',
-                            backgroundColor: '#f59e0b0c',
-                            border: '1px solid #f59e0b25',
-                            padding: '2px 8px',
-                            borderRadius: '4px',
-                            display: 'inline-block',
-                            marginBottom: '0.5rem',
+                      {/* Header Details */}
+                      <div style={{ marginBottom: '2rem', textAlign: 'left' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                          <div style={{ textAlign: 'left' }}>
+                            <div style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              color: '#f59e0bcc',
+                              backgroundColor: '#f59e0b0c',
+                              border: '1px solid #f59e0b25',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              display: 'inline-block',
+                              marginBottom: '0.5rem',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
+                            }}>
+                              W6 | Website Settings
+                            </div>
+                            <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                              {selectedSite?.name}
+                            </h2>
+                            <a 
+                              href={selectedSite?.url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="site-url-link"
+                              style={{ display: 'block', fontSize: '0.9rem', marginTop: '0.35rem', textAlign: 'left' }}
+                            >
+                              {selectedSite?.url} <ExternalLink size={12} />
+                            </a>
+                          </div>
+                        </div>
+                        {renderModuleNavigation("W6")}
+                      </div>
+
+                      {/* Website Classification Panel (Relocated from W2) */}
+                      <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '2rem', marginBottom: '2rem' }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          backgroundColor: '#0c101b',
+                          border: '2px solid rgba(255, 255, 255, 0.28)',
+                          borderRadius: '8px',
+                          padding: '8px 16px',
+                          marginRight: '4px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                        }}>
+                          {/* Label */}
+                          <span style={{
+                            fontSize: '0.725rem',
                             textTransform: 'uppercase',
-                            letterSpacing: '0.05em'
+                            fontWeight: 800,
+                            color: 'rgba(16, 185, 129, 0.95)',
+                            letterSpacing: '0.05em',
+                            marginRight: '6px'
                           }}>
-                            W6 | Website Settings
+                            Website Classification
+                          </span>
+
+                          {/* Portfolio Select */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Portfolio:</span>
+                            <select
+                              id="sitePortfolioInput"
+                              value={sitePortfolio}
+                              onChange={(e) => setSitePortfolio(e.target.value)}
+                              style={{
+                                backgroundColor: '#07090b',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.85rem',
+                                outline: 'none'
+                              }}
+                            >
+                              <option value="TSE">TSE</option>
+                              <option value="Chili">Chili</option>
+                              <option value="Other">Other</option>
+                            </select>
                           </div>
 
-                    {/* Website Classification Panel (Relocated from W2) */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '2.5rem' }}>
-                      {/* Website Classification Settings Container (Milestone M003) */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      backgroundColor: '#0c101b',
-                      border: '2px solid rgba(255, 255, 255, 0.28)',
-                      borderRadius: '8px',
-                      padding: '8px 16px',
-                      marginRight: '4px',
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
-                    }}>
-                      {/* Label */}
-                      <span style={{
-                        fontSize: '0.725rem',
-                        textTransform: 'uppercase',
-                        fontWeight: 800,
-                        color: 'rgba(16, 185, 129, 0.95)',
-                        letterSpacing: '0.05em',
-                        marginRight: '6px'
-                      }}>
-                        Website Classification
-                      </span>
+                          {/* Platform Select */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Platform:</span>
+                            <select
+                              id="sitePlatformInput"
+                              value={sitePlatform}
+                              onChange={(e) => setSitePlatform(e.target.value)}
+                              style={{
+                                backgroundColor: '#07090b',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                color: 'var(--text-primary)',
+                                fontSize: '0.85rem',
+                                outline: 'none'
+                              }}
+                            >
+                              <option value="WordPress">WordPress</option>
+                              <option value="Magento">Magento</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
 
-                      {/* Portfolio Select */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Portfolio:</span>
-                        <select
-                          id="sitePortfolioInput"
-                          value={sitePortfolio}
-                          onChange={(e) => setSitePortfolio(e.target.value)}
-                          style={{
-                            backgroundColor: '#07090b',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.85rem',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="TSE">TSE</option>
-                          <option value="Chili">Chili</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      {/* Platform Select */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Platform:</span>
-                        <select
-                          id="sitePlatformInput"
-                          value={sitePlatform}
-                          onChange={(e) => setSitePlatform(e.target.value)}
-                          style={{
-                            backgroundColor: '#07090b',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '6px',
-                            padding: '6px 12px',
-                            color: 'var(--text-primary)',
-                            fontSize: '0.85rem',
-                            outline: 'none'
-                          }}
-                        >
-                          <option value="WordPress">WordPress</option>
-                          <option value="Magento">Magento</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-
-                      {/* Save Settings Button */}
-                      <button
-                        className="btn-secondary"
-                        onClick={handleSaveWebsiteConfig}
-                        style={{
-                          padding: '6px 12px',
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          borderColor: 'rgba(255, 255, 255, 0.15)'
-                        }}
-                      >
-                        Save Settings
-                      </button>
-                    </div>
-                    </div>
-                          <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
-                            {selectedSite?.name}
-                          </h2>
-                          <a 
-                            href={selectedSite?.url} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="site-url-link"
-                            style={{ display: 'block', fontSize: '0.9rem', marginTop: '0.35rem', textAlign: 'left' }}
+                          {/* Save Settings Button */}
+                          <button
+                            className="btn-secondary"
+                            onClick={handleSaveWebsiteConfig}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '0.85rem',
+                              fontWeight: 600,
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              borderColor: 'rgba(255, 255, 255, 0.15)'
+                            }}
                           >
-                            {selectedSite?.url} <ExternalLink size={12} />
-                          </a>
+                            Save Settings
+                          </button>
                         </div>
                       </div>
-                      {renderModuleNavigation("W6")}
+
+                      {/* Placeholder Section: Website Settings */}
+                      <div style={{
+                        marginTop: '3rem',
+                        padding: '2.5rem',
+                        backgroundColor: 'var(--surface-color)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '12px',
+                        textAlign: 'left'
+                      }}>
+                        <h3 style={{ fontFamily: 'Outfit', fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
+                          Website Settings
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+                          Placeholder: Future website-specific options will be available here.
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                );
+);
               })() : (
                 <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '1.25rem', marginBottom: '2rem', textAlign: 'left' }}>
                   <h2 style={{ fontFamily: 'Outfit', fontSize: '1.85rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-primary)' }}>
@@ -7749,7 +7765,7 @@ export default function App() {
                 </div>
               )}
 
-              {(() => {
+              {!selectedSiteId && ((() => {
                 const SETTINGS_GROUPS = [
                   {
                     title: "GENERAL",
@@ -8406,7 +8422,7 @@ export default function App() {
                     </div>
                   </div>
                 );
-              })()}
+              })())}
             </div>
           )}
 
