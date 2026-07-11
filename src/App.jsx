@@ -851,6 +851,13 @@ const getComparisonContent = (task, pageObj) => {
   };
 };
 
+const matchFindingType = (fType, tTitle) => {
+  if (!fType || !tTitle) return false;
+  const f = fType.toLowerCase().replace("title tag", "meta title");
+  const t = tTitle.toLowerCase().replace("title tag", "meta title");
+  return f === t;
+};
+
 export default function App() {
   console.log("[TSE BUILD TEST 2026-07-02 11:02]");
   const [sites, setSites] = useState(() => {
@@ -1017,7 +1024,7 @@ export default function App() {
       let derivedState = t.state || "backlog";
       if (pageObj && pageObj.latestAudit && pageObj.latestAudit.results) {
         const findings = generateFindingsForPage(pageObj, selectedSiteRaw.url, selectedSiteRaw.id);
-        const hasIssue = findings.some(f => f.findingType === t.taskTitle);
+        const hasIssue = findings.some(f => matchFindingType(f.findingType, t.taskTitle));
         derivedState = hasIssue ? "backlog" : "completed";
       }
       return { ...t, state: derivedState };
@@ -1034,7 +1041,7 @@ export default function App() {
     let derivedState = task.state || "backlog";
     if (pageObj && pageObj.latestAudit && pageObj.latestAudit.results) {
       const findings = generateFindingsForPage(pageObj, selectedSite.url, selectedSite.id);
-      const hasIssue = findings.some(f => f.findingType === task.taskTitle);
+      const hasIssue = findings.some(f => matchFindingType(f.findingType, task.taskTitle));
       derivedState = hasIssue ? "backlog" : "completed";
     }
     
@@ -2831,7 +2838,7 @@ export default function App() {
         wpField = "meta_description";
       } else if (taskTitle.includes("h1")) {
         wpField = "h1";
-      } else if (taskTitle.includes("title tag") || taskTitle.includes("title phrase")) {
+      } else if (taskTitle.includes("title tag") || taskTitle.includes("title phrase") || taskTitle.includes("meta title")) {
         wpField = "seo_title";
       } else {
         throw new Error(`Unsupported task type for WordPress update: "${activeTask.taskTitle}"`);
@@ -2927,7 +2934,7 @@ export default function App() {
       
       // 7. Check if the issue is now resolved
       const findings = generateFindingsForPage(finalizedPageObj, selectedSite.url, selectedSite.id);
-      const isIssueStillActive = findings.some(f => f.findingType === activeTask.taskTitle);
+      const isIssueStillActive = findings.some(f => matchFindingType(f.findingType, activeTask.taskTitle));
       
       if (!isIssueStillActive) {
         setVerificationStatus("success");
