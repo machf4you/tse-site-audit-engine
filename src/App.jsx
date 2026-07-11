@@ -1017,6 +1017,16 @@ export default function App() {
   const [connectionTestMessage, setConnectionTestMessage] = useState("");
   const [w6ConnectionStatus, setW6ConnectionStatus] = useState("idle"); // "idle", "testing", "success", "failed"
   const [w6ConnectionMessage, setW6ConnectionMessage] = useState("");
+  const [isEditWebsiteModalOpen, setIsEditWebsiteModalOpen] = useState(false);
+  const [editingSiteId, setEditingSiteId] = useState(null);
+  const [editSiteName, setEditSiteName] = useState("");
+  const [editSiteUrl, setEditSiteUrl] = useState("");
+  const [editSitePortfolio, setEditSitePortfolio] = useState("TSE");
+  const [editSitePlatform, setEditSitePlatform] = useState("WordPress");
+  const [editSiteApiUrl, setEditSiteApiUrl] = useState("");
+  const [editSiteUsername, setEditSiteUsername] = useState("");
+  const [editSitePassword, setEditSitePassword] = useState("");
+
 
   
   // Onboarding site classification (Milestone M004)
@@ -1144,7 +1154,80 @@ export default function App() {
       showNotification("Connection Failed: Network error.");
       setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Disconnected" } : s));
     });
+  }
+
+  const handleOpenEditWebsiteModal = (site) => {
+    setEditingSiteId(site.id);
+    setEditSiteName(site.name || "");
+    setEditSiteUrl(site.url || "");
+    setEditSitePortfolio(site.portfolio || "TSE");
+    setEditSitePlatform(site.platform || "WordPress");
+    setEditSiteApiUrl(site.apiUrl || `${site.url}/wp-json/`);
+    setEditSiteUsername(site.credentials?.username || "");
+    setEditSitePassword(site.credentials?.password || "");
+    setIsEditWebsiteModalOpen(true);
   };
+
+  const handleSaveEditWebsite = () => {
+    if (!editingSiteId) return;
+    
+    let cleanUrl = editSiteUrl.trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = "https://" + cleanUrl;
+    }
+    cleanUrl = cleanUrl.replace(/\/+$/, "");
+
+    let cleanApiUrl = editSiteApiUrl.trim();
+    if (cleanApiUrl) {
+      if (!/^https?:\/\//i.test(cleanApiUrl)) {
+        cleanApiUrl = "https://" + cleanApiUrl;
+      }
+      cleanApiUrl = cleanApiUrl.replace(/\/+$/, "");
+    } else {
+      cleanApiUrl = `${cleanUrl}/wp-json`;
+    }
+
+    setSites(prev => prev.map(s => {
+      if (s.id === editingSiteId) {
+        const hasCredentials = !!(editSiteUsername.trim() && editSitePassword.trim());
+        return {
+          ...s,
+          name: editSiteName.trim(),
+          url: cleanUrl,
+          apiUrl: cleanApiUrl,
+          portfolio: editSitePortfolio,
+          platform: editSitePlatform,
+          status: hasCredentials ? "Connected" : "Setup Required",
+          credentials: {
+            username: editSiteUsername.trim(),
+            password: editSitePassword.trim()
+          }
+        };
+      }
+      return s;
+    }));
+
+    showNotification("Website changes saved successfully!");
+    setIsEditWebsiteModalOpen(false);
+  };
+
+  const handleDeleteWebsite = () => {
+    if (!editingSiteId) return;
+    const site = sites.find(s => s.id === editingSiteId);
+    if (!site) return;
+
+    const confirmed = window.confirm(`Are you sure you want to delete the website "${site.name}"? This action cannot be undone.`);
+    if (confirmed) {
+      setSites(prev => prev.filter(s => s.id !== editingSiteId));
+      showNotification(`Website "${site.name}" has been deleted.`);
+      setIsEditWebsiteModalOpen(false);
+      if (selectedSiteId === editingSiteId) {
+        setSelectedSiteId(null);
+        setCurrentView("CONNECTED_SITES");
+      }
+    }
+  };
+;
 ;
 
   const handleGenerateSentence = async (destPage, rec, srcPage, key, anchorText) => {
@@ -4090,6 +4173,29 @@ export default function App() {
                               }}
                             >
                               Manage Website
+                            </button>
+                            <button 
+                              className="btn-secondary" 
+                              style={{ 
+                                width: '100%', 
+                                justifyContent: 'center', 
+                                backgroundColor: 'rgba(255,255,255,0.05)', 
+                                color: 'var(--text-primary)', 
+                                fontWeight: 600, 
+                                padding: '8px 16px', 
+                                borderRadius: '6px', 
+                                border: '1px solid rgba(255,255,255,0.1)', 
+                                marginTop: '0.75rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center'
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditWebsiteModal(site);
+                              }}
+                            >
+                              Edit Website
                             </button>
                           </div>
                         );
@@ -8859,7 +8965,203 @@ export default function App() {
             </div>
           )}
 
-          {/* Dynamic Page Configuration Modal */}
+          
+          {/* Edit Website Modal */}
+          {isEditWebsiteModalOpen && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(5, 7, 11, 0.85)', backdropFilter: 'blur(8px)',
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              zIndex: 3000, padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px', padding: '2rem', maxWidth: '480px', width: '100%',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
+                textAlign: 'left', maxHeight: '90vh', overflowY: 'auto'
+              }}>
+                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
+                  Edit Website
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
+                  Modify settings, credentials, or delete this connected website from the local engine database.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginBottom: '1.75rem' }}>
+                  {/* Website Name */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Website Name</label>
+                    <input 
+                      type="text"
+                      value={editSiteName}
+                      onChange={(e) => setEditSiteName(e.target.value)}
+                      placeholder="e.g. Bathroom Upgrades"
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Website URL */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Website URL</label>
+                    <input 
+                      type="text"
+                      value={editSiteUrl}
+                      onChange={(e) => setEditSiteUrl(e.target.value)}
+                      placeholder="https://www.bathroomupgrades.co.uk"
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* WordPress API URL */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress API URL</label>
+                    <input 
+                      type="text"
+                      value={editSiteApiUrl}
+                      onChange={(e) => setEditSiteApiUrl(e.target.value)}
+                      placeholder="https://www.bathroomupgrades.co.uk/wp-json/"
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Username</label>
+                    <input 
+                      type="text"
+                      value={editSiteUsername}
+                      onChange={(e) => setEditSiteUsername(e.target.value)}
+                      placeholder="admin"
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Application Password */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Application Password</label>
+                    <input 
+                      type="password"
+                      value={editSitePassword}
+                      onChange={(e) => setEditSitePassword(e.target.value)}
+                      placeholder="xxxx xxxx xxxx xxxx"
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Portfolio Select */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                      Portfolio
+                    </label>
+                    <select
+                      value={editSitePortfolio}
+                      onChange={(e) => setEditSitePortfolio(e.target.value)}
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="TSE">TSE</option>
+                      <option value="Chili">Chili</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Platform Select */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                      Platform
+                    </label>
+                    <select
+                      value={editSitePlatform}
+                      onChange={(e) => setEditSitePlatform(e.target.value)}
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="WordPress">WordPress</option>
+                      <option value="Magento">Magento</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      className="btn-primary"
+                      onClick={handleSaveEditWebsite}
+                      disabled={!editSiteName || !editSiteUrl}
+                      style={{
+                        flex: 1, justifyContent: 'center', backgroundColor: '#10b981', color: '#ffffff',
+                        fontWeight: 600, padding: '10px 16px', borderRadius: '8px', border: 'none',
+                        cursor: (!editSiteName || !editSiteUrl) ? 'not-allowed' : 'pointer',
+                        opacity: (!editSiteName || !editSiteUrl) ? 0.5 : 1
+                      }}
+                    >
+                      Save Changes
+                    </button>
+                    
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setIsEditWebsiteModalOpen(false)}
+                      style={{
+                        flex: 1, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)',
+                        fontWeight: 600, padding: '10px 16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+
+                  <button
+                    className="btn-secondary"
+                    onClick={handleDeleteWebsite}
+                    style={{
+                      width: '100%', justifyContent: 'center', backgroundColor: 'rgba(239, 68, 68, 0.08)', color: '#ef4444',
+                      fontWeight: 600, padding: '10px 16px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '0.5rem'
+                    }}
+                  >
+                    Delete Website
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+{/* Dynamic Page Configuration Modal */}
           {isConfigModalOpen && (modalMode === "add" || editingPage) && (
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
