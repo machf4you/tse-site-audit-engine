@@ -285,7 +285,7 @@ const runPageAudit = (pageUrl, targetPhrase, pageTitle, siteId, livePageObj) => 
 
   const linkMatch = tp ? data.incomingAnchors.some(anchorObj => anchorObj.anchor.toLowerCase().includes(tp)) : false;
   const linkStatus = contextualLinkCount >= 3 ? "Pass" : "Fail";
-  const linkAction = linkStatus === "Fail" ? `Increase incoming internal links to this page (currently ${contextualLinkCount} links, minimum 3 required)` : "";
+  const linkAction = linkStatus === "Fail" ? `Current Internal Links: ${contextualLinkCount}\nMinimum Required to Pass Audit: 3` : "";
   const linkRecommendation = (linkStatus === "Pass" && !linkMatch) 
     ? `Optimize inbound internal links with target phrase "${targetPhrase || "keyword"}" as anchor text` 
     : "";
@@ -5601,6 +5601,10 @@ export default function App() {
                                                       </span>
                                                     </div>
                                                   </div>
+                                                  
+                                                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <span>💡 <strong>Note:</strong> Minimum required to pass the Page Audit: 3 contextual links.</span>
+                                                  </div>
                                                 </div>
                                               );
                                             })()}
@@ -7756,7 +7760,8 @@ export default function App() {
                                 padding: '16px 20px', 
                                 color: isPass ? (hasRec ? '#fbbf24' : 'var(--text-secondary)') : '#f87171', 
                                 fontSize: '0.85rem', 
-                                fontWeight: isPass ? (hasRec ? 500 : 400) : 500 
+                                fontWeight: isPass ? (hasRec ? 500 : 400) : 500,
+                                whiteSpace: 'pre-line'
                               }}>
                                 {isPass ? (hasRec ? row.recommendation : "—") : row.action}
                               </td>
@@ -7806,7 +7811,7 @@ export default function App() {
                                 <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700 }}>
                                   Issue {idx + 1}: {failItem.item === "Title Tag" ? "Meta Title" : failItem.item}
                                 </span>
-                                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                                <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem', whiteSpace: 'pre-line' }}>
                                   {failItem.action}
                                 </span>
                               </div>
