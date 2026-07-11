@@ -8976,7 +8976,7 @@ export default function App() {
             }}>
               <div style={{
                 backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '16px', padding: '2rem 2.5rem', maxWidth: '800px', width: '100%',
+                borderRadius: '16px', padding: '2rem 2.5rem', maxWidth: '1080px', width: '100%',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
                 textAlign: 'left'
               }}>
@@ -9014,7 +9014,7 @@ export default function App() {
                   Modify settings, credentials, or delete this connected website from the local engine database.
                 </p>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2.5rem', marginBottom: '2rem' }}>
                   {/* Left Column */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     {/* Website Name */}
@@ -9027,7 +9027,7 @@ export default function App() {
                         placeholder="e.g. Bathroom Upgrades"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 1rem', color: 'var(--text-primary)',
+                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
                           boxSizing: 'border-box'
                         }}
@@ -9044,7 +9044,7 @@ export default function App() {
                         placeholder="https://www.bathroomupgrades.co.uk"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 1rem', color: 'var(--text-primary)',
+                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
                           boxSizing: 'border-box'
                         }}
@@ -9059,7 +9059,7 @@ export default function App() {
                         onChange={(e) => setEditSitePortfolio(e.target.value)}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 1rem', color: 'var(--text-primary)',
+                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
                           boxSizing: 'border-box'
                         }}
@@ -9078,7 +9078,7 @@ export default function App() {
                         onChange={(e) => setEditSitePlatform(e.target.value)}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 1rem', color: 'var(--text-primary)',
+                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
                           boxSizing: 'border-box'
                         }}
@@ -9102,7 +9102,7 @@ export default function App() {
                         placeholder="https://www.bathroomupgrades.co.uk/wp-json/"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 1rem', color: 'var(--text-primary)',
+                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
                           boxSizing: 'border-box'
                         }}
@@ -9119,7 +9119,7 @@ export default function App() {
                         placeholder="admin"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 1rem', color: 'var(--text-primary)',
+                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
                           boxSizing: 'border-box'
                         }}
@@ -9136,7 +9136,7 @@ export default function App() {
                         placeholder="xxxx xxxx xxxx xxxx"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 2.5rem 0.75rem 1rem', color: 'var(--text-primary)',
+                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
                           boxSizing: 'border-box'
                         }}
