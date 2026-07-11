@@ -933,6 +933,18 @@ export default function App() {
   });
   const [selectedTaskId, setSelectedTaskId] = useState(initialTaskId);
   
+  const [isExternalLinkModalOpen, setIsExternalLinkModalOpen] = useState(false);
+  const [editingExternalLinkId, setEditingExternalLinkId] = useState(null);
+  const [extLinkName, setExtLinkName] = useState("");
+  const [extSourceUrl, setExtSourceUrl] = useState("");
+  const [extTargetUrl, setExtTargetUrl] = useState("");
+  const [extLinkType, setExtLinkType] = useState("Backlink");
+  const [extStatus, setExtStatus] = useState("Pending");
+  const [extIndexed, setExtIndexed] = useState("Unknown");
+  const [extDateAdded, setExtDateAdded] = useState("");
+  const [extLastChecked, setExtLastChecked] = useState("Never");
+  const [extNotes, setExtNotes] = useState("");
+  
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
   const selectedSite = selectedSiteRaw ? {
     ...selectedSiteRaw,
@@ -1209,6 +1221,66 @@ export default function App() {
 
     showNotification("Website changes saved successfully!");
     setIsEditWebsiteModalOpen(false);
+  };
+
+  const handleSaveExternalLink = () => {
+    if (!extLinkName.trim() || !extSourceUrl.trim() || !extTargetUrl.trim()) {
+      alert("Link Name, Source URL, and Target URL are required!");
+      return;
+    }
+
+    setSites(prevSites => prevSites.map(s => {
+      if (s.id === selectedSiteId) {
+        const currentLinks = s.externalLinks || [];
+        let updatedLinks;
+        if (editingExternalLinkId) {
+          updatedLinks = currentLinks.map(l => l.id === editingExternalLinkId ? {
+            ...l,
+            linkName: extLinkName.trim(),
+            sourceUrl: extSourceUrl.trim(),
+            targetUrl: extTargetUrl.trim(),
+            linkType: extLinkType,
+            status: extStatus,
+            indexed: extIndexed,
+            dateAdded: extDateAdded,
+            lastChecked: extLastChecked,
+            notes: extNotes.trim()
+          } : l);
+        } else {
+          const newLink = {
+            id: `ext-lnk-${Date.now()}`,
+            linkName: extLinkName.trim(),
+            sourceUrl: extSourceUrl.trim(),
+            targetUrl: extTargetUrl.trim(),
+            linkType: extLinkType,
+            status: extStatus,
+            indexed: extIndexed,
+            dateAdded: extDateAdded,
+            lastChecked: extLastChecked,
+            notes: extNotes.trim()
+          };
+          updatedLinks = [...currentLinks, newLink];
+        }
+        return { ...s, externalLinks: updatedLinks };
+      }
+      return s;
+    }));
+
+    setIsExternalLinkModalOpen(false);
+    showNotification("External link saved successfully!");
+  };
+
+  const handleDeleteExternalLink = (siteId, linkId) => {
+    if (window.confirm("Are you sure you want to delete this external link?")) {
+      setSites(prevSites => prevSites.map(s => {
+        if (s.id === siteId) {
+          const updatedLinks = (s.externalLinks || []).filter(l => l.id !== linkId);
+          return { ...s, externalLinks: updatedLinks };
+        }
+        return s;
+      }));
+      showNotification("External link deleted successfully!");
+    }
   };
 
   const handleDeleteWebsite = () => {
@@ -6084,7 +6156,7 @@ export default function App() {
                     const tabs = [
                       { id: null, label: "Overview" },
                       { id: "site-structure", label: "Site Structure" },
-                      
+                      { id: "external-links", label: "External Links" },
                       { id: "content-coverage", label: "Content Coverage" },
                       { id: "opportunities", label: "Opportunities" }
                     ];
@@ -6664,6 +6736,170 @@ export default function App() {
                             );
                           }
 
+                          if (activeModule === 'external-links') {
+                            const externalLinks = site.externalLinks || [];
+                            const totalLinks = externalLinks.length;
+                            const liveLinks = externalLinks.filter(l => l.status === "Live").length;
+                            const indexedLinks = externalLinks.filter(l => l.indexed === "Yes").length;
+                            const pendingLinks = externalLinks.filter(l => l.status === "Pending").length;
+
+                            return (
+                              <div style={{ textAlign: 'left' }}>
+                                {/* Summary Cards */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.25rem' }}>
+                                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Total Links</span>
+                                    <span style={{ display: 'block', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: 'var(--text-primary)' }}>{totalLinks}</span>
+                                  </div>
+                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.25rem' }}>
+                                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Live Links</span>
+                                    <span style={{ display: 'block', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: '#10b981' }}>{liveLinks}</span>
+                                  </div>
+                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.25rem' }}>
+                                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Indexed Links</span>
+                                    <span style={{ display: 'block', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: '#3b82f6' }}>{indexedLinks}</span>
+                                  </div>
+                                  <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '1.25rem' }}>
+                                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Pending Links</span>
+                                    <span style={{ display: 'block', fontSize: '1.75rem', fontWeight: 800, marginTop: '0.5rem', color: '#fbbf24' }}>{pendingLinks}</span>
+                                  </div>
+                                </div>
+
+                                {/* Header row for External Links Manager */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
+                                    External Links Manager
+                                  </h3>
+                                  <button
+                                    className="btn-primary"
+                                    onClick={() => {
+                                      setEditingExternalLinkId(null);
+                                      setExtLinkName("");
+                                      setExtSourceUrl("");
+                                      setExtTargetUrl("");
+                                      setExtLinkType("Backlink");
+                                      setExtStatus("Pending");
+                                      setExtIndexed("Unknown");
+                                      setExtDateAdded(new Date().toISOString().split('T')[0]);
+                                      setExtLastChecked("Never");
+                                      setExtNotes("");
+                                      setIsExternalLinkModalOpen(true);
+                                    }}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
+                                  >
+                                    + Add External Link
+                                  </button>
+                                </div>
+
+                                {/* External Links Table */}
+                                <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+                                  <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                      <thead>
+                                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Link Name</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Source URL</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Target URL</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Link Type</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Status</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Indexed</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Date Added</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Last Checked</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Notes</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {externalLinks.length === 0 ? (
+                                          <tr>
+                                            <td colSpan="10" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                              No external links found. Click "+ Add External Link" to begin tracking.
+                                            </td>
+                                          </tr>
+                                        ) : (
+                                          externalLinks.map((link) => (
+                                            <tr key={link.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                              <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>{link.linkName}</td>
+                                              <td style={{ padding: '16px 20px' }}>
+                                                <a href={link.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'none', wordBreak: 'break-all' }}>
+                                                  {link.sourceUrl}
+                                                </a>
+                                              </td>
+                                              <td style={{ padding: '16px 20px' }}>
+                                                <a href={link.targetUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', wordBreak: 'break-all' }}>
+                                                  {link.targetUrl}
+                                                </a>
+                                              </td>
+                                              <td style={{ padding: '16px 20px' }}>
+                                                <span style={{
+                                                  padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
+                                                  backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)'
+                                                }}>
+                                                  {link.linkType}
+                                                </span>
+                                              </td>
+                                              <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                                <span style={{
+                                                  padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
+                                                  backgroundColor: link.status === "Live" ? 'rgba(16, 185, 129, 0.1)' : link.status === "Broken" ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                                  color: link.status === "Live" ? '#10b981' : link.status === "Broken" ? '#ef4444' : '#f59e0b'
+                                                }}>
+                                                  {link.status}
+                                                </span>
+                                              </td>
+                                              <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                                <span style={{
+                                                  padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
+                                                  backgroundColor: link.indexed === "Yes" ? 'rgba(16, 185, 129, 0.1)' : link.indexed === "No" ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.06)',
+                                                  color: link.indexed === "Yes" ? '#10b981' : link.indexed === "No" ? '#ef4444' : 'var(--text-secondary)'
+                                                }}>
+                                                  {link.indexed}
+                                                </span>
+                                              </td>
+                                              <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{link.dateAdded}</td>
+                                              <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{link.lastChecked}</td>
+                                              <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={link.notes}>
+                                                {link.notes || "—"}
+                                              </td>
+                                              <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                <button
+                                                  className="btn-secondary site-btn-sm"
+                                                  style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '4px 8px' }}
+                                                  onClick={() => {
+                                                    setEditingExternalLinkId(link.id);
+                                                    setExtLinkName(link.linkName || "");
+                                                    setExtSourceUrl(link.sourceUrl || "");
+                                                    setExtTargetUrl(link.targetUrl || "");
+                                                    setExtLinkType(link.linkType || "Backlink");
+                                                    setExtStatus(link.status || "Pending");
+                                                    setExtIndexed(link.indexed || "Unknown");
+                                                    setExtDateAdded(link.dateAdded || "");
+                                                    setExtLastChecked(link.lastChecked || "Never");
+                                                    setExtNotes(link.notes || "");
+                                                    setIsExternalLinkModalOpen(true);
+                                                  }}
+                                                >
+                                                  Edit
+                                                </button>
+                                                <button
+                                                  className="btn-secondary site-btn-sm"
+                                                  style={{ display: 'inline-flex', width: 'auto', padding: '4px 8px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }}
+                                                  onClick={() => handleDeleteExternalLink(site.id, link.id)}
+                                                >
+                                                  Delete
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          ))
+                                        )}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           if (activeModule === 'opportunities') {
                             return (
                               <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '3rem 2rem', textAlign: 'center' }}>
@@ -6681,7 +6917,7 @@ export default function App() {
                               gap: '1.25rem',
                               marginTop: '1.5rem'
                             }}>
-                              {['Site Structure', 'Internal Linking', 'Content Coverage', 'Opportunities'].map(module => {
+                              {['Site Structure', 'Internal Linking', 'Content Coverage', 'Opportunities', 'External Links'].map(module => {
                                 const isSiteStructure = module === 'Site Structure';
                                 const isInternalLinking = module === 'Internal Linking';
                                 const isClickable = isSiteStructure || isInternalLinking || module === 'Content Coverage' || module === 'Opportunities';
@@ -6698,6 +6934,8 @@ export default function App() {
                                         setActiveModule('content-coverage');
                                       } else if (module === 'Opportunities') {
                                         setActiveModule('opportunities');
+                                      } else if (module === 'External Links') {
+                                        setActiveModule('external-links');
                                       }
                                     }}
                                     style={{
@@ -8964,6 +9202,215 @@ export default function App() {
           )}
 
           
+          {/* Add/Edit External Link Modal */}
+          {isExternalLinkModalOpen && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(5, 7, 11, 0.85)', backdropFilter: 'blur(8px)',
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              zIndex: 3000, padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '16px', padding: '2rem 2.5rem', maxWidth: '800px', width: '100%',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
+                textAlign: 'left'
+              }}>
+                <button
+                  onClick={() => setIsExternalLinkModalOpen(false)}
+                  style={{
+                    position: 'absolute', top: '1.5rem', right: '1.5rem',
+                    background: 'none', border: 'none', color: 'var(--text-secondary)',
+                    fontSize: '1.25rem', cursor: 'pointer', outline: 'none'
+                  }}
+                >
+                  ✕
+                </button>
+
+                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 1.5rem 0' }}>
+                  {editingExternalLinkId ? "Edit External Link" : "Add External Link"}
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                  {/* Left Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Link Name */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Link Name</label>
+                      <input
+                        type="text"
+                        value={extLinkName}
+                        onChange={(e) => setExtLinkName(e.target.value)}
+                        placeholder="e.g. Acme guest post backlink"
+                        style={{
+                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Source URL */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Source URL</label>
+                      <input
+                        type="text"
+                        value={extSourceUrl}
+                        onChange={(e) => setExtSourceUrl(e.target.value)}
+                        placeholder="https://example-blog.com/post-1"
+                        style={{
+                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Target URL */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Target URL</label>
+                      <input
+                        type="text"
+                        value={extTargetUrl}
+                        onChange={(e) => setExtTargetUrl(e.target.value)}
+                        placeholder="https://mysite.com/landing-page"
+                        style={{
+                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Link Type */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Link Type</label>
+                      <select
+                        value={extLinkType}
+                        onChange={(e) => setExtLinkType(e.target.value)}
+                        style={{
+                          width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      >
+                        <option value="Backlink">Backlink</option>
+                        <option value="Guest Post">Guest Post</option>
+                        <option value="Editorial">Editorial</option>
+                        <option value="Directory">Directory</option>
+                        <option value="Social">Social</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Status */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Status</label>
+                      <select
+                        value={extStatus}
+                        onChange={(e) => setExtStatus(e.target.value)}
+                        style={{
+                          width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      >
+                        <option value="Live">Live</option>
+                        <option value="Broken">Broken</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                    </div>
+
+                    {/* Indexed */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Indexed</label>
+                      <select
+                        value={extIndexed}
+                        onChange={(e) => setExtIndexed(e.target.value)}
+                        style={{
+                          width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Unknown">Unknown</option>
+                      </select>
+                    </div>
+
+                    {/* Date Added */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Date Added</label>
+                      <input
+                        type="date"
+                        value={extDateAdded}
+                        onChange={(e) => setExtDateAdded(e.target.value)}
+                        style={{
+                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      />
+                    </div>
+
+                    {/* Last Checked */}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Last Checked</label>
+                      <input
+                        type="text"
+                        value={extLastChecked}
+                        onChange={(e) => setExtLastChecked(e.target.value)}
+                        placeholder="Never or timestamp"
+                        style={{
+                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes */}
+                <div style={{ marginBottom: '1.75rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Notes</label>
+                  <textarea
+                    value={extNotes}
+                    onChange={(e) => setExtNotes(e.target.value)}
+                    placeholder="Enter any additional details or context..."
+                    style={{
+                      width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                      borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                      fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '80px', resize: 'vertical'
+                    }}
+                  />
+                </div>
+
+                {/* Footer buttons */}
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setIsExternalLinkModalOpen(false)}
+                    style={{ padding: '10px 20px', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn-primary"
+                    onClick={handleSaveExternalLink}
+                    style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 700 }}
+                  >
+                    {editingExternalLinkId ? "Save Changes" : "Add Link"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Edit Website Modal */}
           {isEditWebsiteModalOpen && (
             <div style={{
