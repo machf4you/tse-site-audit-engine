@@ -7,7 +7,35 @@ import {
 } from 'lucide-react';
 import './App.css';
 import exporterData from './exporter-data.json';
-import PageAuditorApp from './page-auditor/App';
+import LocalPageAuditorApp from './page-auditor/App';
+
+const RemotePageAuditorApp = React.lazy(() => import('page_auditor/App'));
+
+class PageAuditorApp extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { useLocal: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { useLocal: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.warn("Failed to load Remote Page Auditor, falling back to local:", error);
+  }
+
+  render() {
+    if (this.state.useLocal) {
+      return <LocalPageAuditorApp />;
+    }
+    return (
+      <React.Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading Remote Page Auditor...</div>}>
+        <RemotePageAuditorApp />
+      </React.Suspense>
+    );
+  }
+}
 
 const getPageSEOScore = (pageOrUrl) => {
   const url = typeof pageOrUrl === 'string' ? pageOrUrl : (pageOrUrl ? pageOrUrl.pageUrl : "");
