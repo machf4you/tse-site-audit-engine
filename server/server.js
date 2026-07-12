@@ -319,7 +319,7 @@ app.post('/api/github/pull', async (req, res) => {
 
         console.log(`[GIT PULL] Executing git pull on branch: ${branch}...`);
         exec(`git pull origin ${branch}`, { cwd: statusCwd }, (err3, pullStdout, pullStderr) => {
-          const pullOutput = pullStdout + '\n' + pullStderr;
+          let pullOutput = pullStdout + '\n' + pullStderr;
           
           if (err3) {
             const timestamp = new Date().toISOString();
@@ -346,62 +346,103 @@ app.post('/api/github/pull', async (req, res) => {
           }
 
           // Git pull succeeded, trigger frontend rebuild
-          console.log("[GIT PULL] Git pull succeeded. Triggering frontend rebuild...");
-          const buildCmd = process.platform === 'win32'
-            ? 'npm run build'
-            : 'npm run build && cp -r dist/* ..';
-          exec(buildCmd, { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
-            const buildOutput = buildStdout + '\n' + buildStderr;
-            let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
-            
-            exec('git rev-parse HEAD', (err4, postCommitStdout) => {
-              const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
-              const timestamp = new Date().toISOString();
+          console.log("[GIT PULL] Git pull succeeded. Checking if package files changed...");
+          const packageChanged = pullStdout.includes("package.json") || pullStdout.includes("package-lock.json");
+          
+          const runBuild = () => {
+            console.log("[GIT PULL] Triggering frontend rebuild...");
+            const buildCmd = process.platform === 'win32'
+              ? 'npm run build'
+              : 'npm run build && cp -r dist/* ..';
+            exec(buildCmd, { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
+              const buildOutput = buildStdout + '\n' + buildStderr;
+              let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
               
-              const status = buildErr ? 'failure' : 'success';
-              if (buildErr) {
-                finalOutput += "\n\n[GIT PULL] Frontend build failed.";
-              } else {
-                finalOutput += "\n\n[GIT PULL] Frontend build succeeded. Deployment complete.";
-              }
+              exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+                const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+                const timestamp = new Date().toISOString();
+                
+                const status = buildErr ? 'failure' : 'success';
+                if (buildErr) {
+                  finalOutput += "\n\n[GIT PULL] Frontend build failed.";
+                } else {
+                  finalOutput += "\n\n[GIT PULL] Frontend build succeeded. Deployment complete.";
+                }
 
-              const metadata = {
-                lastPullTime: timestamp,
-                lastPullStatus: status,
-                lastPullLog: finalOutput,
-                previousCommit: previousCommit,
-                currentCommit: currentCommit
-              };
-              try {
-                fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
-              } catch (e) {
-                console.error("[GIT PULL] Failed to write metadata file:", e.message);
-              }
+                const metadata = {
+                  lastPullTime: timestamp,
+                  lastPullStatus: status,
+                  lastPullLog: finalOutput,
+                  previousCommit: previousCommit,
+                  currentCommit: currentCommit
+                };
+                try {
+                  fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+                } catch (e) {
+                  console.error("[GIT PULL] Failed to write metadata file:", e.message);
+                }
 
-              res.json({
-                success: !buildErr,
-                output: finalOutput,
-                branch,
-                previousCommit,
-                currentCommit,
-                lastPullTime: timestamp,
-                lastPullStatus: status,
-                lastPullLog: finalOutput
+                res.json({
+                  success: !buildErr,
+                  output: finalOutput,
+                  branch,
+                  previousCommit,
+                  currentCommit,
+                  lastPullTime: timestamp,
+                  lastPullStatus: status,
+                  lastPullLog: finalOutput
+                });
+
+                if (!buildErr) {
+                  console.log("[GIT PULL] Rebuild successful. Scheduling pm2 restart tse-audit-api...");
+                  setTimeout(() => {
+                    console.log("[GIT PULL] Triggering PM2 restart for tse-audit-api...");
+                    exec('pm2 restart tse-audit-api', (pm2Err) => {
+                      if (pm2Err) {
+                        console.error("[GIT PULL] PM2 restart execution failed:", pm2Err.message);
+                      }
+                    });
+                  }, 1000);
+                }
               });
-
-              if (!buildErr) {
-                console.log("[GIT PULL] Rebuild successful. Scheduling pm2 restart tse-audit-api...");
-                setTimeout(() => {
-                  console.log("[GIT PULL] Triggering PM2 restart for tse-audit-api...");
-                  exec('pm2 restart tse-audit-api', (pm2Err) => {
-                    if (pm2Err) {
-                      console.error("[GIT PULL] PM2 restart execution failed:", pm2Err.message);
-                    }
-                  });
-                }, 1000);
-              }
             });
-          });
+          };
+
+          if (packageChanged) {
+            console.log("[GIT PULL] package.json or package-lock.json changed. Running npm install...");
+            exec('npm install', { cwd: path.join(__dirname, '..') }, (installErr, installStdout, installStderr) => {
+              const installOutput = installStdout + '\n' + installStderr;
+              pullOutput += "\n\n=== NPM INSTALL LOG ===\n" + installOutput;
+              
+              if (installErr) {
+                console.error("[GIT PULL] npm install failed:", installErr.message);
+                const timestamp = new Date().toISOString();
+                const metadata = {
+                  lastPullTime: timestamp,
+                  lastPullStatus: 'failure',
+                  lastPullLog: pullOutput + "\n\n[GIT PULL] npm install failed.",
+                  previousCommit: previousCommit,
+                  currentCommit: previousCommit
+                };
+                try {
+                  fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+                } catch (e) {}
+                return res.json({
+                  success: false,
+                  output: pullOutput + "\n\n[GIT PULL] npm install failed.",
+                  branch,
+                  previousCommit,
+                  currentCommit: previousCommit,
+                  lastPullTime: timestamp,
+                  lastPullStatus: 'failure',
+                  lastPullLog: pullOutput
+                });
+              }
+              runBuild();
+            });
+          } else {
+            runBuild();
+          }
         });
       });
     });
