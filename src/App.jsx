@@ -721,6 +721,17 @@ const getRelativeUrl = (url, siteUrl) => {
   }
 };
 
+const makeHtmlSentence = (sentence, anchorText, absoluteDestUrl) => {
+  if (!sentence || !anchorText) return sentence;
+  const escapedAnchor = anchorText.replace(/[-/\\^$\*+?.()|[\]{}]/g, '\\const getComparisonContent = (task, pageObj) => {');
+  const regex = new RegExp(`(${escapedAnchor})`, 'i');
+  if (regex.test(sentence)) {
+    return sentence.replace(regex, `<a href="${absoluteDestUrl}">$1</a>`);
+  } else {
+    return sentence + ` <a href="${absoluteDestUrl}">${anchorText}</a>`;
+  }
+};
+
 const getComparisonContent = (task, pageObj) => {
   const issue = task.taskTitle || "";
   const targetPhrase = task.targetPhrase || pageObj?.targetPhrase || "keyword";
@@ -1487,7 +1498,12 @@ export default function App() {
 
       const data = await response.json();
       if (data.sentence) {
-        setGeneratedSentences(prev => ({ ...prev, [key]: data.sentence }));
+        const baseSiteUrl = selectedSite.url.replace(/\/+$/, "");
+        const relativeDestUrl = destPage.pageUrl.startsWith("/") ? destPage.pageUrl : "/" + destPage.pageUrl;
+        const absoluteDestUrl = baseSiteUrl + relativeDestUrl;
+        const htmlSentence = makeHtmlSentence(data.sentence, anchorText, absoluteDestUrl);
+        
+        setGeneratedSentences(prev => ({ ...prev, [key]: htmlSentence }));
         showNotification("Suggested sentence generated!");
       } else {
         throw new Error(data.error || "Failed to generate sentence.");
@@ -6050,23 +6066,29 @@ export default function App() {
                                                                        </button>
                                                                      </div>
                                                                    ) : (
-                                                                     <div 
-                                                                       style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexGrow: 1 }}
-                                                                       onClick={() => {
-                                                                         setEditingSentenceKey(key);
-                                                                         setEditingSentenceText(sentence);
-                                                                       }}
-                                                                     >
-                                                                       <span style={{ color: 'var(--text-primary)', fontStyle: 'normal' }}>
-                                                                         {sentence}
-                                                                       </span>
-                                                                       <span 
-                                                                         style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
-                                                                         title="Edit sentence text"
+                                                                     <>
+                                                                       <div 
+                                                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexGrow: 1 }}
+                                                                           onClick={() => {
+                                                                               setEditingSentenceKey(key);
+                                                                               setEditingSentenceText(sentence);
+                                                                           }}
                                                                        >
-                                                                         ✏️
-                                                                       </span>
-                                                                     </div>
+                                                                           <span 
+                                                                               style={{ color: 'var(--text-primary)', fontStyle: 'normal' }}
+                                                                               dangerouslySetInnerHTML={{ __html: sentence }}
+                                                                           />
+                                                                           <span 
+                                                                               style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
+                                                                               title="Edit sentence text"
+                                                                           >
+                                                                               ✏️
+                                                                           </span>
+                                                                       </div>
+                                                                       <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'left' }}>
+                                                                         Destination URL: <strong style={{ color: '#60a5fa' }}>{page.pageUrl}</strong>
+                                                                       </div>
+                                                                     </>
                                                                    )}
                                                                    <button
                                                                       className="btn-secondary"
@@ -8336,9 +8358,10 @@ export default function App() {
                               <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
                                 Copied Sentence to Insert
                               </span>
-                              <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#34d399', wordBreak: 'break-all', fontWeight: 600, padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '0.75rem' }}>
-                                {recSentence}
-                              </div>
+                              <div 
+                                style={{ fontFamily: 'Inter, sans-serif', fontSize: '0.95rem', color: '#34d399', wordBreak: 'break-word', fontWeight: 600, padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '0.75rem' }}
+                                dangerouslySetInnerHTML={{ __html: recSentence }}
+                              />
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <button
                                   className="btn-secondary btn-sm"
