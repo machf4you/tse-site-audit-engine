@@ -2760,6 +2760,61 @@ export default function App() {
     }
   };
 
+  const handleInsertLinkToSourcePage = (destinationPage, rec, sentence) => {
+    const sourcePage = rec.srcPageObject;
+    if (!sourcePage) {
+      showNotification("Source page details are not available.");
+      return;
+    }
+
+    const currentBody = sourcePage.crawlData?.bodyContent || sourcePage.crawlData?.plainText || "";
+    const fullBodyContent = currentBody + (currentBody ? "\n\n" : "") + sentence;
+    const nextTaskId = `t-${selectedSite.id}-lnk-ins-${Date.now()}`;
+
+    const newTask = {
+      id: nextTaskId,
+      taskId: nextTaskId,
+      website: selectedSite.name,
+      pageUrl: selectedSite.url.replace(/\/+$/, "") + sourcePage.pageUrl,
+      pageTitle: sourcePage.pageTitle,
+      targetPhrase: destinationPage.targetPhrase || "None",
+      keyword: destinationPage.targetPhrase || "None",
+      taskSource: "Internal Link Review",
+      source: "Internal Link Review",
+      issueType: "Internal Linking",
+      issueDescription: `Insert internal link to ${destinationPage.pageUrl} with anchor "${rec.recommendedAnchor}"`,
+      issueFound: `Missing internal link to ${destinationPage.pageUrl}`,
+      priority: "Medium",
+      status: "Open",
+      state: "progress",
+      assignedTo: "Sarah",
+      assignee: "Sarah",
+      verificationMethod: "Page Auditor verifies link presence",
+      successCheck: "Page Auditor verifies link presence",
+      createdDate: new Date().toISOString().split('T')[0],
+      completedDate: null,
+      taskTitle: `Insert internal link to ${destinationPage.pageUrl}`,
+      currentVersion: currentBody,
+      requiredVersion: fullBodyContent,
+      whyItMatters: "Contextual internal links pass SEO value and help indexing.",
+      destinationPageUrl: destinationPage.pageUrl
+    };
+
+    setSites(prev => prev.map(s => {
+      if (s.id === selectedSite.id) {
+        const updatedTasks = [...(s.tasks || []), newTask];
+        return { ...s, tasks: updatedTasks };
+      }
+      return s;
+    }));
+
+    setSelectedTaskId(nextTaskId);
+    setEditingContent(fullBodyContent);
+    setVerificationStatus("idle");
+    setVerificationError("");
+    setCurrentView("EDIT");
+  };
+
   const handleMarkInProgress = (taskId) => {
     setSites(prevSites => prevSites.map(s => {
       if (s.id === selectedSiteId) {
@@ -2846,6 +2901,8 @@ export default function App() {
         wpField = "h1";
       } else if (taskTitle.includes("title tag") || taskTitle.includes("title phrase") || taskTitle.includes("meta title")) {
         wpField = "seo_title";
+      } else if (taskTitle.includes("internal link") || taskTitle.includes("body content")) {
+        wpField = "body_content";
       } else {
         throw new Error(`Unsupported task type for WordPress update: "${activeTask.taskTitle}"`);
       }
@@ -5923,23 +5980,35 @@ export default function App() {
                                                                      </div>
                                                                    )}
                                                                    <button
-                                                                     className="btn-secondary"
-                                                                     onClick={() => {
-                                                                       navigator.clipboard.writeText(sentence);
-                                                                       showNotification("Copied to clipboard!");
-                                                                     }}
-                                                                     style={{
-                                                                       padding: '4px 10px',
-                                                                       fontSize: '0.75rem',
-                                                                       fontWeight: 600,
-                                                                       border: '1px solid rgba(16, 185, 129, 0.25)',
-                                                                       color: '#34d399',
-                                                                       backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                                                                       marginLeft: '12px'
-                                                                     }}
-                                                                   >
-                                                                     Copy
-                                                                   </button>
+                                                                      className="btn-secondary"
+                                                                      onClick={() => {
+                                                                        navigator.clipboard.writeText(sentence);
+                                                                        showNotification("Copied to clipboard!");
+                                                                      }}
+                                                                      style={{
+                                                                        padding: '4px 10px',
+                                                                        fontSize: '0.75rem',
+                                                                        fontWeight: 600,
+                                                                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                                                                        color: '#34d399',
+                                                                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                                                        marginLeft: '12px'
+                                                                      }}
+                                                                    >
+                                                                      Copy
+                                                                    </button>
+                                                                    <button
+                                                                      className="btn-primary"
+                                                                      onClick={() => handleInsertLinkToSourcePage(page, rec, sentence)}
+                                                                      style={{
+                                                                        padding: '4px 10px',
+                                                                        fontSize: '0.75rem',
+                                                                        fontWeight: 600,
+                                                                        marginLeft: '8px'
+                                                                      }}
+                                                                    >
+                                                                      Insert into WordPress
+                                                                    </button>
                                                                  </>
                                                                ) : (
                                                                  <>
@@ -8067,14 +8136,30 @@ export default function App() {
           {currentView === "EDIT" && activeTask && selectedSite && (
             <div>
               <div className="mb-4">
-                <button 
-                  className="flex align-center gap-2 text-secondary cursor-pointer"
-                  disabled={verificationStatus === "loading"}
-                  onClick={() => setCurrentView("TASK_FOCUS")}
-                  style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-secondary)' }}
-                >
-                  <ArrowLeft size={16} /> Back to Task Details
-                </button>
+                {activeTask.issueType === "Internal Linking" ? (
+                  <button 
+                    className="flex align-center gap-2 text-secondary cursor-pointer"
+                    disabled={verificationStatus === "loading"}
+                    onClick={() => {
+                      if (activeTask.destinationPageUrl) {
+                        setExpandedLinkRows({ [activeTask.destinationPageUrl]: true });
+                      }
+                      setCurrentView("WEBSITES_INTERNAL_LINKING");
+                    }}
+                    style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-secondary)' }}
+                  >
+                    <ArrowLeft size={16} /> Back to Internal Link Review
+                  </button>
+                ) : (
+                  <button 
+                    className="flex align-center gap-2 text-secondary cursor-pointer"
+                    disabled={verificationStatus === "loading"}
+                    onClick={() => setCurrentView("TASK_FOCUS")}
+                    style={{ background: 'none', border: 'none', fontSize: '0.9rem', color: 'var(--text-secondary)' }}
+                  >
+                    <ArrowLeft size={16} /> Back to Task Details
+                  </button>
+                )}
               </div>
 
               <div className="report-section" style={{ padding: '2.5rem' }}>
@@ -8138,6 +8223,66 @@ export default function App() {
                       const isMetaTask = activeTask.taskTitle.toLowerCase().includes("meta title") || 
                                          activeTask.taskTitle.toLowerCase().includes("meta description") ||
                                          activeTask.taskTitle.toLowerCase().includes("title tag");
+
+                      const isLinkTask = activeTask.issueType === "Internal Linking" || activeTask.taskSource === "Internal Link Review";
+
+                      if (isLinkTask) {
+                        return (
+                          <div>
+                            {/* 1. Current Value */}
+                            <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'left', marginBottom: '1.25rem' }}>
+                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
+                                Existing Source Page Body Content
+                              </span>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', wordBreak: 'break-all', maxHeight: '120px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
+                                {activeTask.currentVersion || "Empty body content."}
+                              </div>
+                            </div>
+
+                            {/* 2. Recommended Link Sentence */}
+                            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)', textAlign: 'left', marginBottom: '1.25rem' }}>
+                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
+                                Recommended Link Sentence (Appended Below)
+                              </span>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#34d399', wordBreak: 'break-all', fontWeight: 600 }}>
+                                {activeTask.requiredVersion.split('\n\n').slice(-1)[0] || ""}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                                Destination URL: <strong style={{ color: '#60a5fa' }}>{activeTask.issueDescription.match(/to\s+([^\s]+)/)?.[1] || ""}</strong>
+                              </div>
+                            </div>
+
+                            {/* 3. Editable WordPress Field */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                Editable WordPress Field (Page Body)
+                              </span>
+                              {verificationStatus !== "success" && verificationStatus !== "loading" && (
+                                <button 
+                                  className="btn-secondary btn-sm" 
+                                  onClick={() => setEditingContent(activeTask.requiredVersion || "")}
+                                  style={{ padding: '2px 8px', fontSize: '0.75rem' }}
+                                >
+                                  Reset to Recommended
+                                </button>
+                              )}
+                            </div>
+                            <textarea 
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              disabled={verificationStatus === "loading" || verificationStatus === "success"}
+                              rows={10}
+                              style={{ 
+                                width: '100%',
+                                backgroundColor: '#07090b', padding: '1rem', borderRadius: '8px', 
+                                fontFamily: 'monospace', fontSize: '0.9rem', color: '#f3f4f6',
+                                border: '1px solid var(--border-color)', resize: 'vertical',
+                                lineHeight: 1.4, marginBottom: '1rem'
+                              }}
+                            />
+                          </div>
+                        );
+                      }
 
                       if (isMetaTask) {
                         return (
@@ -8265,9 +8410,24 @@ export default function App() {
 
                     <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
                       {verificationStatus === "success" ? (
-                        <button className="btn-primary start-working-btn" onClick={handleNextTask} style={{ width: '100%', justifyContent: 'center' }}>
-                          Next Task
-                        </button>
+                        activeTask.issueType === "Internal Linking" ? (
+                          <button 
+                            className="btn-primary start-working-btn" 
+                            onClick={() => {
+                              if (activeTask.destinationPageUrl) {
+                                setExpandedLinkRows({ [activeTask.destinationPageUrl]: true });
+                              }
+                              setCurrentView("WEBSITES_INTERNAL_LINKING");
+                            }} 
+                            style={{ width: '100%', justifyContent: 'center' }}
+                          >
+                            Return to Internal Link Review
+                          </button>
+                        ) : (
+                          <button className="btn-primary start-working-btn" onClick={handleNextTask} style={{ width: '100%', justifyContent: 'center' }}>
+                            Next Task
+                          </button>
+                        )
                       ) : (
                         <button 
                           className="btn-primary" 
