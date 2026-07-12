@@ -317,6 +317,7 @@ app.post('/api/github/pull', async (req, res) => {
           });
         }
 
+        // Use fetch and reset --hard origin/branch to handle normal updates, rollbacks, and diverged branches without merge/rebase reconciliation errors
         console.log(`[GIT PULL] Fetching and resetting to origin/${branch}...`);
         exec(`git fetch origin && git reset --hard origin/${branch}`, { cwd: statusCwd }, (err3, pullStdout, pullStderr) => {
           const pullOutput = pullStdout + '\n' + pullStderr;
