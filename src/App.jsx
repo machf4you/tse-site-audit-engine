@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import './App.css';
 import exporterData from './exporter-data.json';
+import PageAuditorApp from './page-auditor/App';
 
 const getPageSEOScore = (pageOrUrl) => {
   const url = typeof pageOrUrl === 'string' ? pageOrUrl : (pageOrUrl ? pageOrUrl.pageUrl : "");
@@ -4237,7 +4238,56 @@ export default function App() {
     );
   }
 
-  if (activeApp !== "WEBSITE_MANAGEMENT" && activeApp !== "PAGE_AUDITOR") {
+  if (activeApp === "PAGE_AUDITOR") {
+    return (
+      <div className="hub-container">
+        {notification && (
+          <div style={{
+            position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)",
+            backgroundColor: "#10b981", color: "white", padding: "10px 20px",
+            borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
+            zIndex: 2000, fontWeight: "600", fontSize: "0.9rem", display: "flex",
+            alignItems: "center", gap: "8px"
+          }}>
+            <CheckCircle size={16} /> {notification}
+          </div>
+        )}
+        <header className="hub-header">
+          <button 
+            onClick={() => setActiveApp("DASHBOARD")}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              padding: '8px 12px',
+              transition: 'all 0.2s ease',
+              outline: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginRight: '12px'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            ← Back to Dashboard
+          </button>
+          <div className="hub-brand" style={{ cursor: 'pointer' }}>
+            <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
+            <span>TSE Page Auditor</span>
+          </div>
+        </header>
+        <main className="hub-main" style={{ padding: '0 2rem' }}>
+          <PageAuditorApp />
+        </main>
+      </div>
+    );
+  }
+
+  if (activeApp !== "WEBSITE_MANAGEMENT") {
     const getPlaceholderParams = () => {
       switch (activeApp) {
         case "CHATZA":
@@ -4350,11 +4400,11 @@ export default function App() {
           onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
           onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
         >
-          ← Back to Dashboard
+          ← Back to Apps
         </button>
         <div className="hub-brand" onClick={() => { setCurrentView("CONNECTED_SITES"); setSelectedTaskId(null); }} style={{ cursor: 'pointer' }}>
           <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
-          <span>{activeApp === "PAGE_AUDITOR" ? "TSE Page Auditor" : "TSE Website Management"}</span>
+          <span>TSE Website Management</span>
         </div>
 
         <div className="hub-navigation" style={{ display: 'flex', gap: '24px', marginLeft: '80px', marginRight: 'auto' }}>
