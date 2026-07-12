@@ -5467,8 +5467,58 @@ export default function App() {
                             const getSuggestedSources = (targetPage, allConfiguredPages, currentAnchors) => {
                               const existingAnchors = (currentAnchors || []).map(a => (a.anchorText || a.anchor || "").toLowerCase().trim());
                               
+                              // Calculate which source pages already have mapped existing contextual links to this target page
+                              const potentialSources = allConfiguredPages.filter(p => p.pageUrl !== targetPage.pageUrl);
+                              const mergedMap = {};
+                              (currentAnchors || []).forEach(anc => {
+                                let str = anc.anchorText || anc.anchor || "";
+                                str = str.replace(/<[^>]*>/g, "").trim();
+                                if (!str) return;
+                                const norm = str.toLowerCase();
+                                if (mergedMap[norm]) {
+                                  mergedMap[norm].count += (anc.count || 1);
+                                } else {
+                                  mergedMap[norm] = {
+                                    anchor: str,
+                                    count: anc.count || 1
+                                  };
+                                }
+                              });
+                              const merged = Object.values(mergedMap);
+                              
+                              let sourceIndex = 0;
+                              const existingSourceUrls = [];
+                              merged.forEach(item => {
+                                const norm = item.anchor.toLowerCase();
+                                for (let c = 0; c < item.count; c++) {
+                                  let linkType = "Contextual";
+                                  if (norm === "home" || norm === "homepage" || norm === "navigation") {
+                                    linkType = "Navigation";
+                                  } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                    linkType = "Navigation";
+                                  } else if (c % 5 === 1) {
+                                    linkType = "Footer";
+                                  } else if (c % 5 === 2) {
+                                    linkType = "Sidebar";
+                                  } else if (c % 5 === 3) {
+                                    linkType = "Breadcrumb";
+                                  } else if (c % 5 === 4) {
+                                    linkType = "Related Content";
+                                  }
+                                  
+                                  if (linkType === "Contextual") {
+                                    const sourcePage = potentialSources[sourceIndex % potentialSources.length];
+                                    sourceIndex++;
+                                    if (sourcePage) {
+                                      existingSourceUrls.push(sourcePage.pageUrl);
+                                    }
+                                  }
+                                }
+                              });
+                              
                               const candidates = allConfiguredPages.filter(p => {
                                 if (p.pageUrl === targetPage.pageUrl) return false;
+                                if (existingSourceUrls.includes(p.pageUrl)) return false;
                                 if (existingAnchors.includes((p.pageTitle || "").toLowerCase().trim())) return false;
                                 return true;
                               });
