@@ -2670,6 +2670,12 @@ export default function App() {
   const handleFixIssueDirectly = (pageUrl, targetPhrase, failItem, site) => {
     const relUrl = getRelativeUrl(pageUrl, site.url);
     
+    if (failItem.item === "Internal Link Count") {
+      setExpandedLinkRows({ [relUrl]: true });
+      setCurrentView("WEBSITES_INTERNAL_LINKING");
+      return;
+    }
+    
     // Find if task exists
     let existingTask = site.tasks.find(t => {
       const tRel = getRelativeUrl(t.pageUrl, site.url);
