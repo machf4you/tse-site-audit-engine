@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import './App.css';
 import exporterData from './exporter-data.json';
+import ChatzaApp from './chatza/App.jsx';
 
 const getPageSEOScore = (pageOrUrl) => {
   const url = typeof pageOrUrl === 'string' ? pageOrUrl : (pageOrUrl ? pageOrUrl.pageUrl : "");
@@ -4232,6 +4233,13 @@ export default function App() {
           })}
         </div>
       </div>
+    );
+  }
+
+  if (activeApp === "CHATZA") {
+    return renderPlatformLayout(
+      "DASHBOARD",
+      <ChatzaApp />
     );
   }
 

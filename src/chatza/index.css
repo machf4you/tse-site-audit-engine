@@ -1,0 +1,148 @@
+.chatza-scope {
+    --bg-dark: #000000;
+    --bg-card: #09090b;
+    --primary: #10b981;
+    --primary-hover: #059669;
+    --text-main: #ffffff;
+    --text-muted: #a1a1aa;
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+.chatza-scope .glass {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+}
+
+.chatza-scope .btn-primary {
+    background: var(--primary);
+    color: black;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 9999px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chatza-scope .btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.chatza-scope .btn-primary:active {
+    transform: scale(0.98);
+}
+
+.chatza-scope .btn-outline {
+    background: transparent;
+    color: var(--text-main);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chatza-scope .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.chatza-scope .video-grid {
+    display: flex;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+    gap: 16px;
+    justify-content: center;
+    align-items: center;
+}
+
+.chatza-scope .video-tile {
+    background: #1e293b;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    height: 100%;
+    max-width: 800px;
+    aspect-ratio: 16/9;
+}
+
+.chatza-scope video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+.chatza-scope video.remote {
+    transform: scaleX(1);
+}
+
+@media (max-width: 768px) {
+    .chatza-scope .video-grid {
+        flex-direction: column;
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .chatza-scope .video-tile {
+        width: 100%;
+        height: 100%;
+        aspect-ratio: auto;
+    }
+}
+
+@media (min-width: 769px) {
+    .chatza-scope .video-grid {
+        flex-direction: row;
+    }
+}
+
+.chatza-scope .controls-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+}
+
+.chatza-scope .debug-overlay {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 10px;
+    padding: 4px;
+    pointer-events: none;
+    z-index: 9999;
+    white-space: pre;
+}
+
+.chatza-scope .iab-modal {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+}
