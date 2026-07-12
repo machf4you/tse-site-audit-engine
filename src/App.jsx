@@ -723,12 +723,40 @@ const getRelativeUrl = (url, siteUrl) => {
 
 const makeHtmlSentence = (sentence, anchorText, absoluteDestUrl) => {
   if (!sentence || !anchorText) return sentence;
-  const escapedAnchor = anchorText.replace(/[-/\\^$\*+?.()|[\]{}]/g, '\\const getComparisonContent = (task, pageObj) => {');
+  const escapedAnchor = anchorText.replace(/[-\/\\^$\*+?.()|[\]{}]/g, '\\$&');
   const regex = new RegExp(`(${escapedAnchor})`, 'i');
   if (regex.test(sentence)) {
     return sentence.replace(regex, `<a href="${absoluteDestUrl}">$1</a>`);
   } else {
     return sentence + ` <a href="${absoluteDestUrl}">${anchorText}</a>`;
+  }
+};
+
+const copySentenceHtml = (sentence, successCallback) => {
+  const plainText = sentence.replace(/<[^>]*>/g, "");
+  if (navigator.clipboard && window.ClipboardItem) {
+    const htmlBlob = new Blob([sentence], { type: 'text/html' });
+    const textBlob = new Blob([plainText], { type: 'text/plain' });
+    const item = new ClipboardItem({
+      'text/html': htmlBlob,
+      'text/plain': textBlob
+    });
+    navigator.clipboard.write([item])
+      .then(() => {
+        if (successCallback) successCallback();
+      })
+      .catch(err => {
+        console.error("Rich clipboard copy failed, falling back:", err);
+        navigator.clipboard.writeText(plainText)
+          .then(() => {
+            if (successCallback) successCallback();
+          });
+      });
+  } else {
+    navigator.clipboard.writeText(plainText)
+      .then(() => {
+        if (successCallback) successCallback();
+      });
   }
 };
 
@@ -2793,13 +2821,9 @@ export default function App() {
     }
 
     // 1. Copy sentence to clipboard
-    navigator.clipboard.writeText(sentence)
-      .then(() => {
-        showNotification("Copied internal link sentence to clipboard!");
-      })
-      .catch(err => {
-        console.error("Failed to copy text:", err);
-      });
+    copySentenceHtml(sentence, () => {
+      showNotification("Copied internal link sentence to clipboard!");
+    });
 
     // 2. Open correct WordPress page for editing
     let wpPostId = sourcePage.wpPostId;
@@ -6143,8 +6167,9 @@ export default function App() {
                                                                    <button
                                                                       className="btn-secondary"
                                                                       onClick={() => {
-                                                                        navigator.clipboard.writeText(sentence);
-                                                                        showNotification("Copied to clipboard!");
+                                                                        copySentenceHtml(sentence, () => {
+                                                                          showNotification("Copied to clipboard!");
+                                                                        });
                                                                       }}
                                                                       style={{
                                                                         padding: '4px 10px',
@@ -8268,8 +8293,15 @@ export default function App() {
                           className="btn-secondary"
                           onClick={() => {
                             if (navigator.clipboard) {
-                              navigator.clipboard.writeText(activeTask.requiredVersion || "");
-                              showNotification("Required version copied to clipboard!");
+                              const isLinkTask = activeTask.issueType === "Internal Linking" || activeTask.taskSource === "Internal Link Review";
+                              if (isLinkTask) {
+                                copySentenceHtml(activeTask.requiredVersion || "", () => {
+                                  showNotification("Required version copied to clipboard!");
+                                });
+                              } else {
+                                navigator.clipboard.writeText(activeTask.requiredVersion || "");
+                                showNotification("Required version copied to clipboard!");
+                              }
                             } else {
                               showNotification("Clipboard copy not supported in this browser.");
                             }
@@ -8416,8 +8448,9 @@ export default function App() {
                                 <button
                                   className="btn-secondary btn-sm"
                                   onClick={() => {
-                                    navigator.clipboard.writeText(recSentence);
-                                    showNotification("Copied sentence to clipboard!");
+                                    copySentenceHtml(recSentence, () => {
+                                      showNotification("Copied sentence to clipboard!");
+                                    });
                                   }}
                                   style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                                 >
