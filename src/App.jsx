@@ -3023,7 +3023,53 @@ export default function App() {
         }
       };
       
-      const updatedSitePages = sitePages.map(p => p.pageUrl === cleanRelativeUrl ? finalizedPageObj : p);
+      let updatedSitePages = sitePages.map(p => p.pageUrl === cleanRelativeUrl ? finalizedPageObj : p);
+      
+      // If it is an internal link task, also update the destination page's link count and incoming anchors list
+      if (wpField === "body_content" && activeTask.destinationPageUrl) {
+        const destRelativeUrl = getRelativeUrl(activeTask.destinationPageUrl, selectedSite.url);
+        const anchorMatch = activeTask.issueDescription.match(/with anchor "([^"]+)"/);
+        const anchorText = anchorMatch ? anchorMatch[1] : (activeTask.targetPhrase || "keyword");
+        
+        updatedSitePages = updatedSitePages.map(p => {
+          if (getRelativeUrl(p.pageUrl, selectedSite.url) === destRelativeUrl) {
+            const currentIncomingAnchors = p.crawlData?.incomingAnchors || [];
+            const updatedIncomingAnchors = [...currentIncomingAnchors, { anchor: anchorText, count: 1 }];
+            
+            const currentLinkCount = typeof p.crawlData?.internalLinkCount === 'number' 
+              ? p.crawlData.internalLinkCount 
+              : 0;
+              
+            const updatedCrawl = {
+              ...(p.crawlData || {}),
+              internalLinkCount: currentLinkCount + 1,
+              incomingAnchors: updatedIncomingAnchors
+            };
+            
+            const updatedPage = {
+              ...p,
+              crawlData: updatedCrawl
+            };
+            
+            const destAuditResults = runPageAudit(
+              updatedPage.pageUrl,
+              updatedPage.targetPhrase,
+              updatedPage.pageTitle,
+              selectedSite.id,
+              updatedPage
+            );
+            
+            return {
+              ...updatedPage,
+              latestAudit: {
+                timestamp: new Date().toISOString(),
+                results: destAuditResults
+              }
+            };
+          }
+          return p;
+        });
+      }
       
       // Save updated pages to database
       await fetch(`${API_BASE}/pages-data/save`, {
