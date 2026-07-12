@@ -4237,7 +4237,7 @@ export default function App() {
     );
   }
 
-  if (activeApp !== "WEBSITE_MANAGEMENT") {
+  if (activeApp !== "WEBSITE_MANAGEMENT" && activeApp !== "PAGE_AUDITOR") {
     const getPlaceholderParams = () => {
       switch (activeApp) {
         case "CHATZA":
@@ -4350,11 +4350,11 @@ export default function App() {
           onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text-primary)'}
           onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
         >
-          ← Back to Apps
+          ← Back to Dashboard
         </button>
         <div className="hub-brand" onClick={() => { setCurrentView("CONNECTED_SITES"); setSelectedTaskId(null); }} style={{ cursor: 'pointer' }}>
           <CheckSquare size={22} style={{ color: "var(--accent-color)" }} />
-          <span>TSE Website Management</span>
+          <span>{activeApp === "PAGE_AUDITOR" ? "TSE Page Auditor" : "TSE Website Management"}</span>
         </div>
 
         <div className="hub-navigation" style={{ display: 'flex', gap: '24px', marginLeft: '80px', marginRight: 'auto' }}>
