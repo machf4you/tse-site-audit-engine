@@ -639,7 +639,8 @@ const INITIAL_SITES = [
     url: BU_URL,
     status: "Setup Required",
     lastAudit: isAutomationViewTemp ? "16 May 2026" : null,
-    tasks: initialBUData.tasks
+    tasks: initialBUData.tasks,
+    elementorEnabled: true
   },
   {
     id: "the-search-equation",
@@ -985,6 +986,7 @@ export default function App() {
         if (site) {
           setSitePortfolio(site.portfolio || "Other");
           setSitePlatform(site.platform || "Other");
+          setSiteElementorEnabled(!!site.elementorEnabled);
         }
       }
     }, [selectedSiteId, sites]);
@@ -1113,6 +1115,9 @@ export default function App() {
   // Onboarding site classification (Milestone M004)
   const [newSitePortfolio, setNewSitePortfolio] = useState("TSE");
   const [newSitePlatform, setNewSitePlatform] = useState("WordPress");
+  const [newSiteElementorEnabled, setNewSiteElementorEnabled] = useState(false);
+  const [editSiteElementorEnabled, setEditSiteElementorEnabled] = useState(false);
+  const [siteElementorEnabled, setSiteElementorEnabled] = useState(false);
   
   // Platform App selection (Milestone M005 - Moved to top-level state)
 
@@ -1246,6 +1251,7 @@ export default function App() {
     setEditSiteApiUrl(site.apiUrl || `${site.url}/wp-json/`);
     setEditSiteUsername(site.credentials?.username || "");
     setEditSitePassword(site.credentials?.password || "");
+    setEditSiteElementorEnabled(!!site.elementorEnabled);
     setIsEditWebsiteModalOpen(true);
   };
 
@@ -1278,6 +1284,7 @@ export default function App() {
           apiUrl: cleanApiUrl,
           portfolio: editSitePortfolio,
           platform: editSitePlatform,
+          elementorEnabled: editSiteElementorEnabled,
           status: hasCredentials ? "Connected" : "Setup Required",
           credentials: {
             username: editSiteUsername.trim(),
@@ -1628,7 +1635,8 @@ export default function App() {
         password: newSitePassword.trim()
       },
       portfolio: newSitePortfolio,
-      platform: newSitePlatform
+      platform: newSitePlatform,
+      elementorEnabled: newSiteElementorEnabled
     };
 
     setSites(prev => [...prev, newSite]);
@@ -2568,7 +2576,8 @@ export default function App() {
         return {
           ...s,
           portfolio: sitePortfolio,
-          platform: sitePlatform
+          platform: sitePlatform,
+          elementorEnabled: siteElementorEnabled
         };
       }
       return s;
@@ -2767,6 +2776,37 @@ export default function App() {
       return;
     }
 
+    // 1. Copy sentence to clipboard
+    navigator.clipboard.writeText(sentence)
+      .then(() => {
+        showNotification("Copied internal link sentence to clipboard!");
+      })
+      .catch(err => {
+        console.error("Failed to copy text:", err);
+      });
+
+    // 2. Open correct WordPress page for editing
+    let wpPostId = sourcePage.wpPostId;
+    if (!wpPostId) {
+      const siteExport = exporterData[selectedSite.id];
+      if (siteExport && siteExport.pages) {
+        const matched = siteExport.pages.find(p => getRelativeUrl(p.pageUrl, selectedSite.url) === getRelativeUrl(sourcePage.pageUrl, selectedSite.url));
+        if (matched) {
+          wpPostId = matched.wpPostId || matched.id;
+        }
+      }
+    }
+
+    if (wpPostId) {
+      const isElementor = !!selectedSite.elementorEnabled;
+      const wpBaseUrl = selectedSite.url.replace(/\/+$/, "");
+      const editorAction = isElementor ? "elementor" : "edit";
+      const editorUrl = `${wpBaseUrl}/wp-admin/post.php?post=${wpPostId}&action=${editorAction}`;
+      window.open(editorUrl, '_blank');
+    } else {
+      showNotification("Could not find WordPress post ID for source page.");
+    }
+
     const currentBody = sourcePage.crawlData?.bodyContent || sourcePage.crawlData?.plainText || "";
     const fullBodyContent = currentBody + (currentBody ? "\n\n" : "") + sentence;
     const nextTaskId = `t-${selectedSite.id}-lnk-ins-${Date.now()}`;
@@ -2907,26 +2947,29 @@ export default function App() {
         throw new Error(`Unsupported task type for WordPress update: "${activeTask.taskTitle}"`);
       }
       
-      console.log(`Pushing update to WordPress: post_id=${wpPostId}, field=${wpField}`);
-      
-      // 3. Save changes via POST /update-page
-      const updateEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/update-page`;
-      const updateRes = await fetch(updateEndpoint, {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${credentials}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          post_id: wpPostId,
-          field: wpField,
-          value: editingContent
-        })
-      });
-      
-      if (!updateRes.ok) {
-        const errData = await updateRes.json().catch(() => ({}));
-        throw new Error(errData.message || `WordPress update failed with status ${updateRes.status}`);
+      // Only push update to WordPress if NOT an internal link task (which is edited manually by the user)
+      if (wpField !== "body_content") {
+        console.log(`Pushing update to WordPress: post_id=${wpPostId}, field=${wpField}`);
+        
+        // 3. Save changes via POST /update-page
+        const updateEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/update-page`;
+        const updateRes = await fetch(updateEndpoint, {
+          method: "POST",
+          headers: {
+            "Authorization": `Basic ${credentials}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            post_id: wpPostId,
+            field: wpField,
+            value: editingContent
+          })
+        });
+        
+        if (!updateRes.ok) {
+          const errData = await updateRes.json().catch(() => ({}));
+          throw new Error(errData.message || `WordPress update failed with status ${updateRes.status}`);
+        }
       }
       
       // 4. Sync ONLY this page's crawl data from WordPress
@@ -8227,59 +8270,59 @@ export default function App() {
                       const isLinkTask = activeTask.issueType === "Internal Linking" || activeTask.taskSource === "Internal Link Review";
 
                       if (isLinkTask) {
+                        const destinationPageUrl = activeTask.destinationPageUrl || activeTask.issueDescription.match(/to\s+([^\s]+)/)?.[1] || "";
+                        const recSentence = activeTask.requiredVersion.split('\n\n').slice(-1)[0] || "";
+
                         return (
                           <div>
-                            {/* 1. Current Value */}
-                            <div style={{ backgroundColor: 'rgba(255, 255, 255, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', textAlign: 'left', marginBottom: '1.25rem' }}>
-                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
-                                Existing Source Page Body Content
-                              </span>
-                              <div style={{ fontFamily: 'monospace', fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', wordBreak: 'break-all', maxHeight: '120px', overflowY: 'auto', whiteSpace: 'pre-wrap' }}>
-                                {activeTask.currentVersion || "Empty body content."}
+                            {/* 1. Status Indicator */}
+                            <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.05)', padding: '1.25rem', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.15)', textAlign: 'left', marginBottom: '1.25rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#60a5fa', fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                                <ExternalLink size={16} /> WordPress Editor Opened
                               </div>
+                              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
+                                We have opened the editing screen for this page in a new browser tab and copied the recommended internal link sentence to your clipboard.
+                              </p>
                             </div>
 
                             {/* 2. Recommended Link Sentence */}
-                            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)', textAlign: 'left', marginBottom: '1.25rem' }}>
-                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.35rem' }}>
-                                Recommended Link Sentence (Appended Below)
+                            <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.02)', padding: '1.25rem', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.15)', textAlign: 'left', marginBottom: '1.25rem' }}>
+                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: '#34d399', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>
+                                Copied Sentence to Insert
                               </span>
-                              <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#34d399', wordBreak: 'break-all', fontWeight: 600 }}>
-                                {activeTask.requiredVersion.split('\n\n').slice(-1)[0] || ""}
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: '#34d399', wordBreak: 'break-all', fontWeight: 600, padding: '0.75rem', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: '0.75rem' }}>
+                                {recSentence}
                               </div>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                                Destination URL: <strong style={{ color: '#60a5fa' }}>{activeTask.issueDescription.match(/to\s+([^\s]+)/)?.[1] || ""}</strong>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <button
+                                  className="btn-secondary btn-sm"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(recSentence);
+                                    showNotification("Copied sentence to clipboard!");
+                                  }}
+                                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                                >
+                                  Copy Sentence Again
+                                </button>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                  Destination URL: <strong style={{ color: '#60a5fa' }}>{destinationPageUrl}</strong>
+                                </span>
                               </div>
                             </div>
 
-                            {/* 3. Editable WordPress Field */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                              <span style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>
-                                Editable WordPress Field (Page Body)
+                            {/* 3. Steps list */}
+                            <div style={{ textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '0.75rem' }}>
+                                Steps to Complete
                               </span>
-                              {verificationStatus !== "success" && verificationStatus !== "loading" && (
-                                <button 
-                                  className="btn-secondary btn-sm" 
-                                  onClick={() => setEditingContent(activeTask.requiredVersion || "")}
-                                  style={{ padding: '2px 8px', fontSize: '0.75rem' }}
-                                >
-                                  Reset to Recommended
-                                </button>
-                              )}
+                              <ol style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, paddingLeft: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', lineHeight: 1.45 }}>
+                                <li>Switch to the WordPress editor tab that was just opened.</li>
+                                <li>Find the appropriate position in your content to add the link sentence.</li>
+                                <li>Paste the copied sentence (<strong>Ctrl + V</strong>) into the editor.</li>
+                                <li>Save or Update the page inside WordPress.</li>
+                                <li>Return here and click <strong>Verify Change</strong> below to sync and verify.</li>
+                              </ol>
                             </div>
-                            <textarea 
-                              value={editingContent}
-                              onChange={(e) => setEditingContent(e.target.value)}
-                              disabled={verificationStatus === "loading" || verificationStatus === "success"}
-                              rows={10}
-                              style={{ 
-                                width: '100%',
-                                backgroundColor: '#07090b', padding: '1rem', borderRadius: '8px', 
-                                fontFamily: 'monospace', fontSize: '0.9rem', color: '#f3f4f6',
-                                border: '1px solid var(--border-color)', resize: 'vertical',
-                                lineHeight: 1.4, marginBottom: '1rem'
-                              }}
-                            />
                           </div>
                         );
                       }
@@ -8587,6 +8630,22 @@ export default function App() {
                               <option value="Other">Other</option>
                             </select>
                           </div>
+
+                          {/* Elementor checkbox */}
+                          {sitePlatform === "WordPress" && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <input 
+                                type="checkbox"
+                                id="siteElementorInput"
+                                checked={siteElementorEnabled}
+                                onChange={(e) => setSiteElementorEnabled(e.target.checked)}
+                                style={{ cursor: 'pointer', width: '14px', height: '14px' }}
+                              />
+                              <label htmlFor="siteElementorInput" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                Elementor
+                              </label>
+                            </div>
+                          )}
 
                           {/* Save Settings Button */}
                           <button
@@ -9528,6 +9587,21 @@ export default function App() {
                       <option value="Other">Other</option>
                     </select>
                   </div>
+
+                  {newSitePlatform === "WordPress" && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1.25rem', textAlign: 'left' }}>
+                      <input 
+                        type="checkbox"
+                        id="newSiteElementorEnabledInput"
+                        checked={newSiteElementorEnabled}
+                        onChange={(e) => setNewSiteElementorEnabled(e.target.checked)}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      />
+                      <label htmlFor="newSiteElementorEnabledInput" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                        Elementor Page Builder Enabled
+                      </label>
+                    </div>
+                  )}
                 </div>
 
                 {/* Connection Test Message Banner */}
@@ -9966,6 +10040,21 @@ export default function App() {
                         <option value="Other">Other</option>
                       </select>
                     </div>
+
+                    {editSitePlatform === "WordPress" && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1.25rem', textAlign: 'left' }}>
+                        <input 
+                          type="checkbox"
+                          id="editSiteElementorEnabledInput"
+                          checked={editSiteElementorEnabled}
+                          onChange={(e) => setEditSiteElementorEnabled(e.target.checked)}
+                          style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                        />
+                        <label htmlFor="editSiteElementorEnabledInput" style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                          Elementor Page Builder Enabled
+                        </label>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right Column */}
