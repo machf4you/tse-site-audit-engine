@@ -1626,10 +1626,64 @@ export default function App() {
       const plannedPages = prevPages.filter(p => p.status === "Planned" && !syncedUrls.has(p.pageUrl));
       const finalPages = [...formattedPages, ...plannedPages];
 
+      // 1. Initialize link fields to 0/empty for all pages
+      finalPages.forEach(p => {
+        if (!p.crawlData) p.crawlData = {};
+        p.crawlData.internalLinkCount = 0;
+        p.crawlData.incomingAnchors = [];
+      });
+
+      // 2. Parse bodyContent to rebuild the incoming internal links dataset
+      finalPages.forEach(srcPage => {
+        const bodyContent = srcPage.crawlData?.bodyContent || "";
+        const linkRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+        let match;
+        while ((match = linkRegex.exec(bodyContent)) !== null) {
+          const href = match[1];
+          const anchor = match[2];
+          const relativeHref = getRelativeUrl(href, cleanUrl);
+          const anchorText = anchor.replace(/<[^>]*>/g, "").trim();
+          
+          if (!anchorText) continue;
+
+          // Find matching destination page
+          const destPage = finalPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
+          if (destPage) {
+            destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
+            
+            const normAnchor = anchorText.toLowerCase();
+            const existingAnchor = destPage.crawlData.incomingAnchors.find(a => (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor);
+            if (existingAnchor) {
+              existingAnchor.count = (existingAnchor.count || 1) + 1;
+            } else {
+              destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1 });
+            }
+          }
+        }
+      });
+
+      // 3. Re-run all Page Audits using the updated data
+      const updatedPagesWithAudits = finalPages.map(page => {
+        const newAuditResults = runPageAudit(
+          page.pageUrl,
+          page.targetPhrase,
+          page.pageTitle,
+          siteId,
+          page
+        );
+        return {
+          ...page,
+          latestAudit: {
+            timestamp: new Date().toISOString(),
+            results: newAuditResults
+          }
+        };
+      });
+
       const saveResponse = await fetch(`${API_BASE}/pages-data/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ siteId, pages: finalPages })
+        body: JSON.stringify({ siteId, pages: updatedPagesWithAudits })
       });
 
       if (!saveResponse.ok) {
@@ -1638,7 +1692,7 @@ export default function App() {
 
       setPagesData(prev => ({
         ...prev,
-        [siteId]: finalPages
+        [siteId]: updatedPagesWithAudits
       }));
 
       showNotification(`Successfully synchronized ${formattedPages.length} pages from WordPress.`);
