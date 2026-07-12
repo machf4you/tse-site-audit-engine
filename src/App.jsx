@@ -4306,7 +4306,7 @@ export default function App() {
           onClick={() => setActiveApp("DASHBOARD")}
           style={{ padding: '12px 28px', fontSize: '0.9rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '1rem' }}
         >
-          ← Back to Apps Dashboard
+          Back to Dashboard
         </button>
       </div>
     );
