@@ -349,8 +349,32 @@ app.post('/api/github/pull', async (req, res) => {
           }
 
           // Git pull succeeded, trigger frontend rebuild
-          console.log("[GIT PULL] Git pull succeeded. Checking if package files changed...");
+          console.log("[GIT PULL] Git pull succeeded. Checking if package files changed or dependencies are missing...");
           const packageChanged = pullStdout.includes("package.json") || pullStdout.includes("package-lock.json");
+          
+          let dependenciesMissing = false;
+          try {
+            const pkgPath = path.join(__dirname, '..', 'package.json');
+            if (fs.existsSync(pkgPath)) {
+              const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+              const deps = Object.keys(pkg.dependencies || {});
+              for (const dep of deps) {
+                const depPath = path.join(__dirname, '..', 'node_modules', dep);
+                if (!fs.existsSync(depPath)) {
+                  console.log(`[GIT PULL] Missing dependency detected: ${dep}`);
+                  dependenciesMissing = true;
+                  break;
+                }
+              }
+            } else {
+              dependenciesMissing = true;
+            }
+          } catch (e) {
+            console.error("[GIT PULL] Failed to verify dependencies:", e.message);
+            dependenciesMissing = true;
+          }
+
+          const shouldInstall = packageChanged || dependenciesMissing;
           
           const runBuild = () => {
             console.log("[GIT PULL] Triggering frontend rebuild...");
@@ -413,8 +437,8 @@ app.post('/api/github/pull', async (req, res) => {
             });
           };
 
-          if (packageChanged) {
-            console.log("[GIT PULL] package.json or package-lock.json changed. Running npm install --no-save --no-package-lock...");
+          if (shouldInstall) {
+            console.log("[GIT PULL] Running npm install --no-save --no-package-lock...");
             exec('npm install --no-save --no-package-lock', { cwd: path.join(__dirname, '..') }, (installErr, installStdout, installStderr) => {
               const installOutput = installStdout + '\n' + installStderr;
               pullOutput += "\n\n=== NPM INSTALL LOG ===\n" + installOutput;
