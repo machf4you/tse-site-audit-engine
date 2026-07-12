@@ -377,62 +377,80 @@ app.post('/api/github/pull', async (req, res) => {
           const shouldInstall = packageChanged || dependenciesMissing;
           
           const runBuild = () => {
-            console.log("[GIT PULL] Triggering frontend rebuild...");
+            console.log("[GIT PULL] Gathering build diagnostics...");
+            const projectDir = path.join(__dirname, '..');
+            const socketExists = fs.existsSync(path.join(projectDir, 'node_modules', 'socket.io-client')) ? 'Yes' : 'No';
+            const wasInstalled = shouldInstall ? 'executed' : 'skipped';
             const buildCmd = process.platform === 'win32'
               ? 'npm run build'
               : 'npm run build && cp -r dist/* ..';
-            exec(buildCmd, { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
-              const buildOutput = buildStdout + '\n' + buildStderr;
-              let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
+
+            exec('npm ls socket.io-client', { cwd: projectDir }, (lsErr, lsStdout, lsStderr) => {
+              const lsOutput = lsStdout + '\n' + lsStderr;
               
-              exec('git rev-parse HEAD', (err4, postCommitStdout) => {
-                const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
-                const timestamp = new Date().toISOString();
+              // Append diagnostics to the deployment log
+              pullOutput += `\n\n=== DEPLOYMENT DIAGNOSTICS ===\n` +
+                `1. Current working directory: ${projectDir}\n` +
+                `2. Whether node_modules/socket.io-client exists: ${socketExists}\n` +
+                `3. The output of npm ls socket.io-client:\n${lsOutput.trim()}\n` +
+                `4. Dependency installation step: ${wasInstalled}\n` +
+                `5. Frontend build command: ${buildCmd}\n` +
+                `==============================\n`;
+              
+              console.log("[GIT PULL] Triggering frontend rebuild...");
+              exec(buildCmd, { cwd: projectDir }, (buildErr, buildStdout, buildStderr) => {
+                const buildOutput = buildStdout + '\n' + buildStderr;
+                let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
                 
-                const status = buildErr ? 'failure' : 'success';
-                if (buildErr) {
-                  finalOutput += "\n\n[GIT PULL] Frontend build failed.";
-                } else {
-                  finalOutput += "\n\n[GIT PULL] Frontend build succeeded. Deployment complete.";
-                }
+                exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+                  const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+                  const timestamp = new Date().toISOString();
+                  
+                  const status = buildErr ? 'failure' : 'success';
+                  if (buildErr) {
+                    finalOutput += "\n\n[GIT PULL] Frontend build failed.";
+                  } else {
+                    finalOutput += "\n\n[GIT PULL] Frontend build succeeded. Deployment complete.";
+                  }
 
-                const metadata = {
-                  lastPullTime: timestamp,
-                  lastPullStatus: status,
-                  lastPullLog: finalOutput,
-                  failedStage: buildErr ? 'frontend_build' : null,
-                  previousCommit: previousCommit,
-                  currentCommit: currentCommit
-                };
-                try {
-                  fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
-                } catch (e) {
-                  console.error("[GIT PULL] Failed to write metadata file:", e.message);
-                }
+                  const metadata = {
+                    lastPullTime: timestamp,
+                    lastPullStatus: status,
+                    lastPullLog: finalOutput,
+                    failedStage: buildErr ? 'frontend_build' : null,
+                    previousCommit: previousCommit,
+                    currentCommit: currentCommit
+                  };
+                  try {
+                    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+                  } catch (e) {
+                    console.error("[GIT PULL] Failed to write metadata file:", e.message);
+                  }
 
-                res.json({
-                  success: !buildErr,
-                  output: finalOutput,
-                  branch,
-                  previousCommit,
-                  currentCommit,
-                  lastPullTime: timestamp,
-                  lastPullStatus: status,
-                  lastPullLog: finalOutput,
-                  failedStage: buildErr ? 'frontend_build' : null
+                  res.json({
+                    success: !buildErr,
+                    output: finalOutput,
+                    branch,
+                    previousCommit,
+                    currentCommit,
+                    lastPullTime: timestamp,
+                    lastPullStatus: status,
+                    lastPullLog: finalOutput,
+                    failedStage: buildErr ? 'frontend_build' : null
+                  });
+
+                  if (!buildErr) {
+                    console.log("[GIT PULL] Rebuild successful. Scheduling pm2 restart tse-audit-api...");
+                    setTimeout(() => {
+                      console.log("[GIT PULL] Triggering PM2 restart for tse-audit-api...");
+                      exec('pm2 restart tse-audit-api', (pm2Err) => {
+                        if (pm2Err) {
+                          console.error("[GIT PULL] PM2 restart execution failed:", pm2Err.message);
+                        }
+                      });
+                    }, 1000);
+                  }
                 });
-
-                if (!buildErr) {
-                  console.log("[GIT PULL] Rebuild successful. Scheduling pm2 restart tse-audit-api...");
-                  setTimeout(() => {
-                    console.log("[GIT PULL] Triggering PM2 restart for tse-audit-api...");
-                    exec('pm2 restart tse-audit-api', (pm2Err) => {
-                      if (pm2Err) {
-                        console.error("[GIT PULL] PM2 restart execution failed:", pm2Err.message);
-                      }
-                    });
-                  }, 1000);
-                }
               });
             });
           };
