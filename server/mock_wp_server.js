@@ -7,10 +7,21 @@ const port = 8080;
 app.use(cors());
 app.use(express.json());
 
-// In-memory database state
-let metaDescription = "Expert services across South East London...";
-let seoTitle = "Bathroom Installation | Expert Bathroom Fitters";
-let seoH1 = "Professional Bathroom Installation";
+// Dynamic In-memory database state mapped by WordPress Post ID
+const pageDataMap = {
+  8: {
+    seoTitle: "Bathroom Renovations South East London",
+    metaDescription: "Affordable bathroom renovations across South East London including Sidcup, Dartford and nearby areas. Quality installations from £2,000–£10,000. Free quotes available.",
+    seoH1: "Bathroom Renovations South East London",
+    bodyContent: "We provide high quality bathroom renovations."
+  },
+  123: {
+    seoTitle: "Bathroom Installation | Expert Bathroom Fitters",
+    metaDescription: "Expert services across South East London. Call us today for a free quote.",
+    seoH1: "Professional Bathroom Installation",
+    bodyContent: "We provide high quality bathroom installation services. Here is some content about bathroom installation to make sure word count requirements are met."
+  }
+};
 
 app.use((req, res, next) => {
   // Only require basic auth for REST API endpoints
@@ -43,34 +54,36 @@ app.use((req, res, next) => {
 });
 
 app.get('/', (req, res) => {
+  const page = pageDataMap[8];
   res.send(`<!DOCTYPE html>
 <html>
 <head>
-  <title>Bathroom Renovations South East London</title>
-  <meta name="description" content="Affordable bathroom renovations across South East London including Sidcup, Dartford and nearby areas. Quality installations from £2,000–£10,000. Free quotes available.">
+  <title>${page.seoTitle}</title>
+  <meta name="description" content="${page.metaDescription}">
   <link rel="canonical" href="http://127.0.0.1:8080/">
 </head>
 <body>
   <main>
-    <h1>Bathroom Renovations South East London</h1>
-    <p>We provide high quality bathroom renovations.</p>
+    <h1>${page.seoH1}</h1>
+    <p>${page.bodyContent}</p>
   </main>
 </body>
 </html>`);
 });
 
 app.get('/bathroom-installation/', (req, res) => {
+  const page = pageDataMap[123];
   res.send(`<!DOCTYPE html>
 <html>
 <head>
-  <title>${seoTitle}</title>
-  <meta name="description" content="${metaDescription}">
+  <title>${page.seoTitle}</title>
+  <meta name="description" content="${page.metaDescription}">
   <link rel="canonical" href="http://127.0.0.1:8080/bathroom-installation/">
 </head>
 <body>
   <main>
-    <h1>${seoH1}</h1>
-    <p>We provide high quality bathroom installation services. Here is some content about bathroom installation to make sure word count requirements are met.</p>
+    <h1>${page.seoH1}</h1>
+    <p>${page.bodyContent}</p>
   </main>
 </body>
 </html>`);
@@ -112,8 +125,8 @@ app.get('/wp-json/tse-site-exporter/v1/export', (req, res) => {
       classification: "money",
       seo: {
         source: "yoast",
-        title: "Bathroom Renovations South East London",
-        description: "Affordable bathroom renovations across South East London including Sidcup, Dartford and nearby areas. Quality installations from £2,000–£10,000. Free quotes available.",
+        title: pageDataMap[8].seoTitle,
+        description: pageDataMap[8].metaDescription,
         focus_keywords: ["bathroom renovations"],
         canonical: "http://127.0.0.1:8080/",
         robots: {
@@ -122,11 +135,11 @@ app.get('/wp-json/tse-site-exporter/v1/export', (req, res) => {
         }
       },
       content: {
-        h1: "Bathroom Renovations South East London",
+        h1: pageDataMap[8].seoH1,
         h2: [],
         h3: [],
         word_count: 600,
-        plain_text: "We provide high quality bathroom renovations."
+        plain_text: pageDataMap[8].bodyContent
       },
       links: {
         internal: [],
@@ -154,8 +167,8 @@ app.get('/wp-json/tse-site-exporter/v1/export', (req, res) => {
       classification: "money",
       seo: {
         source: "yoast",
-        title: seoTitle,
-        description: metaDescription,
+        title: pageDataMap[123].seoTitle,
+        description: pageDataMap[123].metaDescription,
         focus_keywords: ["bathroom installation"],
         canonical: "http://127.0.0.1:8080/bathroom-installation/",
         robots: {
@@ -164,11 +177,11 @@ app.get('/wp-json/tse-site-exporter/v1/export', (req, res) => {
         }
       },
       content: {
-        h1: seoH1,
+        h1: pageDataMap[123].seoH1,
         h2: [],
         h3: [],
         word_count: 600,
-        plain_text: "We provide high quality bathroom installation services."
+        plain_text: pageDataMap[123].bodyContent
       },
       links: {
         internal: [],
@@ -195,18 +208,22 @@ app.get('/wp-json/tse-site-exporter/v1/export', (req, res) => {
 
 app.post('/wp-json/tse-site-exporter/v1/update-page', (req, res) => {
   const { post_id, field, value } = req.body;
-  if (post_id !== 123) {
+  const page = pageDataMap[post_id];
+  if (!page) {
     return res.status(404).json({ success: false, message: "Page not found" });
   }
   
   if (field === 'meta_description') {
-    metaDescription = value;
+    page.metaDescription = value;
     res.json({ success: true, post_id, field, value });
   } else if (field === 'seo_title') {
-    seoTitle = value;
+    page.seoTitle = value;
     res.json({ success: true, post_id, field, value });
   } else if (field === 'h1') {
-    seoH1 = value;
+    page.seoH1 = value;
+    res.json({ success: true, post_id, field, value });
+  } else if (field === 'body_content' || field === 'plain_text') {
+    page.bodyContent = value;
     res.json({ success: true, post_id, field, value });
   } else {
     res.status(400).json({ success: false, message: "Invalid field type" });
