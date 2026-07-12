@@ -373,71 +373,98 @@ app.post('/api/github/pull', async (req, res) => {
             shouldInstall = true;
           }
 
-          let buildCmd;
-          if (shouldInstall) {
-            console.log("[GIT PULL] Missing dependencies detected. Running npm install before build...");
-            buildCmd = process.platform === 'win32'
-              ? 'npm install --legacy-peer-deps && npm run build'
-              : 'npm install --legacy-peer-deps && npm run build && cp -r dist/* ..';
-          } else {
-            console.log("[GIT PULL] All dependencies present. Starting frontend build...");
-            buildCmd = process.platform === 'win32'
-              ? 'npm run build'
-              : 'npm run build && cp -r dist/* ..';
-          }
-
-          exec(buildCmd, { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
-            const buildOutput = buildStdout + '\n' + buildStderr;
-            let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
+          const runBuild = () => {
+            const projectDir = path.join(__dirname, '..');
             
-            exec('git rev-parse HEAD', (err4, postCommitStdout) => {
-              const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
-              const timestamp = new Date().toISOString();
+            // Gather info
+            const nodeVersion = process.version;
+            const cwdPath = process.cwd();
+            const hasFederationPlugin = fs.existsSync(path.join(projectDir, 'node_modules', '@originjs/vite-plugin-federation')) ? 'Yes' : 'No';
+            const wasInstalled = shouldInstall ? 'Yes' : 'No';
+            
+            // Get npm version
+            exec('npm -v', (npmErr, npmStdout) => {
+              const npmVersion = npmErr ? 'unknown' : npmStdout.trim();
               
-              const status = buildErr ? 'failure' : 'success';
-              if (buildErr) {
-                finalOutput += "\n\n[GIT PULL] Frontend build failed.";
-              } else {
-                finalOutput += "\n\n[GIT PULL] Frontend build succeeded. Deployment complete.";
-              }
+              // Append deployment diagnostics immediately before running vite build
+              pullOutput += `\n\n=== DEPLOYMENT LOG ===\n` +
+                `Node.js version: ${nodeVersion}\n` +
+                `npm version: ${npmVersion}\n` +
+                `Current working directory: ${cwdPath}\n` +
+                `Whether node_modules/@originjs/vite-plugin-federation exists: ${hasFederationPlugin}\n` +
+                `Whether npm install was executed during this deployment: ${wasInstalled}\n` +
+                `======================\n`;
+                
+              console.log("[GIT PULL] Triggering frontend build...");
+              const buildCmd = process.platform === 'win32'
+                ? 'npm run build'
+                : 'npm run build && cp -r dist/* ..';
+                
+              exec(buildCmd, { cwd: projectDir }, (buildErr, buildStdout, buildStderr) => {
+                const buildOutput = buildStdout + '\n' + buildStderr;
+                let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
+                
+                exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+                  const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+                  const timestamp = new Date().toISOString();
+                  
+                  const status = buildErr ? 'failure' : 'success';
+                  if (buildErr) {
+                    finalOutput += "\n\n[GIT PULL] Frontend build failed.";
+                  } else {
+                    finalOutput += "\n\n[GIT PULL] Frontend build succeeded. Deployment complete.";
+                  }
 
-              const metadata = {
-                lastPullTime: timestamp,
-                lastPullStatus: status,
-                lastPullLog: finalOutput,
-                previousCommit: previousCommit,
-                currentCommit: currentCommit
-              };
-              try {
-                fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
-              } catch (e) {
-                console.error("[GIT PULL] Failed to write metadata file:", e.message);
-              }
+                  const metadata = {
+                    lastPullTime: timestamp,
+                    lastPullStatus: status,
+                    lastPullLog: finalOutput,
+                    previousCommit: previousCommit,
+                    currentCommit: currentCommit
+                  };
+                  try {
+                    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+                  } catch (e) {
+                    console.error("[GIT PULL] Failed to write metadata file:", e.message);
+                  }
 
-              res.json({
-                success: !buildErr,
-                output: finalOutput,
-                branch,
-                previousCommit,
-                currentCommit,
-                lastPullTime: timestamp,
-                lastPullStatus: status,
-                lastPullLog: finalOutput
-              });
-
-              if (!buildErr) {
-                console.log("[GIT PULL] Rebuild successful. Scheduling pm2 restart tse-audit-api...");
-                setTimeout(() => {
-                  console.log("[GIT PULL] Triggering PM2 restart for tse-audit-api...");
-                  exec('pm2 restart tse-audit-api', (pm2Err) => {
-                    if (pm2Err) {
-                      console.error("[GIT PULL] PM2 restart execution failed:", pm2Err.message);
-                    }
+                  res.json({
+                    success: !buildErr,
+                    output: finalOutput,
+                    branch,
+                    previousCommit,
+                    currentCommit,
+                    lastPullTime: timestamp,
+                    lastPullStatus: status,
+                    lastPullLog: finalOutput
                   });
-                }, 1000);
-              }
+
+                  if (!buildErr) {
+                    console.log("[GIT PULL] Rebuild successful. Scheduling pm2 restart tse-audit-api...");
+                    setTimeout(() => {
+                      console.log("[GIT PULL] Triggering PM2 restart for tse-audit-api...");
+                      exec('pm2 restart tse-audit-api', (pm2Err) => {
+                        if (pm2Err) {
+                          console.error("[GIT PULL] PM2 restart execution failed:", pm2Err.message);
+                        }
+                      });
+                    }, 1000);
+                  }
+                });
+              });
             });
-          });
+          };
+
+          if (shouldInstall) {
+            console.log("[GIT PULL] Missing dependencies detected. Running npm install...");
+            exec('npm install --legacy-peer-deps', { cwd: path.join(__dirname, '..') }, (installErr, installStdout, installStderr) => {
+              const installOutput = installStdout + '\n' + installStderr;
+              pullOutput += "\n\n=== NPM INSTALL LOG ===\n" + installOutput;
+              runBuild();
+            });
+          } else {
+            runBuild();
+          }
         });
       });
     });
