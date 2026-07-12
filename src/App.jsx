@@ -2100,6 +2100,8 @@ export default function App() {
                 setGitPullLogs(prev => prev + "\n\n=== DEPLOYMENT COMPLETE ===");
                 showNotification("Deployment completed successfully!");
                 setIsGitPulling(false);
+                setBehindCount(0);
+                setLatestGithubCommit(statusData.currentCommit);
                 setGitStatus({
                   branch: statusData.branch,
                   currentCommit: statusData.currentCommit,
