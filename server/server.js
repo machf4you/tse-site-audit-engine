@@ -349,8 +349,8 @@ app.post('/api/github/pull', async (req, res) => {
           // Git pull succeeded, trigger frontend rebuild
           console.log("[GIT PULL] Git pull succeeded. Triggering frontend rebuild...");
           const buildCmd = process.platform === 'win32'
-            ? 'npm run build'
-            : 'npm run build && cp -r dist/* ..';
+            ? 'npm install --legacy-peer-deps && npm run build'
+            : 'npm install --legacy-peer-deps && npm run build && cp -r dist/* ..';
           exec(buildCmd, { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
             const buildOutput = buildStdout + '\n' + buildStderr;
             let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
