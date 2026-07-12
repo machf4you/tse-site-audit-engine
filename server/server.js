@@ -317,8 +317,8 @@ app.post('/api/github/pull', async (req, res) => {
           });
         }
 
-        console.log(`[GIT PULL] Executing git pull on branch: ${branch}...`);
-        exec(`git pull origin ${branch}`, { cwd: statusCwd }, (err3, pullStdout, pullStderr) => {
+        console.log(`[GIT PULL] Fetching and resetting to origin/${branch}...`);
+        exec(`git fetch origin && git reset --hard origin/${branch}`, { cwd: statusCwd }, (err3, pullStdout, pullStderr) => {
           const pullOutput = pullStdout + '\n' + pullStderr;
           
           if (err3) {

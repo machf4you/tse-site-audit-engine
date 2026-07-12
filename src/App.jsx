@@ -9390,6 +9390,9 @@ export default function App() {
 
                       {/* GitHub Deployment Page */}
                       {activeSettingsTab === "github_deployment" && (() => {
+                        const hasDiverged = latestGithubCommit !== "unknown" && gitStatus.currentCommit !== latestGithubCommit;
+                        const isDeployDisabled = isGitPulling || latestGithubCommit === "unknown" || !hasDiverged;
+
                         let bannerText = "🟢 Development Server: Up to date";
                         let bannerBg = "rgba(16, 185, 129, 0.1)";
                         let bannerBorder = "1px solid #10b981";
@@ -9400,8 +9403,11 @@ export default function App() {
                           bannerBg = "rgba(239, 68, 68, 0.1)";
                           bannerBorder = "1px solid #ef4444";
                           bannerColor = "#ef4444";
-                        } else if (behindCount > 0) {
-                          bannerText = `🟡 Development Server: ${behindCount === 1 ? "1 update available" : `${behindCount} updates available`}`;
+                        } else if (hasDiverged) {
+                          const isRollback = behindCount === 0 || behindCount === null;
+                          bannerText = isRollback
+                            ? "🟡 Development Server: Local commit differs from GitHub (Rollback/diverged)"
+                            : `🟡 Development Server: ${behindCount === 1 ? "1 update available" : `${behindCount} updates available`}`;
                           bannerBg = "rgba(245, 158, 11, 0.1)";
                           bannerBorder = "1px solid #f59e0b";
                           bannerColor = "#f59e0b";
@@ -9418,16 +9424,16 @@ export default function App() {
                           }}>
                             {/* Top Status Banner */}
                             <div style={{
-                              backgroundColor: bannerBg,
-                              border: bannerBorder,
-                              borderRadius: '8px',
-                              padding: '1rem 1.25rem',
-                              color: bannerColor,
-                              fontSize: '1rem',
-                              fontWeight: 800,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px'
+                                backgroundColor: bannerBg,
+                                border: bannerBorder,
+                                borderRadius: '8px',
+                                padding: '1rem 1.25rem',
+                                color: bannerColor,
+                                fontSize: '1rem',
+                                fontWeight: 800,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px'
                             }}>
                               {bannerText}
                             </div>
@@ -9457,7 +9463,7 @@ export default function App() {
 
                               <button
                                 className="btn-primary"
-                                disabled={isGitPulling || behindCount === null || behindCount === 0}
+                                disabled={isDeployDisabled}
                                 onClick={handleGitPull}
                                 style={{
                                   padding: '12px 24px',
@@ -9466,8 +9472,8 @@ export default function App() {
                                   gap: '8px',
                                   fontSize: '0.95rem',
                                   fontWeight: 750,
-                                  opacity: (isGitPulling || behindCount === null || behindCount === 0) ? 0.5 : 1,
-                                  cursor: (isGitPulling || behindCount === null || behindCount === 0) ? 'not-allowed' : 'pointer'
+                                  opacity: isDeployDisabled ? 0.5 : 1,
+                                  cursor: isDeployDisabled ? 'not-allowed' : 'pointer'
                                 }}
                               >
                                 {isGitPulling ? "Deploying..." : "⬇ Deploy Latest Version"}
