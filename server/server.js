@@ -347,10 +347,45 @@ app.post('/api/github/pull', async (req, res) => {
           }
 
           // Git pull succeeded, trigger frontend rebuild
-          console.log("[GIT PULL] Git pull succeeded. Triggering frontend rebuild...");
-          const buildCmd = process.platform === 'win32'
-            ? 'npm install --legacy-peer-deps && npm run build'
-            : 'npm install --legacy-peer-deps && npm run build && cp -r dist/* ..';
+          console.log("[GIT PULL] Git pull succeeded. Checking if package dependencies are missing...");
+          let shouldInstall = false;
+          try {
+            const packageJsonPath = path.join(__dirname, '..', 'package.json');
+            if (fs.existsSync(packageJsonPath)) {
+              const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+              const dependencies = {
+                ...(pkg.dependencies || {}),
+                ...(pkg.devDependencies || {})
+              };
+              for (const dep of Object.keys(dependencies)) {
+                const depPath = path.join(__dirname, '..', 'node_modules', dep);
+                if (!fs.existsSync(depPath)) {
+                  console.log(`[GIT PULL] Missing dependency: ${dep}. Will run npm install.`);
+                  shouldInstall = true;
+                  break;
+                }
+              }
+            } else {
+              shouldInstall = true;
+            }
+          } catch (e) {
+            console.error("[GIT PULL] Error checking dependencies:", e.message);
+            shouldInstall = true;
+          }
+
+          let buildCmd;
+          if (shouldInstall) {
+            console.log("[GIT PULL] Missing dependencies detected. Running npm install before build...");
+            buildCmd = process.platform === 'win32'
+              ? 'npm install --legacy-peer-deps && npm run build'
+              : 'npm install --legacy-peer-deps && npm run build && cp -r dist/* ..';
+          } else {
+            console.log("[GIT PULL] All dependencies present. Starting frontend build...");
+            buildCmd = process.platform === 'win32'
+              ? 'npm run build'
+              : 'npm run build && cp -r dist/* ..';
+          }
+
           exec(buildCmd, { cwd: path.join(__dirname, '..') }, (buildErr, buildStdout, buildStderr) => {
             const buildOutput = buildStdout + '\n' + buildStderr;
             let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
