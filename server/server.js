@@ -234,7 +234,7 @@ app.get('/api/github/status', async (req, res) => {
       exec('git rev-parse HEAD', (err2, commitStdout) => {
         const currentCommit = err2 ? 'unknown' : commitStdout.trim();
         const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
-        let metadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: null, currentCommit: null };
+        let metadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, failedStage: null, previousCommit: null, currentCommit: null };
         if (fs.existsSync(metaPath)) {
           try {
             metadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
@@ -248,6 +248,7 @@ app.get('/api/github/status', async (req, res) => {
           lastPullTime: metadata.lastPullTime,
           lastPullStatus: metadata.lastPullStatus,
           lastPullLog: metadata.lastPullLog || null,
+          failedStage: metadata.failedStage || null,
           previousCommit: metadata.previousCommit || 'unknown'
         });
       });
@@ -297,7 +298,7 @@ app.post('/api/github/pull', async (req, res) => {
 
         if (dirty) {
           console.warn("[GIT PULL] Aborting git pull: Local uncommitted changes detected.");
-          let existingMetadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: 'unknown', currentCommit: 'unknown' };
+          let existingMetadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, failedStage: null, previousCommit: 'unknown', currentCommit: 'unknown' };
           try {
             if (fs.existsSync(metaPath)) {
               existingMetadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
@@ -327,6 +328,7 @@ app.post('/api/github/pull', async (req, res) => {
               lastPullTime: timestamp,
               lastPullStatus: 'failure',
               lastPullLog: pullOutput,
+              failedStage: 'git_pull',
               previousCommit: previousCommit,
               currentCommit: previousCommit
             };
@@ -341,7 +343,8 @@ app.post('/api/github/pull', async (req, res) => {
               currentCommit: previousCommit,
               lastPullTime: timestamp,
               lastPullStatus: 'failure',
-              lastPullLog: pullOutput
+              lastPullLog: pullOutput,
+              failedStage: 'git_pull'
             });
           }
 
@@ -373,6 +376,7 @@ app.post('/api/github/pull', async (req, res) => {
                   lastPullTime: timestamp,
                   lastPullStatus: status,
                   lastPullLog: finalOutput,
+                  failedStage: buildErr ? 'frontend_build' : null,
                   previousCommit: previousCommit,
                   currentCommit: currentCommit
                 };
@@ -390,7 +394,8 @@ app.post('/api/github/pull', async (req, res) => {
                   currentCommit,
                   lastPullTime: timestamp,
                   lastPullStatus: status,
-                  lastPullLog: finalOutput
+                  lastPullLog: finalOutput,
+                  failedStage: buildErr ? 'frontend_build' : null
                 });
 
                 if (!buildErr) {
@@ -421,6 +426,7 @@ app.post('/api/github/pull', async (req, res) => {
                   lastPullTime: timestamp,
                   lastPullStatus: 'failure',
                   lastPullLog: pullOutput + "\n\n[GIT PULL] npm install failed.",
+                  failedStage: 'npm_install',
                   previousCommit: previousCommit,
                   currentCommit: previousCommit
                 };
@@ -435,7 +441,8 @@ app.post('/api/github/pull', async (req, res) => {
                   currentCommit: previousCommit,
                   lastPullTime: timestamp,
                   lastPullStatus: 'failure',
-                  lastPullLog: pullOutput
+                  lastPullLog: pullOutput,
+                  failedStage: 'npm_install'
                 });
               }
               runBuild();

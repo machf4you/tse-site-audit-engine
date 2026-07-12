@@ -2004,6 +2004,7 @@ export default function App() {
     lastPullTime: null,
     lastPullStatus: null,
     lastPullLog: null,
+    failedStage: null,
     previousCommit: 'unknown'
   });
   const [gitPullLogs, setGitPullLogs] = useState("");
@@ -2122,6 +2123,11 @@ export default function App() {
             setGitPullLogs(prev => prev + "\n\n[DEPLOY] Timeout waiting for backend health check to pass.");
             showNotification("Deployment health check timed out.");
             setIsGitPulling(false);
+            setGitStatus(prev => ({
+              ...prev,
+              lastPullStatus: 'failure',
+              failedStage: 'backend_restart'
+            }));
           }
         };
         
@@ -2131,9 +2137,26 @@ export default function App() {
       } else if (data.dirty) {
         showNotification("Local uncommitted changes detected. Commit or discard them before deploying.");
         setIsGitPulling(false);
+        setGitStatus(prev => ({
+          ...prev,
+          lastPullStatus: 'failure',
+          failedStage: 'git_pull',
+          lastPullLog: data.output
+        }));
       } else {
         showNotification("Deployment failed! See logs for details.");
         setIsGitPulling(false);
+        if (data) {
+          setGitStatus({
+            branch: data.branch || gitStatus.branch,
+            currentCommit: data.currentCommit || gitStatus.currentCommit,
+            lastPullTime: data.lastPullTime || gitStatus.lastPullTime,
+            lastPullStatus: 'failure',
+            lastPullLog: data.lastPullLog || data.output,
+            failedStage: data.failedStage || null,
+            previousCommit: data.previousCommit || gitStatus.previousCommit
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -9415,6 +9438,218 @@ export default function App() {
                           bannerColor = "#f59e0b";
                         }
 
+                        // Helper to extract stage logs from full deployment log
+                        const extractStageLogs = (fullLog) => {
+                          if (!fullLog) return { gitPull: '', npmInstall: '', frontendBuild: '' };
+                          
+                          let gitPull = fullLog;
+                          let npmInstall = '';
+                          let frontendBuild = '';
+                          
+                          const npmIndex = fullLog.indexOf('=== NPM INSTALL LOG ===\n');
+                          const buildIndex = fullLog.indexOf('=== FRONTEND BUILD LOG ===\n');
+                          
+                          if (npmIndex !== -1) {
+                            gitPull = fullLog.substring(0, npmIndex).trim();
+                            if (buildIndex !== -1) {
+                              npmInstall = fullLog.substring(npmIndex + '=== NPM INSTALL LOG ===\n'.length, buildIndex).trim();
+                              frontendBuild = fullLog.substring(buildIndex + '=== FRONTEND BUILD LOG ===\n'.length).trim();
+                            } else {
+                              npmInstall = fullLog.substring(npmIndex + '=== NPM INSTALL LOG ===\n'.length).trim();
+                            }
+                          } else if (buildIndex !== -1) {
+                            gitPull = fullLog.substring(0, buildIndex).trim();
+                            frontendBuild = fullLog.substring(buildIndex + '=== FRONTEND BUILD LOG ===\n'.length).trim();
+                          }
+                          
+                          const cleanLogs = (str) => {
+                            return str
+                              .replace(/\n\n\[GIT PULL\] Frontend build failed\.$/, '')
+                              .replace(/\n\n\[GIT PULL\] Frontend build succeeded\. Deployment complete\.$/, '')
+                              .replace(/\n\n\[GIT PULL\] npm install failed\.$/, '')
+                              .trim();
+                          };
+                          
+                          return {
+                            gitPull: cleanLogs(gitPull),
+                            npmInstall: cleanLogs(npmInstall),
+                            frontendBuild: cleanLogs(frontendBuild)
+                          };
+                        };
+
+                        // Helper to resolve stage statuses
+                        const getDeploymentStages = (status, logs, pulling) => {
+                          const hasLogs = !!logs;
+                          const hasNpm = logs.includes('=== NPM INSTALL LOG ===');
+                          const hasBuild = logs.includes('=== FRONTEND BUILD LOG ===');
+                          const isFailure = status.lastPullStatus === 'failure';
+                          const isSuccess = status.lastPullStatus === 'success';
+                          const failedStage = status.failedStage;
+                          
+                          // Git Pull
+                          let gitPullStatus = 'pending';
+                          if (pulling) {
+                            gitPullStatus = 'in_progress';
+                          } else if (hasLogs) {
+                            if (isFailure && failedStage === 'git_pull') {
+                              gitPullStatus = 'failed';
+                            } else {
+                              gitPullStatus = 'completed';
+                            }
+                          } else if (isSuccess) {
+                            gitPullStatus = 'completed';
+                          }
+
+                          // Dependency Install
+                          let npmInstallStatus = 'pending';
+                          if (pulling) {
+                            if (gitPullStatus === 'completed') {
+                              npmInstallStatus = 'in_progress';
+                            }
+                          } else if (hasLogs) {
+                            if (hasNpm) {
+                              if (isFailure && failedStage === 'npm_install') {
+                                npmInstallStatus = 'failed';
+                              } else {
+                                npmInstallStatus = 'completed';
+                              }
+                            } else {
+                              npmInstallStatus = 'skipped';
+                            }
+                          } else if (isSuccess) {
+                            npmInstallStatus = 'skipped';
+                          }
+
+                          // Frontend Build
+                          let frontendBuildStatus = 'pending';
+                          if (pulling) {
+                            if (npmInstallStatus === 'completed' || npmInstallStatus === 'skipped') {
+                              frontendBuildStatus = 'in_progress';
+                            }
+                          } else if (hasLogs) {
+                            if (hasBuild) {
+                              if (isFailure && failedStage === 'frontend_build') {
+                                frontendBuildStatus = 'failed';
+                              } else {
+                                frontendBuildStatus = 'completed';
+                              }
+                            } else if (isFailure && (failedStage === 'git_pull' || failedStage === 'npm_install')) {
+                              frontendBuildStatus = 'pending';
+                            } else {
+                              frontendBuildStatus = 'completed';
+                            }
+                          } else if (isSuccess) {
+                            frontendBuildStatus = 'completed';
+                          }
+
+                          // Backend Restart
+                          let backendRestartStatus = 'pending';
+                          if (pulling) {
+                            if (frontendBuildStatus === 'completed') {
+                              backendRestartStatus = 'in_progress';
+                            }
+                          } else if (hasLogs) {
+                            if (isSuccess) {
+                              backendRestartStatus = 'completed';
+                            } else if (isFailure) {
+                              if (failedStage === 'backend_restart' || logs.includes('[DEPLOY] Timeout waiting for backend health check')) {
+                                backendRestartStatus = 'failed';
+                              } else {
+                                backendRestartStatus = 'pending';
+                              }
+                            }
+                          } else if (isSuccess) {
+                            backendRestartStatus = 'completed';
+                          }
+
+                          // Deployment Complete
+                          let deploymentCompleteStatus = 'pending';
+                          if (isSuccess && backendRestartStatus === 'completed') {
+                            deploymentCompleteStatus = 'completed';
+                          } else if (isFailure) {
+                            deploymentCompleteStatus = 'failed';
+                          }
+
+                          return {
+                            gitPull: gitPullStatus,
+                            npmInstall: npmInstallStatus,
+                            frontendBuild: frontendBuildStatus,
+                            backendRestart: backendRestartStatus,
+                            deploymentComplete: deploymentCompleteStatus
+                          };
+                        };
+
+                        const stages = getDeploymentStages(gitStatus, gitPullLogs, isGitPulling);
+                        const parsedLogs = extractStageLogs(gitPullLogs);
+
+                        const renderStageItem = (label, status, errorLog, errorLabel) => {
+                          let statusIcon = "⚪";
+                          let statusText = "Pending";
+                          let textColor = "var(--text-secondary)";
+                          let isPulse = false;
+
+                          if (status === 'completed') {
+                            statusIcon = "🟢";
+                            statusText = "Completed";
+                            textColor = "#10b981";
+                          } else if (status === 'skipped') {
+                            statusIcon = "⚪";
+                            statusText = "Skipped";
+                            textColor = "var(--text-secondary)";
+                          } else if (status === 'in_progress') {
+                            statusIcon = "🔄";
+                            statusText = "In Progress";
+                            textColor = "#3b82f6";
+                            isPulse = true;
+                          } else if (status === 'failed') {
+                            statusIcon = "🔴";
+                            statusText = "Failed";
+                            textColor = "#ef4444";
+                          }
+
+                          return (
+                            <div style={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              gap: '0.5rem', 
+                              padding: '1rem', 
+                              backgroundColor: '#070b13', 
+                              border: '1px solid rgba(255, 255, 255, 0.06)', 
+                              borderRadius: '8px' 
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: 650, color: 'var(--text-primary)' }}>
+                                  <span className={isPulse ? "deploy-stage-pulse" : ""} style={{ display: 'inline-block' }}>{statusIcon}</span>
+                                  <span>{label}</span>
+                                </div>
+                                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: textColor }}>{statusText}</span>
+                              </div>
+                              {status === 'failed' && errorLog && (
+                                <div style={{ marginTop: '0.75rem' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: '#fca5a5', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>{errorLabel}</div>
+                                  <pre style={{
+                                    margin: 0,
+                                    padding: '1rem',
+                                    backgroundColor: '#020406',
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    borderRadius: '6px',
+                                    color: '#fca5a5',
+                                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                                    fontSize: '0.8rem',
+                                    lineHeight: 1.5,
+                                    maxHeight: '300px',
+                                    overflowY: 'auto',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-all'
+                                  }}>
+                                    {errorLog}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        };
+
                         return (
                           <div style={{
                             display: 'flex',
@@ -9424,6 +9659,17 @@ export default function App() {
                             maxWidth: '900px',
                             textAlign: 'left'
                           }}>
+                            <style>{`
+                              @keyframes deploy-pulse-anim {
+                                0% { transform: scale(1); opacity: 1; }
+                                50% { transform: scale(1.1); opacity: 0.7; }
+                                100% { transform: scale(1); opacity: 1; }
+                              }
+                              .deploy-stage-pulse {
+                                animation: deploy-pulse-anim 2.0s infinite ease-in-out;
+                              }
+                            `}</style>
+
                             {/* Top Status Banner */}
                             <div style={{
                               backgroundColor: bannerBg,
@@ -9496,6 +9742,18 @@ export default function App() {
                               >
                                 🔄 Refresh Status
                               </button>
+                            </div>
+
+                            {/* Visual Deployment Stages Stepper */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+                              <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>Deployment Progress & Status</span>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                                {renderStageItem("Git Pull", stages.gitPull, parsedLogs.gitPull, "Git Pull Output")}
+                                {renderStageItem("Dependency Install", stages.npmInstall, parsedLogs.npmInstall, "npm Install Output")}
+                                {renderStageItem("Frontend Build", stages.frontendBuild, parsedLogs.frontendBuild, "Frontend Build Output")}
+                                {renderStageItem("Backend Restart", stages.backendRestart, gitStatus.failedStage === 'backend_restart' ? "Timeout waiting for backend health check to pass." : null, "Backend Restart Output")}
+                                {renderStageItem("Deployment Complete", stages.deploymentComplete, null, null)}
+                              </div>
                             </div>
 
                             {/* Informational Cards */}
