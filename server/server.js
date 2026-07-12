@@ -414,8 +414,8 @@ app.post('/api/github/pull', async (req, res) => {
           };
 
           if (packageChanged) {
-            console.log("[GIT PULL] package.json or package-lock.json changed. Running npm install --no-save...");
-            exec('npm install --no-save', { cwd: path.join(__dirname, '..') }, (installErr, installStdout, installStderr) => {
+            console.log("[GIT PULL] package.json or package-lock.json changed. Running npm install --no-save --no-package-lock...");
+            exec('npm install --no-save --no-package-lock', { cwd: path.join(__dirname, '..') }, (installErr, installStdout, installStderr) => {
               const installOutput = installStdout + '\n' + installStderr;
               pullOutput += "\n\n=== NPM INSTALL LOG ===\n" + installOutput;
               
