@@ -116,7 +116,76 @@ async function scrapeWebsite(url) {
   }
 }
 
+// Proxy all /api/audits* requests to the Python Page Auditor backend on port 8000
+app.all('/api/audits*', async (req, res) => {
+  const targetPath = req.originalUrl;
+  const targetUrl = `http://localhost:8000${targetPath}`;
+  console.log(`[PROXY] Forwarding ${req.method} ${targetPath} to ${targetUrl}`);
+  
+  const headers = { ...req.headers };
+  delete headers.host;
+  delete headers['accept-encoding'];
+
+  try {
+    const response = await axios({
+      method: req.method,
+      url: targetUrl,
+      data: req.body,
+      headers: headers,
+      responseType: 'arraybuffer'
+    });
+    
+    // Forward headers
+    Object.keys(response.headers).forEach(key => {
+      res.setHeader(key, response.headers[key]);
+    });
+    
+    res.status(response.status).send(response.data);
+  } catch (error) {
+    console.error(`[PROXY] Proxy to ${targetUrl} failed:`, error.message);
+    if (error.response) {
+      res.status(error.response.status).send(error.response.data);
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
 app.post('/api/audit', async (req, res) => {
+  // If it's a Page Auditor python backend payload, proxy it
+  if (req.body && req.body.url && req.body.primary_phrase) {
+    const targetUrl = `http://localhost:8000/api/audit`;
+    console.log(`[PROXY] Forwarding Page Auditor POST /api/audit to ${targetUrl}`);
+    
+    const headers = { ...req.headers };
+    delete headers.host;
+    delete headers['accept-encoding'];
+
+    try {
+      const response = await axios({
+        method: 'POST',
+        url: targetUrl,
+        data: req.body,
+        headers: headers,
+        responseType: 'arraybuffer'
+      });
+      
+      // Forward headers
+      Object.keys(response.headers).forEach(key => {
+        res.setHeader(key, response.headers[key]);
+      });
+      
+      return res.status(response.status).send(response.data);
+    } catch (error) {
+      console.error(`[PROXY] Proxy to ${targetUrl} failed:`, error.message);
+      if (error.response) {
+        return res.status(error.response.status).send(error.response.data);
+      } else {
+        return res.status(500).json({ error: error.message });
+      }
+    }
+  }
+
   console.log('Incoming request body:', req.body);
 
   if (!req.body.messages && req.body.systemInstruction && req.body.userPrompt) {
