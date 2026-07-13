@@ -116,10 +116,10 @@ async function scrapeWebsite(url) {
   }
 }
 
-// Proxy all /api/audits* requests to the Python Page Auditor backend on port 8000
+// Proxy all /api/audits* requests to the Python Page Auditor backend on port 8001
 app.all(/^\/api\/audits/, async (req, res) => {
   const targetPath = req.originalUrl;
-  const targetUrl = `http://localhost:8000${targetPath}`;
+  const targetUrl = `http://localhost:8001${targetPath}`;
   console.log(`[PROXY] Forwarding ${req.method} ${targetPath} to ${targetUrl}`);
   
   const headers = { ...req.headers };
@@ -154,7 +154,7 @@ app.all(/^\/api\/audits/, async (req, res) => {
 app.post('/api/audit', async (req, res) => {
   // If it's a Page Auditor python backend payload, proxy it
   if (req.body && req.body.url && req.body.primary_phrase) {
-    const targetUrl = `http://localhost:8000/api/audit`;
+    const targetUrl = `http://localhost:8001/api/audit`;
     console.log(`[PROXY] Forwarding Page Auditor POST /api/audit to ${targetUrl}`);
     
     const headers = { ...req.headers };
