@@ -1200,13 +1200,21 @@ export default function App() {
     setCurrentView("AUDIT_RUNNING");
   };
 
-  const validateWpCredentials = async (cleanUrl, credentials) => {
-    const urls = [
-      `${cleanUrl}/wp-json/wp/v2/users/me`,
-      `${cleanUrl}/wp-json/wp/v2/types?context=edit`,
-      `${cleanUrl}/?rest_route=/wp/v2/users/me`,
-      `${cleanUrl}/?rest_route=/wp/v2/types&context=edit`
-    ];
+  const validateSiteCredentials = async (cleanUrl, authHeaderValue, platform) => {
+    let urls = [];
+    if (platform === "Magento") {
+      urls = [
+        `${cleanUrl}/rest/V1/store/storeConfigs`,
+        `${cleanUrl}/index.php/rest/V1/store/storeConfigs`
+      ];
+    } else {
+      urls = [
+        `${cleanUrl}/wp-json/wp/v2/users/me`,
+        `${cleanUrl}/wp-json/wp/v2/types?context=edit`,
+        `${cleanUrl}/?rest_route=/wp/v2/users/me`,
+        `${cleanUrl}/?rest_route=/wp/v2/types&context=edit`
+      ];
+    }
 
     let lastError = null;
 
@@ -1215,7 +1223,7 @@ export default function App() {
         const response = await fetch(url, {
           method: "GET",
           headers: {
-            "Authorization": `Basic ${credentials}`,
+            "Authorization": authHeaderValue,
             "Content-Type": "application/json"
           }
         });
@@ -1224,18 +1232,31 @@ export default function App() {
           return { success: true, status: 200 };
         }
         if (response.status === 401 || response.status === 403) {
-          return { success: false, status: response.status, message: "Invalid WordPress Username or Application Password." };
+          return {
+            success: false,
+            status: response.status,
+            message: platform === "Magento" ? "Invalid Magento Access Token." : "Invalid WordPress Username or Application Password."
+          };
         }
         lastError = { status: response.status, message: `Received status code ${response.status} from API endpoint.` };
       } catch (err) {
         console.error(`Error checking endpoint ${url}:`, err);
         if (!lastError) {
-          lastError = { status: 0, message: "Network error or CORS block. Ensure the WordPress REST API is reachable." };
+          lastError = {
+            status: 0,
+            message: platform === "Magento" 
+              ? "Network error or CORS block. Ensure the Magento REST API is reachable." 
+              : "Network error or CORS block. Ensure the WordPress REST API is reachable."
+          };
         }
       }
     }
     
-    return { success: false, status: lastError ? lastError.status : 404, message: lastError ? lastError.message : "Ensure the WordPress REST API is reachable." };
+    return {
+      success: false,
+      status: lastError ? lastError.status : 404,
+      message: lastError ? lastError.message : (platform === "Magento" ? "Ensure the Magento REST API is reachable." : "Ensure the WordPress REST API is reachable.")
+    };
   };
 
   const handleTestConnection = async () => {
@@ -1245,19 +1266,25 @@ export default function App() {
     }
     cleanUrl = cleanUrl.replace(/\/+$/, "");
     
-    let credentials = "";
-    try {
-      credentials = window.btoa(newSiteUsername.trim() + ":" + newSitePassword.trim());
-    } catch (e) {
-      setConnectionTestStatus("failed");
-      setConnectionTestMessage("❌ Connection Failed: Invalid characters in username or password.");
-      return;
+    let authHeaderValue = "";
+    if (newSitePlatform === "Magento") {
+      authHeaderValue = `Bearer ${newSitePassword.trim()}`;
+    } else {
+      let credentials = "";
+      try {
+        credentials = window.btoa(newSiteUsername.trim() + ":" + newSitePassword.trim());
+        authHeaderValue = `Basic ${credentials}`;
+      } catch (e) {
+        setConnectionTestStatus("failed");
+        setConnectionTestMessage("❌ Connection Failed: Invalid characters in username or password.");
+        return;
+      }
     }
 
     setConnectionTestStatus("testing");
     setConnectionTestMessage("");
 
-    const result = await validateWpCredentials(cleanUrl, credentials);
+    const result = await validateSiteCredentials(cleanUrl, authHeaderValue, newSitePlatform);
     if (result.success) {
       setConnectionTestStatus("success");
       setConnectionTestMessage("✅ Connection Successful");
@@ -1276,31 +1303,45 @@ export default function App() {
     }
     cleanUrl = cleanUrl.replace(/\/+$/, "");
     
-    if (!site.credentials?.username || !site.credentials?.password) {
+    const platform = site.platform || "WordPress";
+
+    if (platform !== "Magento" && (!site.credentials?.username || !site.credentials?.password)) {
       setW6ConnectionStatus("failed");
       setW6ConnectionMessage("❌ Connection Failed: API Credentials are not configured for this website.");
       showNotification("Connection Failed: Credentials not configured.");
       return;
     }
-
-    let credentials = "";
-    try {
-      credentials = window.btoa(site.credentials.username.trim() + ":" + site.credentials.password.trim());
-    } catch (e) {
+    if (platform === "Magento" && !site.credentials?.password) {
       setW6ConnectionStatus("failed");
-      setW6ConnectionMessage("❌ Connection Failed: Invalid credentials format.");
-      showNotification("Connection Failed: Invalid credentials format.");
+      setW6ConnectionMessage("❌ Connection Failed: Access Token is not configured for this website.");
+      showNotification("Connection Failed: Token not configured.");
       return;
     }
 
-    setW6ConnectionStatus("testing");
-    setW6ConnectionMessage("Testing WordPress API connection...");
+    let authHeaderValue = "";
+    if (platform === "Magento") {
+      authHeaderValue = `Bearer ${site.credentials.password.trim()}`;
+    } else {
+      let credentials = "";
+      try {
+        credentials = window.btoa(site.credentials.username.trim() + ":" + site.credentials.password.trim());
+        authHeaderValue = `Basic ${credentials}`;
+      } catch (e) {
+        setW6ConnectionStatus("failed");
+        setW6ConnectionMessage("❌ Connection Failed: Invalid credentials format.");
+        showNotification("Connection Failed: Invalid credentials format.");
+        return;
+      }
+    }
 
-    const result = await validateWpCredentials(cleanUrl, credentials);
+    setW6ConnectionStatus("testing");
+    setW6ConnectionMessage(platform === "Magento" ? "Testing Magento API connection..." : "Testing WordPress API connection...");
+
+    const result = await validateSiteCredentials(cleanUrl, authHeaderValue, platform);
     if (result.success) {
       setW6ConnectionStatus("success");
       setW6ConnectionMessage("✅ Connection Successful");
-      showNotification("WordPress connection verified successfully!");
+      showNotification(platform === "Magento" ? "Magento connection verified successfully!" : "WordPress connection verified successfully!");
       setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Connected" } : s));
     } else {
       setW6ConnectionStatus("failed");
@@ -1316,7 +1357,10 @@ export default function App() {
     setEditSiteUrl(site.url || "");
     setEditSitePortfolio(site.portfolio || "TSE");
     setEditSitePlatform(site.platform || "WordPress");
-    setEditSiteApiUrl(site.apiUrl || `${site.url}/wp-json/`);
+    const defaultApiUrl = (site.platform === "Magento") 
+      ? `${site.url}/rest/` 
+      : `${site.url}/wp-json/`;
+    setEditSiteApiUrl(site.apiUrl || defaultApiUrl);
     setEditSiteUsername(site.credentials?.username || "");
     setEditSitePassword(site.credentials?.password || "");
     setEditSiteElementorEnabled(!!site.elementorEnabled);
@@ -1339,12 +1383,14 @@ export default function App() {
       }
       cleanApiUrl = cleanApiUrl.replace(/\/+$/, "");
     } else {
-      cleanApiUrl = `${cleanUrl}/wp-json`;
+      cleanApiUrl = editSitePlatform === "Magento" ? `${cleanUrl}/rest` : `${cleanUrl}/wp-json`;
     }
 
     setSites(prev => prev.map(s => {
       if (s.id === editingSiteId) {
-        const hasCredentials = !!(editSiteUsername.trim() && editSitePassword.trim());
+        const hasCredentials = editSitePlatform === "Magento"
+          ? !!editSitePassword.trim()
+          : !!(editSiteUsername.trim() && editSitePassword.trim());
         return {
           ...s,
           name: editSiteName.trim(),
@@ -1352,7 +1398,7 @@ export default function App() {
           apiUrl: cleanApiUrl,
           portfolio: editSitePortfolio,
           platform: editSitePlatform,
-          elementorEnabled: editSiteElementorEnabled,
+          elementorEnabled: editSitePlatform === "WordPress" ? editSiteElementorEnabled : false,
           status: hasCredentials ? "Connected" : "Setup Required",
           credentials: {
             username: editSiteUsername.trim(),
@@ -9796,9 +9842,36 @@ export default function App() {
                     />
                   </div>
 
-                  {/* WordPress Username */}
+                  {/* Platform Select (Milestone M004) */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Username</label>
+                    <label htmlFor="newSitePlatformInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                      Platform
+                    </label>
+                    <select
+                      id="newSitePlatformInput"
+                      value={newSitePlatform}
+                      onChange={(e) => {
+                        setNewSitePlatform(e.target.value);
+                        setConnectionTestStatus("idle");
+                      }}
+                      style={{
+                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="WordPress">WordPress</option>
+                      <option value="Magento">Magento</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                      {newSitePlatform === "Magento" ? "Magento Admin Username (Optional)" : "WordPress Username"}
+                    </label>
                     <input 
                       type="text"
                       value={newSiteUsername}
@@ -9806,7 +9879,7 @@ export default function App() {
                         setNewSiteUsername(e.target.value);
                         setConnectionTestStatus("idle");
                       }}
-                      placeholder="admin"
+                      placeholder={newSitePlatform === "Magento" ? "admin (Optional)" : "admin"}
                       style={{
                         width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                         borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
@@ -9816,9 +9889,11 @@ export default function App() {
                     />
                   </div>
 
-                  {/* WordPress Application Password */}
+                  {/* Password / Token */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Application Password</label>
+                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                      {newSitePlatform === "Magento" ? "Magento Access Token (Integration Token)" : "WordPress Application Password"}
+                    </label>
                     <input 
                       type="text"
                       value={newSitePassword}
@@ -9826,7 +9901,7 @@ export default function App() {
                         setNewSitePassword(e.target.value);
                         setConnectionTestStatus("idle");
                       }}
-                      placeholder="xxxx xxxx xxxx xxxx"
+                      placeholder={newSitePlatform === "Magento" ? "e.g. integration_access_token" : "xxxx xxxx xxxx xxxx"}
                       style={{
                         width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                         borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
@@ -9854,28 +9929,6 @@ export default function App() {
                     >
                       <option value="TSE">TSE</option>
                       <option value="Chili">Chili</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  {/* Platform Select (Milestone M004) */}
-                  <div>
-                    <label htmlFor="newSitePlatformInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                      Platform
-                    </label>
-                    <select
-                      id="newSitePlatformInput"
-                      value={newSitePlatform}
-                      onChange={(e) => setNewSitePlatform(e.target.value)}
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      <option value="WordPress">WordPress</option>
-                      <option value="Magento">Magento</option>
                       <option value="Other">Other</option>
                     </select>
                   </div>
@@ -9970,11 +10023,11 @@ export default function App() {
                   <button 
                     className="btn-secondary"
                     onClick={handleTestConnection}
-                    disabled={!newSiteName || !newSiteUrl || !newSiteUsername || !newSitePassword || connectionTestStatus === "testing"}
+                    disabled={!newSiteName || !newSiteUrl || !newSitePassword || (newSitePlatform !== "Magento" && !newSiteUsername) || connectionTestStatus === "testing"}
                     style={{ 
                       padding: '10px 18px',
-                      opacity: (!newSiteName || !newSiteUrl || !newSiteUsername || !newSitePassword || connectionTestStatus === "testing") ? 0.5 : 1,
-                      cursor: (!newSiteName || !newSiteUrl || !newSiteUsername || !newSitePassword || connectionTestStatus === "testing") ? 'not-allowed' : 'pointer'
+                      opacity: (!newSiteName || !newSiteUrl || !newSitePassword || (newSitePlatform !== "Magento" && !newSiteUsername) || connectionTestStatus === "testing") ? 0.5 : 1,
+                      cursor: (!newSiteName || !newSiteUrl || !newSitePassword || (newSitePlatform !== "Magento" && !newSiteUsername) || connectionTestStatus === "testing") ? 'not-allowed' : 'pointer'
                     }}
                   >
                     Test Connection
@@ -10351,14 +10404,16 @@ export default function App() {
 
                   {/* Right Column */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {/* WordPress API URL */}
+                     {/* WordPress API URL */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress API URL</label>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                        {editSitePlatform === "Magento" ? "Magento REST API URL" : "WordPress API URL"}
+                      </label>
                       <input 
                         type="text"
                         value={editSiteApiUrl}
                         onChange={(e) => setEditSiteApiUrl(e.target.value)}
-                        placeholder="https://www.bathroomupgrades.co.uk/wp-json/"
+                        placeholder={editSitePlatform === "Magento" ? "https://www.hf4you.co.uk/rest/" : "https://www.bathroomupgrades.co.uk/wp-json/"}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
@@ -10370,12 +10425,14 @@ export default function App() {
 
                     {/* WordPress Username */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Username</label>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                        {editSitePlatform === "Magento" ? "Magento Admin Username (Optional)" : "WordPress Username"}
+                      </label>
                       <input 
                         type="text"
                         value={editSiteUsername}
                         onChange={(e) => setEditSiteUsername(e.target.value)}
-                        placeholder="admin"
+                        placeholder={editSitePlatform === "Magento" ? "admin (Optional)" : "admin"}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
@@ -10387,12 +10444,14 @@ export default function App() {
 
                     {/* WordPress Application Password */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Application Password</label>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                        {editSitePlatform === "Magento" ? "Magento Access Token (Integration Token)" : "WordPress Application Password"}
+                      </label>
                       <input 
                         type="password"
                         value={editSitePassword}
                         onChange={(e) => setEditSitePassword(e.target.value)}
-                        placeholder="xxxx xxxx xxxx xxxx"
+                        placeholder={editSitePlatform === "Magento" ? "e.g. integration_access_token" : "xxxx xxxx xxxx xxxx"}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
