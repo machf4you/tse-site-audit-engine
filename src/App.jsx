@@ -6,6 +6,7 @@ import {
   Home, MessageSquare, Download, Search, Network, Megaphone, Bell, HelpCircle, Activity, Plus, Rocket, Code, Calendar, LayoutGrid, List, LogOut
 } from 'lucide-react';
 import './App.css';
+import { ConnectionManager } from "./connectionProviders";
 import exporterData from './exporter-data.json';
 import LocalPageAuditorApp from './page-auditor/App';
 
@@ -1200,91 +1201,23 @@ export default function App() {
     setCurrentView("AUDIT_RUNNING");
   };
 
-  const validateSiteCredentials = async (cleanUrl, authHeaderValue, platform) => {
-    let urls = [];
-    if (platform === "Magento") {
-      urls = [
-        `${cleanUrl}/rest/V1/store/storeConfigs`,
-        `${cleanUrl}/index.php/rest/V1/store/storeConfigs`
-      ];
-    } else {
-      urls = [
-        `${cleanUrl}/wp-json/wp/v2/users/me`,
-        `${cleanUrl}/wp-json/wp/v2/types?context=edit`,
-        `${cleanUrl}/?rest_route=/wp/v2/users/me`,
-        `${cleanUrl}/?rest_route=/wp/v2/types&context=edit`
-      ];
-    }
-
-    let lastError = null;
-
-    for (const url of urls) {
-      try {
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            "Authorization": authHeaderValue,
-            "Content-Type": "application/json"
-          }
-        });
-        
-        if (response.status === 200) {
-          return { success: true, status: 200 };
-        }
-        if (response.status === 401 || response.status === 403) {
-          return {
-            success: false,
-            status: response.status,
-            message: platform === "Magento" ? "Invalid Magento Access Token." : "Invalid WordPress Username or Application Password."
-          };
-        }
-        lastError = { status: response.status, message: `Received status code ${response.status} from API endpoint.` };
-      } catch (err) {
-        console.error(`Error checking endpoint ${url}:`, err);
-        if (!lastError) {
-          lastError = {
-            status: 0,
-            message: platform === "Magento" 
-              ? "Network error or CORS block. Ensure the Magento REST API is reachable." 
-              : "Network error or CORS block. Ensure the WordPress REST API is reachable."
-          };
-        }
-      }
-    }
-    
-    return {
-      success: false,
-      status: lastError ? lastError.status : 404,
-      message: lastError ? lastError.message : (platform === "Magento" ? "Ensure the Magento REST API is reachable." : "Ensure the WordPress REST API is reachable.")
-    };
-  };
-
   const handleTestConnection = async () => {
     let cleanUrl = newSiteUrl.trim();
     if (!/^https?:\/\//i.test(cleanUrl)) {
       cleanUrl = "https://" + cleanUrl;
     }
     cleanUrl = cleanUrl.replace(/\/+$/, "");
-    
-    let authHeaderValue = "";
-    if (newSitePlatform === "Magento") {
-      authHeaderValue = `Bearer ${newSitePassword.trim()}`;
-    } else {
-      let credentials = "";
-      try {
-        credentials = window.btoa(newSiteUsername.trim() + ":" + newSitePassword.trim());
-        authHeaderValue = `Basic ${credentials}`;
-      } catch (e) {
-        setConnectionTestStatus("failed");
-        setConnectionTestMessage("❌ Connection Failed: Invalid characters in username or password.");
-        return;
-      }
-    }
 
     setConnectionTestStatus("testing");
     setConnectionTestMessage("");
 
-    const result = await validateSiteCredentials(cleanUrl, authHeaderValue, newSitePlatform);
+    const provider = ConnectionManager.getProvider(newSitePlatform);
+    const credentials = {
+      username: newSiteUsername.trim(),
+      password: newSitePassword.trim()
+    };
+
+    const result = await provider.testCredentials(cleanUrl, credentials);
     if (result.success) {
       setConnectionTestStatus("success");
       setConnectionTestMessage("✅ Connection Successful");
@@ -1318,26 +1251,16 @@ export default function App() {
       return;
     }
 
-    let authHeaderValue = "";
-    if (platform === "Magento") {
-      authHeaderValue = `Bearer ${site.credentials.password.trim()}`;
-    } else {
-      let credentials = "";
-      try {
-        credentials = window.btoa(site.credentials.username.trim() + ":" + site.credentials.password.trim());
-        authHeaderValue = `Basic ${credentials}`;
-      } catch (e) {
-        setW6ConnectionStatus("failed");
-        setW6ConnectionMessage("❌ Connection Failed: Invalid credentials format.");
-        showNotification("Connection Failed: Invalid credentials format.");
-        return;
-      }
-    }
-
     setW6ConnectionStatus("testing");
     setW6ConnectionMessage(platform === "Magento" ? "Testing Magento API connection..." : "Testing WordPress API connection...");
 
-    const result = await validateSiteCredentials(cleanUrl, authHeaderValue, platform);
+    const provider = ConnectionManager.getProvider(platform);
+    const credentials = {
+      username: (site.credentials?.username || "").trim(),
+      password: (site.credentials?.password || "").trim()
+    };
+
+    const result = await provider.testCredentials(cleanUrl, credentials);
     if (result.success) {
       setW6ConnectionStatus("success");
       setW6ConnectionMessage("✅ Connection Successful");
@@ -1625,35 +1548,13 @@ export default function App() {
       cleanUrl = "https://" + cleanUrl;
     }
     cleanUrl = cleanUrl.replace(/\/+$/, "");
-    const endpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/export`;
 
-    let credentials = "";
-    try {
-      credentials = window.btoa(username.trim() + ":" + password.trim());
-    } catch (e) {
-      console.error(e);
-      showNotification("Error: Invalid credentials format.");
-      return false;
-    }
+    const site = sites.find(s => s.id === siteId);
+    const platform = site ? (site.platform || "WordPress") : "WordPress";
 
     try {
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: {
-          "Authorization": `Basic ${credentials}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`WordPress server returned status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const parsedRecords = data["full-export.json"] || [];
-      if (!Array.isArray(parsedRecords)) {
-        throw new Error("Invalid exporter records data received.");
-      }
+      const provider = ConnectionManager.getProvider(platform);
+      const parsedRecords = await provider.discoverPages(cleanUrl, { username, password });
 
       const prevPages = pagesData[siteId] || [];
       const syncedUrls = new Set();
@@ -1667,37 +1568,37 @@ export default function App() {
           return {
             ...existingPage,
             wpPostId: record.id,
-            pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
-            lastModifiedDate: record.modified_at || "",
+            pageTitle: record.title,
+            lastModifiedDate: record.modifiedAt,
             crawlData: {
               ...existingPage.crawlData,
-              h1: record.content?.h1 || "",
-              wordCount: record.content?.word_count || 0,
-              metaDescription: record.seo?.description || "",
-              bodyContent: record.content?.body_content || record.content?.plain_text || ""
+              h1: record.h1,
+              wordCount: record.wordCount,
+              metaDescription: record.metaDescription,
+              bodyContent: record.bodyContent
             }
           };
         } else {
           return {
             pageUrl: pageUrl,
             wpPostId: record.id,
-            pageTitle: record.seo?.title || record.content?.h1 || record.slug || "/",
-            targetPhrase: record.seo?.focus_keywords?.[0] || "",
-            parentPage: record.parent_id ? String(record.parent_id) : "/",
+            pageTitle: record.title,
+            targetPhrase: record.focusKeywords?.[0] || "",
+            parentPage: record.parent ? String(record.parent) : "/",
             assignedType: getPageAuditorAssignedType(pageUrl),
             status: "Unconfigured",
-            lastModifiedDate: record.modified_at || "",
+            lastModifiedDate: record.modifiedAt,
             crawlData: {
-              h1: record.content?.h1 || "",
-              wordCount: record.content?.word_count || 0,
-              metaDescription: record.seo?.description || "",
-              bodyContent: record.content?.body_content || record.content?.plain_text || ""
+              h1: record.h1,
+              wordCount: record.wordCount,
+              metaDescription: record.metaDescription,
+              bodyContent: record.bodyContent
             }
           };
         }
       });
 
-      // Preserve planned pages that are not yet live on WordPress
+      // Preserve planned pages that are not yet live
       const plannedPages = prevPages.filter(p => p.status === "Planned" && !syncedUrls.has(p.pageUrl));
       const finalPages = [...formattedPages, ...plannedPages];
 
@@ -1770,7 +1671,7 @@ export default function App() {
         [siteId]: updatedPagesWithAudits
       }));
 
-      showNotification(`Successfully synchronized ${formattedPages.length} pages from WordPress.`);
+      showNotification(`Successfully synchronized ${formattedPages.length} pages from ${platform}.`);
       return true;
     } catch (err) {
       console.error("Sync error:", err);
