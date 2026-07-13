@@ -1554,7 +1554,7 @@ export default function App() {
 
     try {
       const provider = ConnectionManager.getProvider(platform);
-      const parsedRecords = await provider.discoverPages(cleanUrl, { username, password });
+      const parsedRecords = await provider.getPages(cleanUrl, { username, password });
 
       const prevPages = pagesData[siteId] || [];
       const syncedUrls = new Set();
