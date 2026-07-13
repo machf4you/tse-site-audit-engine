@@ -9820,7 +9820,7 @@ export default function App() {
                   <div>
                     <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>WordPress Application Password</label>
                     <input 
-                      type="password"
+                      type="text"
                       value={newSitePassword}
                       onChange={(e) => {
                         setNewSitePassword(e.target.value);
