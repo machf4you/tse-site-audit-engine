@@ -346,51 +346,6 @@ app.post('/api/github/pull', async (req, res) => {
             });
           }
 
-          // Fetch new HEAD commit to check diff
-          exec('git rev-parse HEAD', (err4, postCommitStdout) => {
-            const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
-
-            if (previousCommit !== 'unknown' && currentCommit !== 'unknown') {
-              exec(`git diff --name-only ${previousCommit} ${currentCommit}`, { cwd: statusCwd }, (diffErr, diffStdout) => {
-                const changedFiles = diffErr ? [] : diffStdout.split('\n').map(f => f.trim());
-                const serverChanged = changedFiles.some(f => f === 'server/server.js' || f === 'server\\server.js');
-                
-                if (serverChanged) {
-                  console.log("[GIT PULL] server/server.js has changed. Aborting deployment for PM2 restart.");
-                  const message = "Backend updated. Please restart PM2 before continuing deployment.";
-                  const timestamp = new Date().toISOString();
-                  const metadata = {
-                    lastPullTime: timestamp,
-                    lastPullStatus: 'failure',
-                    lastPullLog: message,
-                    previousCommit: previousCommit,
-                    currentCommit: currentCommit
-                  };
-                  try {
-                    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
-                  } catch (e) {
-                    console.error("[GIT PULL] Failed to write metadata file:", e.message);
-                  }
-                  
-                  return res.json({
-                    success: false,
-                    output: message,
-                    branch,
-                    previousCommit,
-                    currentCommit,
-                    lastPullTime: timestamp,
-                    lastPullStatus: 'failure',
-                    lastPullLog: message
-                  });
-                }
-
-                proceedWithDeployment(currentCommit);
-              });
-            } else {
-              proceedWithDeployment(currentCommit);
-            }
-          });
-
           function proceedWithDeployment(currentCommit) {
             // Git pull succeeded, trigger frontend rebuild
             console.log("[GIT PULL] Git pull succeeded. Checking if package dependencies are missing...");
@@ -508,6 +463,51 @@ app.post('/api/github/pull', async (req, res) => {
               runBuild();
             }
           }
+
+          // Fetch new HEAD commit to check diff
+          exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+            const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+
+            if (previousCommit !== 'unknown' && currentCommit !== 'unknown') {
+              exec(`git diff --name-only ${previousCommit} ${currentCommit}`, { cwd: statusCwd }, (diffErr, diffStdout) => {
+                const changedFiles = diffErr ? [] : diffStdout.split('\n').map(f => f.trim());
+                const serverChanged = changedFiles.some(f => f === 'server/server.js' || f === 'server\\server.js');
+                
+                if (serverChanged) {
+                  console.log("[GIT PULL] server/server.js has changed. Aborting deployment for PM2 restart.");
+                  const message = "Backend updated. Please restart PM2 before continuing deployment.";
+                  const timestamp = new Date().toISOString();
+                  const metadata = {
+                    lastPullTime: timestamp,
+                    lastPullStatus: 'failure',
+                    lastPullLog: message,
+                    previousCommit: previousCommit,
+                    currentCommit: currentCommit
+                  };
+                  try {
+                    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+                  } catch (e) {
+                    console.error("[GIT PULL] Failed to write metadata file:", e.message);
+                  }
+                  
+                  return res.json({
+                    success: false,
+                    output: message,
+                    branch,
+                    previousCommit,
+                    currentCommit,
+                    lastPullTime: timestamp,
+                    lastPullStatus: 'failure',
+                    lastPullLog: message
+                  });
+                }
+
+                proceedWithDeployment(currentCommit);
+              });
+            } else {
+              proceedWithDeployment(currentCommit);
+            }
+          });
         });
       });
     });
