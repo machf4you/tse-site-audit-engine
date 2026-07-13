@@ -320,7 +320,7 @@ app.post('/api/github/pull', async (req, res) => {
         // Use fetch and reset --hard origin/branch to handle normal updates, rollbacks, and diverged branches without merge/rebase reconciliation errors
         console.log(`[GIT PULL] Fetching and resetting to origin/${branch}...`);
         exec(`git fetch origin && git reset --hard origin/${branch}`, { cwd: statusCwd }, (err3, pullStdout, pullStderr) => {
-          const pullOutput = pullStdout + '\n' + pullStderr;
+          let pullOutput = pullStdout + '\n' + pullStderr;
           
           if (err3) {
             const timestamp = new Date().toISOString();
@@ -346,68 +346,111 @@ app.post('/api/github/pull', async (req, res) => {
             });
           }
 
-          // Git pull succeeded, trigger frontend rebuild
-          console.log("[GIT PULL] Git pull succeeded. Checking if package dependencies are missing...");
-          let shouldInstall = false;
-          try {
-            const packageJsonPath = path.join(__dirname, '..', 'package.json');
-            if (fs.existsSync(packageJsonPath)) {
-              const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-              const dependencies = {
-                ...(pkg.dependencies || {}),
-                ...(pkg.devDependencies || {})
-              };
-              for (const dep of Object.keys(dependencies)) {
-                const depPath = path.join(__dirname, '..', 'node_modules', dep);
-                if (!fs.existsSync(depPath)) {
-                  console.log(`[GIT PULL] Missing dependency: ${dep}. Will run npm install.`);
-                  shouldInstall = true;
-                  break;
+          // Fetch new HEAD commit to check diff
+          exec('git rev-parse HEAD', (err4, postCommitStdout) => {
+            const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
+
+            if (previousCommit !== 'unknown' && currentCommit !== 'unknown') {
+              exec(`git diff --name-only ${previousCommit} ${currentCommit}`, { cwd: statusCwd }, (diffErr, diffStdout) => {
+                const changedFiles = diffErr ? [] : diffStdout.split('\n').map(f => f.trim());
+                const serverChanged = changedFiles.some(f => f === 'server/server.js' || f === 'server\\server.js');
+                
+                if (serverChanged) {
+                  console.log("[GIT PULL] server/server.js has changed. Aborting deployment for PM2 restart.");
+                  const message = "Backend updated. Please restart PM2 before continuing deployment.";
+                  const timestamp = new Date().toISOString();
+                  const metadata = {
+                    lastPullTime: timestamp,
+                    lastPullStatus: 'failure',
+                    lastPullLog: message,
+                    previousCommit: previousCommit,
+                    currentCommit: currentCommit
+                  };
+                  try {
+                    fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2), 'utf8');
+                  } catch (e) {
+                    console.error("[GIT PULL] Failed to write metadata file:", e.message);
+                  }
+                  
+                  return res.json({
+                    success: false,
+                    output: message,
+                    branch,
+                    previousCommit,
+                    currentCommit,
+                    lastPullTime: timestamp,
+                    lastPullStatus: 'failure',
+                    lastPullLog: message
+                  });
                 }
-              }
+
+                proceedWithDeployment(currentCommit);
+              });
             } else {
+              proceedWithDeployment(currentCommit);
+            }
+          });
+
+          function proceedWithDeployment(currentCommit) {
+            // Git pull succeeded, trigger frontend rebuild
+            console.log("[GIT PULL] Git pull succeeded. Checking if package dependencies are missing...");
+            let shouldInstall = false;
+            try {
+              const packageJsonPath = path.join(__dirname, '..', 'package.json');
+              if (fs.existsSync(packageJsonPath)) {
+                const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+                const dependencies = {
+                  ...(pkg.dependencies || {}),
+                  ...(pkg.devDependencies || {})
+                };
+                for (const dep of Object.keys(dependencies)) {
+                  const depPath = path.join(__dirname, '..', 'node_modules', dep);
+                  if (!fs.existsSync(depPath)) {
+                    console.log(`[GIT PULL] Missing dependency: ${dep}. Will run npm install.`);
+                    shouldInstall = true;
+                    break;
+                  }
+                }
+              } else {
+                shouldInstall = true;
+              }
+            } catch (e) {
+              console.error("[GIT PULL] Error checking dependencies:", e.message);
               shouldInstall = true;
             }
-          } catch (e) {
-            console.error("[GIT PULL] Error checking dependencies:", e.message);
-            shouldInstall = true;
-          }
 
-          const runBuild = () => {
-            const projectDir = path.join(__dirname, '..');
-            
-            // Gather info
-            const nodeVersion = process.version;
-            const cwdPath = process.cwd();
-            const hasFederationPlugin = fs.existsSync(path.join(projectDir, 'node_modules', '@originjs/vite-plugin-federation')) ? 'Yes' : 'No';
-            const wasInstalled = shouldInstall ? 'Yes' : 'No';
-            
-            // Get npm version
-            exec('npm -v', (npmErr, npmStdout) => {
-              const npmVersion = npmErr ? 'unknown' : npmStdout.trim();
+            const runBuild = () => {
+              const projectDir = path.join(__dirname, '..');
               
-              // Append deployment diagnostics immediately before running vite build
-              pullOutput += `\n\n=== DEPLOYMENT LOG ===\n` +
-                `Node.js version: ${nodeVersion}\n` +
-                `npm version: ${npmVersion}\n` +
-                `Current working directory: ${cwdPath}\n` +
-                `Whether node_modules/@originjs/vite-plugin-federation exists: ${hasFederationPlugin}\n` +
-                `Whether npm install was executed during this deployment: ${wasInstalled}\n` +
-                `======================\n`;
+              // Gather info
+              const nodeVersion = process.version;
+              const cwdPath = process.cwd();
+              const hasFederationPlugin = fs.existsSync(path.join(projectDir, 'node_modules', '@originjs/vite-plugin-federation')) ? 'Yes' : 'No';
+              const wasInstalled = shouldInstall ? 'Yes' : 'No';
+              
+              // Get npm version
+              exec('npm -v', (npmErr, npmStdout) => {
+                const npmVersion = npmErr ? 'unknown' : npmStdout.trim();
                 
-              console.log("[GIT PULL] Triggering frontend build...");
-              const buildCmd = process.platform === 'win32'
-                ? 'npm run build'
-                : 'npm run build && cp -r dist/* ..';
-                
-              exec(buildCmd, { cwd: projectDir }, (buildErr, buildStdout, buildStderr) => {
-                const buildOutput = buildStdout + '\n' + buildStderr;
-                let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
-                
-                exec('git rev-parse HEAD', (err4, postCommitStdout) => {
-                  const currentCommit = err4 ? 'unknown' : postCommitStdout.trim();
-                  const timestamp = new Date().toISOString();
+                // Append deployment diagnostics immediately before running vite build
+                pullOutput += `\n\n=== DEPLOYMENT LOG ===\n` +
+                  `Node.js version: ${nodeVersion}\n` +
+                  `npm version: ${npmVersion}\n` +
+                  `Current working directory: ${cwdPath}\n` +
+                  `Whether node_modules/@originjs/vite-plugin-federation exists: ${hasFederationPlugin}\n` +
+                  `Whether npm install was executed during this deployment: ${wasInstalled}\n` +
+                  `======================\n`;
                   
+                console.log("[GIT PULL] Triggering frontend build...");
+                const buildCmd = process.platform === 'win32'
+                  ? 'npm run build'
+                  : 'npm run build && cp -r dist/* ..';
+                  
+                exec(buildCmd, { cwd: projectDir }, (buildErr, buildStdout, buildStderr) => {
+                  const buildOutput = buildStdout + '\n' + buildStderr;
+                  let finalOutput = pullOutput + "\n\n=== FRONTEND BUILD LOG ===\n" + buildOutput;
+                  
+                  const timestamp = new Date().toISOString();
                   const status = buildErr ? 'failure' : 'success';
                   if (buildErr) {
                     finalOutput += "\n\n[GIT PULL] Frontend build failed.";
@@ -452,18 +495,18 @@ app.post('/api/github/pull', async (req, res) => {
                   }
                 });
               });
-            });
-          };
+            };
 
-          if (shouldInstall) {
-            console.log("[GIT PULL] Missing dependencies detected. Running npm install...");
-            exec('npm install --legacy-peer-deps', { cwd: path.join(__dirname, '..') }, (installErr, installStdout, installStderr) => {
-              const installOutput = installStdout + '\n' + installStderr;
-              pullOutput += "\n\n=== NPM INSTALL LOG ===\n" + installOutput;
+            if (shouldInstall) {
+              console.log("[GIT PULL] Missing dependencies detected. Running npm install...");
+              exec('npm install --legacy-peer-deps', { cwd: path.join(__dirname, '..') }, (installErr, installStdout, installStderr) => {
+                const installOutput = installStdout + '\n' + installStderr;
+                pullOutput += "\n\n=== NPM INSTALL LOG ===\n" + installOutput;
+                runBuild();
+              });
+            } else {
               runBuild();
-            });
-          } else {
-            runBuild();
+            }
           }
         });
       });
