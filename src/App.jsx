@@ -4235,7 +4235,7 @@ export default function App() {
           {renderAppCard({
             name: "Page Auditor",
             description: "Intelligent page-level SEO auditing and fitment engine.",
-            status: "Development",
+            status: "Live",
             version: "v0.8.0-dev",
             appId: "PAGE_AUDITOR",
             accentColor: "#f59e0b",
