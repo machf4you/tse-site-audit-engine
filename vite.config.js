@@ -14,7 +14,7 @@ export default defineConfig({
     federation({
       name: 'shell',
       remotes: {
-        page_auditor: 'http://localhost:5001/assets/remoteEntry.js'
+        page_auditor: 'https://audit-dev.thesearchequation.co.uk/page-auditor/assets/remoteEntry.js'
       },
       shared: ['react', 'react-dom']
     })
