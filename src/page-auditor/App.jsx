@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import HomePage from "@/pages/HomePage";
 import AuditResult from "@/pages/AuditResult";
 
-export default function App() {
+export default function LocalPageAuditorApp() {
   return (
     <div className="tse-page-auditor-scope">
       <BrowserRouter>
