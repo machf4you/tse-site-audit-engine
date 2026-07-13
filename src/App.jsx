@@ -1200,13 +1200,50 @@ export default function App() {
     setCurrentView("AUDIT_RUNNING");
   };
 
-  const handleTestConnection = () => {
+  const validateWpCredentials = async (cleanUrl, credentials) => {
+    const urls = [
+      `${cleanUrl}/wp-json/wp/v2/users/me`,
+      `${cleanUrl}/wp-json/wp/v2/types?context=edit`,
+      `${cleanUrl}/?rest_route=/wp/v2/users/me`,
+      `${cleanUrl}/?rest_route=/wp/v2/types&context=edit`
+    ];
+
+    let lastError = null;
+
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Authorization": `Basic ${credentials}`,
+            "Content-Type": "application/json"
+          }
+        });
+        
+        if (response.status === 200) {
+          return { success: true, status: 200 };
+        }
+        if (response.status === 401 || response.status === 403) {
+          return { success: false, status: response.status, message: "Invalid WordPress Username or Application Password." };
+        }
+        lastError = { status: response.status, message: `Received status code ${response.status} from API endpoint.` };
+      } catch (err) {
+        console.error(`Error checking endpoint ${url}:`, err);
+        if (!lastError) {
+          lastError = { status: 0, message: "Network error or CORS block. Ensure the WordPress REST API is reachable." };
+        }
+      }
+    }
+    
+    return { success: false, status: lastError ? lastError.status : 404, message: lastError ? lastError.message : "Ensure the WordPress REST API is reachable." };
+  };
+
+  const handleTestConnection = async () => {
     let cleanUrl = newSiteUrl.trim();
     if (!/^https?:\/\//i.test(cleanUrl)) {
       cleanUrl = "https://" + cleanUrl;
     }
     cleanUrl = cleanUrl.replace(/\/+$/, "");
-    const endpoint = `${cleanUrl}/wp-json/wp/v2/users/me`;
     
     let credentials = "";
     try {
@@ -1220,33 +1257,17 @@ export default function App() {
     setConnectionTestStatus("testing");
     setConnectionTestMessage("");
 
-    fetch(endpoint, {
-      method: "GET",
-      headers: {
-        "Authorization": `Basic ${credentials}`,
-        "Content-Type": "application/json"
-      }
-    })
-    .then(response => {
-      if (response.status === 200) {
-        setConnectionTestStatus("success");
-        setConnectionTestMessage("✅ Connection Successful");
-      } else if (response.status === 401 || response.status === 403) {
-        setConnectionTestStatus("failed");
-        setConnectionTestMessage("❌ Connection Failed: Invalid WordPress Username or Application Password.");
-      } else {
-        setConnectionTestStatus("failed");
-        setConnectionTestMessage(`❌ Connection Failed: Received status code ${response.status} from API endpoint.`);
-      }
-    })
-    .catch(err => {
-      console.error("Test connection fetch error:", err);
+    const result = await validateWpCredentials(cleanUrl, credentials);
+    if (result.success) {
+      setConnectionTestStatus("success");
+      setConnectionTestMessage("✅ Connection Successful");
+    } else {
       setConnectionTestStatus("failed");
-      setConnectionTestMessage("❌ Connection Failed: Network error or CORS block. Ensure the WordPress REST API is reachable.");
-    });
-  }
+      setConnectionTestMessage(`❌ Connection Failed: ${result.message}`);
+    }
+  };
 
-  const handleW6TestConnection = (site) => {
+  const handleW6TestConnection = async (site) => {
     if (!site) return;
     
     let cleanUrl = site.url.trim();
@@ -1254,7 +1275,6 @@ export default function App() {
       cleanUrl = "https://" + cleanUrl;
     }
     cleanUrl = cleanUrl.replace(/\/+$/, "");
-    const endpoint = `${cleanUrl}/wp-json/wp/v2/users/me`;
     
     if (!site.credentials?.username || !site.credentials?.password) {
       setW6ConnectionStatus("failed");
@@ -1276,39 +1296,19 @@ export default function App() {
     setW6ConnectionStatus("testing");
     setW6ConnectionMessage("Testing WordPress API connection...");
 
-    fetch(endpoint, {
-      method: "GET",
-      headers: {
-        "Authorization": `Basic ${credentials}`,
-        "Content-Type": "application/json"
-      }
-    })
-    .then(response => {
-      if (response.status === 200) {
-        setW6ConnectionStatus("success");
-        setW6ConnectionMessage("✅ Connection Successful");
-        showNotification("WordPress connection verified successfully!");
-        setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Connected" } : s));
-      } else if (response.status === 401 || response.status === 403) {
-        setW6ConnectionStatus("failed");
-        setW6ConnectionMessage("❌ Connection Failed: Invalid credentials or insufficient permissions.");
-        showNotification("Connection Failed: Invalid credentials.");
-        setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Disconnected" } : s));
-      } else {
-        setW6ConnectionStatus("failed");
-        setW6ConnectionMessage(`❌ Connection Failed: Received status code ${response.status}.`);
-        showNotification(`Connection Failed: Status ${response.status}`);
-        setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Disconnected" } : s));
-      }
-    })
-    .catch(err => {
-      console.error(err);
+    const result = await validateWpCredentials(cleanUrl, credentials);
+    if (result.success) {
+      setW6ConnectionStatus("success");
+      setW6ConnectionMessage("✅ Connection Successful");
+      showNotification("WordPress connection verified successfully!");
+      setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Connected" } : s));
+    } else {
       setW6ConnectionStatus("failed");
-      setW6ConnectionMessage("❌ Connection Failed: Network error or CORS block.");
-      showNotification("Connection Failed: Network error.");
+      setW6ConnectionMessage(`❌ Connection Failed: ${result.message}`);
+      showNotification("Connection Failed: Credentials or network issue.");
       setSites(prev => prev.map(s => s.id === site.id ? { ...s, status: "Disconnected" } : s));
-    });
-  }
+    }
+  };
 
   const handleOpenEditWebsiteModal = (site) => {
     setEditingSiteId(site.id);
