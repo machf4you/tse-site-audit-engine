@@ -199,52 +199,147 @@ export class MagentoProvider extends BaseConnectionProvider {
 
   async getPages(url, credentials) {
     const { password } = credentials || {};
-    if (password) {
-      const authHeaderValue = `Bearer ${password.trim()}`;
-      
-      console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/default/V1/categories`);
-      try {
-        const catRes = await fetch(`${url}/rest/default/V1/categories`, {
-          method: "GET",
-          headers: {
-            "Authorization": authHeaderValue,
-            "Content-Type": "application/json"
-          }
-        });
-        if (catRes.ok) {
-          const catData = await catRes.json();
-          console.log("=== MAGENTO CATEGORY TREE ===");
-          console.log(catData);
-        } else {
-          console.warn(`Failed to fetch category tree: ${catRes.status} ${catRes.statusText}`);
-        }
-      } catch (err) {
-        console.error("Error fetching category tree:", err);
-      }
+    if (!password) {
+      return [];
+    }
+    const authHeaderValue = `Bearer ${password.trim()}`;
+    const pages = [];
 
-      console.log(`[MagentoProvider] Retrieving CMS Pages from: ${url}/rest/default/V1/cmsPage/search`);
-      try {
-        const cmsRes = await fetch(`${url}/rest/default/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
-          method: "GET",
-          headers: {
-            "Authorization": authHeaderValue,
-            "Content-Type": "application/json"
-          }
+    // Helper to recursively flatten category tree
+    function flattenCategories(category, parentId = null) {
+      let list = [];
+      if (category.is_active) {
+        list.push({
+          id: category.id,
+          name: category.name,
+          parentId: parentId,
+          level: category.level
         });
-        if (cmsRes.ok) {
-          const cmsData = await cmsRes.json();
-          console.log("=== MAGENTO CMS PAGES ===");
-          console.log(cmsData);
-        } else {
-          console.warn(`Failed to fetch CMS pages: ${cmsRes.status} ${cmsRes.statusText}`);
-        }
-      } catch (err) {
-        console.error("Error fetching CMS pages:", err);
       }
+      if (category.children_data && Array.isArray(category.children_data)) {
+        for (const child of category.children_data) {
+          list = list.concat(flattenCategories(child, category.id));
+        }
+      }
+      return list;
     }
 
-    // Do not import into W2 yet
-    return [];
+    // 1. Retrieve & Map Category Tree
+    console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/default/V1/categories`);
+    try {
+      const catRes = await fetch(`${url}/rest/default/V1/categories`, {
+        method: "GET",
+        headers: {
+          "Authorization": authHeaderValue,
+          "Content-Type": "application/json"
+        }
+      });
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        console.log("=== MAGENTO CATEGORY TREE ===");
+        console.log(catData);
+        
+        const flatCategories = flattenCategories(catData);
+        flatCategories.forEach(cat => {
+          // Skip root category placeholders
+          if (cat.id === 1 || cat.id === 2 || cat.name.toLowerCase().includes("root") || cat.name.toLowerCase() === "default category") {
+            return;
+          }
+          
+          const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+          const pageUrl = `${url}/${slug}`;
+          
+          pages.push({
+            id: `category-${cat.id}`,
+            url: pageUrl,
+            title: `${cat.name} | Category`,
+            h1: cat.name,
+            metaDescription: `Browse our range of ${cat.name} products.`,
+            wordCount: 0,
+            bodyContent: `Magento Category: ${cat.name}`,
+            modifiedAt: new Date().toISOString(),
+            parent: cat.parentId && cat.parentId !== 1 && cat.parentId !== 2 ? `category-${cat.parentId}` : null,
+            focusKeywords: [cat.name.toLowerCase()]
+          });
+        });
+      } else {
+        console.warn(`Failed to fetch category tree: ${catRes.status} ${catRes.statusText}`);
+      }
+    } catch (err) {
+      console.error("Error fetching category tree:", err);
+    }
+
+    // 2. Retrieve & Map CMS Pages
+    console.log(`[MagentoProvider] Retrieving CMS Pages from: ${url}/rest/default/V1/cmsPage/search`);
+    try {
+      const cmsRes = await fetch(`${url}/rest/default/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
+        method: "GET",
+        headers: {
+          "Authorization": authHeaderValue,
+          "Content-Type": "application/json"
+        }
+      });
+      if (cmsRes.ok) {
+        const cmsData = await cmsRes.json();
+        console.log("=== MAGENTO CMS PAGES ===");
+        console.log(cmsData);
+        
+        if (cmsData.items && Array.isArray(cmsData.items)) {
+          const detailPromises = cmsData.items.map(async (item) => {
+            try {
+              const detailRes = await fetch(`${url}/rest/default/V1/cmsPage/${item.id}`, {
+                method: "GET",
+                headers: {
+                  "Authorization": authHeaderValue,
+                  "Content-Type": "application/json"
+                }
+              });
+              if (detailRes.ok) {
+                return await detailRes.json();
+              }
+            } catch (e) {
+              console.error(`Error fetching CMS page ${item.id} details:`, e);
+            }
+            return item;
+          });
+          
+          const detailedItems = await Promise.all(detailPromises);
+          detailedItems.forEach(item => {
+            const isActive = item.active !== undefined ? item.active : true;
+            if (!isActive) return;
+            
+            let path = item.identifier;
+            if (path === "home") {
+              path = "";
+            }
+            const pageUrl = path ? `${url}/${path}` : `${url}/`;
+            
+            const plainText = (item.content || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+            const wordCount = plainText ? plainText.split(/\s+/).length : 0;
+            
+            pages.push({
+              id: `cms-${item.id}`,
+              url: pageUrl,
+              title: item.title || "",
+              h1: item.content_heading || item.title || "",
+              metaDescription: item.meta_description || "",
+              wordCount: wordCount,
+              bodyContent: plainText || `CMS Page: ${item.title}`,
+              modifiedAt: item.update_time || item.creation_time || new Date().toISOString(),
+              parent: null,
+              focusKeywords: item.meta_keywords ? item.meta_keywords.split(",").map(k => k.trim()) : []
+            });
+          });
+        }
+      } else {
+        console.warn(`Failed to fetch CMS pages: ${cmsRes.status} ${cmsRes.statusText}`);
+      }
+    } catch (err) {
+      console.error("Error fetching CMS pages:", err);
+    }
+
+    console.log(`[MagentoProvider] Returning ${pages.length} mapped pages to client app.`);
+    return pages;
   }
 }
 
