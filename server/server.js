@@ -26,6 +26,51 @@ initDb().then(() => {
   console.error("Database initialization failed:", err.message);
 });
 
+// Clear PM2 restart required warning on startup after successful PM2 restart
+const startupMetaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
+try {
+  if (fs.existsSync(startupMetaPath)) {
+    const metadata = JSON.parse(fs.readFileSync(startupMetaPath, 'utf8'));
+    if (metadata.lastPullLog === "Backend updated. Please restart PM2 before continuing deployment.") {
+      console.log("[STARTUP] Detected pending PM2 restart resolution. Recalculating deployment status...");
+      const cwd = path.join(__dirname, '..');
+      exec('git fetch origin', { cwd }, (fetchErr) => {
+        exec('git rev-parse --abbrev-ref HEAD', { cwd }, (err1, branchStdout) => {
+          const branch = err1 ? 'main' : branchStdout.trim();
+          exec('git rev-parse HEAD', { cwd }, (err2, localCommitStdout) => {
+            const localCommit = err2 ? 'unknown' : localCommitStdout.trim();
+            exec(`git rev-parse origin/${branch}`, { cwd }, (err3, remoteCommitStdout) => {
+              const remoteCommit = err3 ? localCommit : remoteCommitStdout.trim();
+              
+              const isUpToDate = (localCommit !== 'unknown' && localCommit === remoteCommit);
+              const logMessage = isUpToDate 
+                ? "No updates available."
+                : `Backend updated successfully. local commit: ${localCommit}, remote commit: ${remoteCommit}`;
+              
+              const updatedMetadata = {
+                lastPullTime: new Date().toISOString(),
+                lastPullStatus: 'success',
+                lastPullLog: logMessage,
+                previousCommit: metadata.previousCommit || 'unknown',
+                currentCommit: localCommit
+              };
+              
+              try {
+                fs.writeFileSync(startupMetaPath, JSON.stringify(updatedMetadata, null, 2), 'utf8');
+                console.log("[STARTUP] Metadata successfully cleared and updated:", updatedMetadata);
+              } catch (e) {
+                console.error("[STARTUP] Failed to write updated metadata file:", e.message);
+              }
+            });
+          });
+        });
+      });
+    }
+  }
+} catch (err) {
+  console.error("[STARTUP] Error processing metadata check:", err.message);
+}
+
 console.log("API KEY LOADED:", process.env.OPENAI_API_KEY ? "YES (hidden)" : "NO");
 
 const app = express();
