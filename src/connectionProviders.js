@@ -198,83 +198,52 @@ export class MagentoProvider extends BaseConnectionProvider {
   }
 
   async getPages(url, credentials) {
-    // If the base domain belongs to HF4You, or as a robust fallback for Magento site page imports
-    if (url.includes("hf4you")) {
-      return [
-        {
-          id: "page-1",
-          url: "https://www.hf4you.co.uk/",
-          title: "HF4You - Cheap Beds, Mattresses & Bedroom Furniture Online",
-          h1: "Welcome to HF4You",
-          metaDescription: "Buy cheap beds, memory foam mattresses, divan beds, and bedroom furniture online from HF4You. High quality and low prices with free delivery.",
-          wordCount: 350,
-          bodyContent: "Welcome to HF4You. We offer the best divan beds, mattresses, and bedroom furniture. Buy online today.",
-          modifiedAt: new Date().toISOString(),
-          parent: null,
-          focusKeywords: ["beds online", "bedroom furniture"]
-        },
-        {
-          id: "page-2",
-          url: "https://www.hf4you.co.uk/divans",
-          title: "Divan Beds | Cheap Divans with Mattresses - HF4You",
-          h1: "Divan Beds",
-          metaDescription: "Choose from our wide range of cheap divan beds. Available with optional drawers and pocket sprung mattresses. Order your divan bed online today.",
-          wordCount: 420,
-          bodyContent: "Discover our quality range of divan beds. Perfect for storage and comfort. Shop now for cheap divan beds.",
-          modifiedAt: new Date().toISOString(),
-          parent: null,
-          focusKeywords: ["divan beds"]
-        },
-        {
-          id: "page-3",
-          url: "https://www.hf4you.co.uk/mattresses",
-          title: "Mattresses | Cheap Memory Foam & Pocket Sprung - HF4You",
-          h1: "Mattresses",
-          metaDescription: "Browse our collection of cheap mattresses. From pocket sprung to memory foam mattresses, find the perfect support for a good night's sleep.",
-          wordCount: 380,
-          bodyContent: "Explore comfort with our extensive mattresses collection including pocket sprung and memory foam mattresses.",
-          modifiedAt: new Date().toISOString(),
-          parent: null,
-          focusKeywords: ["cheap mattresses", "memory foam mattress"]
-        },
-        {
-          id: "page-4",
-          url: "https://www.hf4you.co.uk/bed-frames",
-          title: "Bed Frames | Wooden, Metal & Leather Beds - HF4You",
-          h1: "Bed Frames",
-          metaDescription: "Find stylish bed frames online at HF4You. Choose from wooden, metal, and leather bed frames in all sizes from single to king size.",
-          wordCount: 290,
-          bodyContent: "Browse durable and elegant bed frames. Select from wooden, leather, and metal designs.",
-          modifiedAt: new Date().toISOString(),
-          parent: null,
-          focusKeywords: ["bed frames"]
-        },
-        {
-          id: "page-5",
-          url: "https://www.hf4you.co.uk/about-us",
-          title: "About Us - HF4You",
-          h1: "About HF4You",
-          metaDescription: "Learn more about HF4You, your trusted online retailer for affordable bedroom furniture, cheap beds, and high-quality mattresses.",
-          wordCount: 180,
-          bodyContent: "HF4You has been providing high-quality beds and mattresses at cheap prices for over a decade.",
-          modifiedAt: new Date().toISOString(),
-          parent: null,
-          focusKeywords: ["about hf4you"]
-        },
-        {
-          id: "page-6",
-          url: "https://www.hf4you.co.uk/contact",
-          title: "Contact Us - HF4You",
-          h1: "Contact HF4You",
-          metaDescription: "Get in touch with the customer service team at HF4You for queries about orders, beds, mattresses, or delivery information.",
-          wordCount: 120,
-          bodyContent: "Contact HF4You customer service team. We are here to help you with your beds and mattresses queries.",
-          modifiedAt: new Date().toISOString(),
-          parent: null,
-          focusKeywords: ["contact hf4you"]
+    const { password } = credentials || {};
+    if (password) {
+      const authHeaderValue = `Bearer ${password.trim()}`;
+      
+      console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/default/V1/categories`);
+      try {
+        const catRes = await fetch(`${url}/rest/default/V1/categories`, {
+          method: "GET",
+          headers: {
+            "Authorization": authHeaderValue,
+            "Content-Type": "application/json"
+          }
+        });
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          console.log("=== MAGENTO CATEGORY TREE ===");
+          console.log(catData);
+        } else {
+          console.warn(`Failed to fetch category tree: ${catRes.status} ${catRes.statusText}`);
         }
-      ];
+      } catch (err) {
+        console.error("Error fetching category tree:", err);
+      }
+
+      console.log(`[MagentoProvider] Retrieving CMS Pages from: ${url}/rest/default/V1/cmsPage/search`);
+      try {
+        const cmsRes = await fetch(`${url}/rest/default/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
+          method: "GET",
+          headers: {
+            "Authorization": authHeaderValue,
+            "Content-Type": "application/json"
+          }
+        });
+        if (cmsRes.ok) {
+          const cmsData = await cmsRes.json();
+          console.log("=== MAGENTO CMS PAGES ===");
+          console.log(cmsData);
+        } else {
+          console.warn(`Failed to fetch CMS pages: ${cmsRes.status} ${cmsRes.statusText}`);
+        }
+      } catch (err) {
+        console.error("Error fetching CMS pages:", err);
+      }
     }
+
+    // Do not import into W2 yet
     return [];
   }
 }
