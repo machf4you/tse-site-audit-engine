@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig({
   plugins: [
     react(),
-    // Vite Module Federation Phase 1 Setup
+    // Vite Module Federation Phase 1 Setup - Verified Page Auditor integration
     federation({
       name: 'shell',
       remotes: {
