@@ -20,7 +20,7 @@
   --bad-bg:     #fee2e2;
 }
 
-@keyframes spin { to { transform: rotate(360deg); }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .tse-page-auditor-scope {
 
