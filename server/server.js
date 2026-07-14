@@ -340,6 +340,20 @@ app.post('/api/architecture-notes', async (req, res) => {
   }
 });
 
+// POST Temporary database and fallback duplicates cleanup route
+app.post('/api/cleanup-duplicates-tmp', async (req, res) => {
+  try {
+    const { exec } = require('child_process');
+    exec('node cleanup_duplicates.js', { cwd: __dirname }, (error, stdout, stderr) => {
+      console.log("Cleanup stdout:", stdout);
+      console.error("Cleanup stderr:", stderr);
+      res.json({ success: true, stdout, stderr });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST Platform proxy (to bypass CORS for WordPress/Magento APIs)
 app.post('/api/platform-proxy', async (req, res) => {
   const { url, method, headers, data } = req.body;
