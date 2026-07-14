@@ -1,14 +1,6 @@
-const { Client } = require('pg');
+const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
-
-// Delete any process environment variables that node-postgres might fall back to
-delete process.env.PGUSER;
-delete process.env.PGPASSWORD;
-delete process.env.PGHOST;
-delete process.env.PGPORT;
-delete process.env.PGDATABASE;
 
 const envPath = path.join(__dirname, '.env');
 let databaseUrl = null;
@@ -60,37 +52,17 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
     return;
   }
 
-  let clientOptions = {};
-  try {
-    const params = url.parse(databaseUrl);
-    const auth = params.auth.split(':');
-    clientOptions = {
-      user: auth[0],
-      password: auth[1],
-      host: params.hostname,
-      port: params.port,
-      database: params.pathname.split('/')[1],
-      ssl: {
-        rejectUnauthorized: false
-      }
-    };
-    console.log("Connecting with parsed client options. Explicit User:", clientOptions.user);
-  } catch (e) {
-    console.error("Failed to parse DATABASE_URL, falling back to connectionString:", e.message);
-    clientOptions = {
-      connectionString: databaseUrl,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    };
-  }
-
-  const client = new Client(clientOptions);
+  console.log("Connecting to database using Pool...");
+  const pool = new Pool({
+    connectionString: databaseUrl,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
 
   try {
-    await client.connect();
     console.log("=== CLEANING DATABASE ===");
-    const { rows: sites } = await client.query('SELECT * FROM websites');
+    const { rows: sites } = await pool.query('SELECT * FROM websites');
     const hf4youSites = sites.filter(s => s.url.trim().toLowerCase().includes('hf4you.co.uk'));
     
     if (hf4youSites.length > 1) {
@@ -100,7 +72,7 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
       
       for (const ds of deleteSites) {
         console.log(`Deleting duplicate site row: ${ds.id} (${ds.url})`);
-        await client.query('DELETE FROM websites WHERE id = $1', [ds.id]);
+        await pool.query('DELETE FROM websites WHERE id = $1', [ds.id]);
       }
       console.log(`Database cleaned: kept only ${keepSite.id}`);
     } else {
@@ -109,6 +81,6 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
   } catch (err) {
     console.error("Database error during cleanup:", err.message);
   } finally {
-    await client.end();
+    await pool.end();
   }
 })();
