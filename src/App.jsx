@@ -88,6 +88,7 @@ const getPageSEOScore = (pageOrUrl) => {
 };
 
 function isMagentoExcludedPage(url, title) {
+  // Magento page classification exclusions
   const normUrl = (url || "").toLowerCase();
   const slug = normUrl.replace(/^\/+/, "");
   const normTitle = (title || "").toLowerCase();
