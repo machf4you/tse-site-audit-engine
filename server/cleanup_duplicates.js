@@ -1,9 +1,17 @@
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: './.env' });
 
-const databaseUrl = process.env.DATABASE_URL;
+const envPath = path.join(__dirname, '.env');
+let databaseUrl = null;
+if (fs.existsSync(envPath)) {
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  const match = envContent.match(/DATABASE_URL\s*=\s*(.+)/);
+  if (match) {
+    databaseUrl = match[1].trim();
+  }
+}
+
 const fallbackFilePath = path.join(__dirname, 'db_backup.json');
 
 (async () => {
@@ -40,9 +48,11 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
 
   // 2. Clean Supabase database
   if (!databaseUrl) {
-    console.log("DATABASE_URL env variable not defined. Supabase cleanup skipped.");
+    console.log("DATABASE_URL env variable not defined or not found in server/.env. Supabase cleanup skipped.");
     return;
   }
+
+  console.log("Connecting to database using URL:", databaseUrl.replace(/:[^:@]+@/, ':***@'));
 
   const client = new Client({
     connectionString: databaseUrl,
