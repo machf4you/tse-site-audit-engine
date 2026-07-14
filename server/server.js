@@ -240,8 +240,10 @@ app.get('/api/sites', async (req, res) => {
 
 app.get('/api/dev-logs', (req, res) => {
   const { exec } = require('child_process');
-  exec('pm2 logs --lines 150 --raw', (err, stdout, stderr) => {
-    res.send(stdout + stderr);
+  exec('tail -n 150 /root/.pm2/logs/tse-audit-api-out.log', (err1, stdout, stderr1) => {
+    exec('tail -n 150 /root/.pm2/logs/tse-audit-api-err.log', (err2, stderr2, stderr3) => {
+      res.send(`=== OUT LOG ===\n${stdout}\n\n=== ERR LOG ===\n${stderr2}`);
+    });
   });
 });
 
