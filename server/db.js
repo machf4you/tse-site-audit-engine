@@ -538,6 +538,12 @@ async function saveAllSites(sites) {
 async function getPagesData() {
   if (useDb) {
     try {
+      const { rows: siteRows } = await pool.query('SELECT id, platform FROM websites');
+      const sitePlatforms = {};
+      siteRows.forEach(s => {
+        sitePlatforms[s.id] = s.platform;
+      });
+
       const { rows } = await pool.query(`
         SELECT 
           pc.site_id, 
@@ -546,7 +552,7 @@ async function getPagesData() {
           pc.proposed_page_title,
           pc.target_phrase, 
           pc.parent_page, 
-          pc.assigned_type as page_config_assigned_type,
+          pc.assigned_type as page_config_assigned_type, 
           pc.status, 
           pc.last_modified_date, 
           pc.crawl_data,
@@ -560,15 +566,31 @@ async function getPagesData() {
         if (!pagesData[r.site_id]) {
           pagesData[r.site_id] = [];
         }
+        
+        const crawlData = typeof r.crawl_data === 'string' ? JSON.parse(r.crawl_data) : (r.crawl_data || {});
+        const wpPostId = crawlData.wpPostId || null;
+        const platform = sitePlatforms[r.site_id] || "WordPress";
+
         // Determine assignedType prioritizing page_classifications (Page Auditor) 
         // then page_configurations (WordPress import/user override), falling back to calculated type
         let assignedType = r.page_auditor_assigned_type || r.page_config_assigned_type || getPageAuditorAssignedType(r.page_url);
         
         // Heal database corruption: If the database value got corrupted to "Excluded" by the previous bug,
-        // restore the page to its calculated type, unless it was actually classified as "Excluded" by the Page Auditor
-        // or matches one of the explicit exclusion rules (e.g. calculated type is Excluded).
+        // restore the page to its calculated type, unless it was classified as "Excluded" by the Page Auditor.
         if (assignedType === "Excluded" && !r.page_auditor_assigned_type && getPageAuditorAssignedType(r.page_url) !== "Excluded") {
           assignedType = getPageAuditorAssignedType(r.page_url);
+        }
+
+        // Apply automatic Magento classification rules
+        if (platform === "Magento") {
+          const pageUrl = r.page_url;
+          if (pageUrl === "/" || pageUrl === "") {
+            assignedType = "Hub Page";
+          } else if (wpPostId && String(wpPostId).startsWith("category-")) {
+            assignedType = "Landing Page";
+          } else if (wpPostId && String(wpPostId).startsWith("cms-")) {
+            assignedType = "Topical Page";
+          }
         }
 
         let calculatedPriority = r.priority;
@@ -591,7 +613,8 @@ async function getPagesData() {
           status: r.status,
           priority: calculatedPriority,
           lastModifiedDate: r.last_modified_date || "",
-          crawlData: typeof r.crawl_data === 'string' ? JSON.parse(r.crawl_data) : (r.crawl_data || {})
+          wpPostId: wpPostId,
+          crawlData: crawlData
         });
       });
       return pagesData;
@@ -599,12 +622,35 @@ async function getPagesData() {
       console.error("Database query pagesData failed, using fallback:", err.message);
     }
   }
-  const fallbackData = loadFallback().pagesData;
+
+  const loadedFallback = loadFallback();
+  const fallbackData = loadedFallback.pagesData;
+  const fallbackSites = loadedFallback.sites || [];
+  const sitePlatforms = {};
+  fallbackSites.forEach(s => {
+    sitePlatforms[s.id] = s.platform;
+  });
+
   for (const siteId of Object.keys(fallbackData)) {
+    const platform = sitePlatforms[siteId] || "WordPress";
     fallbackData[siteId] = fallbackData[siteId].map(p => {
+      let assignedType = p.assignedType;
+      const wpPostId = p.wpPostId || (p.crawlData && p.crawlData.wpPostId);
+
+      if (platform === "Magento") {
+        const pageUrl = p.pageUrl;
+        if (pageUrl === "/" || pageUrl === "") {
+          assignedType = "Hub Page";
+        } else if (wpPostId && String(wpPostId).startsWith("category-")) {
+          assignedType = "Landing Page";
+        } else if (wpPostId && String(wpPostId).startsWith("cms-")) {
+          assignedType = "Topical Page";
+        }
+      }
+
       let calculatedPriority = p.priority;
       if (calculatedPriority === null || calculatedPriority === undefined) {
-        const lower = (p.assignedType || "").toLowerCase();
+        const lower = (assignedType || "").toLowerCase();
         if (lower.includes("hub")) calculatedPriority = 1;
         else if (lower.includes("landing")) calculatedPriority = 2;
         else if (lower.includes("supporting")) calculatedPriority = 3;
@@ -613,6 +659,8 @@ async function getPagesData() {
       }
       return {
         ...p,
+        assignedType,
+        wpPostId,
         priority: calculatedPriority
       };
     });

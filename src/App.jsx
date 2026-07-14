@@ -1583,6 +1583,17 @@ export default function App() {
         const pageUrl = getRelativeUrl(record.url, cleanUrl);
         syncedUrls.add(pageUrl);
 
+        let assignedType = undefined;
+        if (platform === "Magento") {
+          if (pageUrl === "/" || pageUrl === "") {
+            assignedType = "Hub Page";
+          } else if (record.id && String(record.id).startsWith("category-")) {
+            assignedType = "Landing Page";
+          } else if (record.id && String(record.id).startsWith("cms-")) {
+            assignedType = "Topical Page";
+          }
+        }
+
         const existingPage = prevPages.find(p => p.pageUrl === pageUrl);
         if (existingPage) {
           return {
@@ -1590,8 +1601,10 @@ export default function App() {
             wpPostId: record.id,
             pageTitle: record.title,
             lastModifiedDate: record.modifiedAt,
+            assignedType: assignedType || existingPage.assignedType || getPageAuditorAssignedType(pageUrl),
             crawlData: {
               ...existingPage.crawlData,
+              wpPostId: record.id,
               h1: record.h1,
               wordCount: record.wordCount,
               metaDescription: record.metaDescription,
@@ -1605,10 +1618,11 @@ export default function App() {
             pageTitle: record.title,
             targetPhrase: record.focusKeywords?.[0] || "",
             parentPage: record.parent ? String(record.parent) : "/",
-            assignedType: getPageAuditorAssignedType(pageUrl),
+            assignedType: assignedType || getPageAuditorAssignedType(pageUrl),
             status: "Unconfigured",
             lastModifiedDate: record.modifiedAt,
             crawlData: {
+              wpPostId: record.id,
               h1: record.h1,
               wordCount: record.wordCount,
               metaDescription: record.metaDescription,
