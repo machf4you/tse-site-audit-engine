@@ -9786,31 +9786,33 @@ export default function App() {
                   </div>
 
                   {/* Username */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                      {newSitePlatform === "Magento" ? "Magento Admin Username (Optional)" : "WordPress Username"}
-                    </label>
-                    <input 
-                      type="text"
-                      value={newSiteUsername}
-                      onChange={(e) => {
-                        setNewSiteUsername(e.target.value);
-                        setConnectionTestStatus("idle");
-                      }}
-                      placeholder={newSitePlatform === "Magento" ? "admin (Optional)" : "admin"}
-                      style={{
-                        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                        borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
+                  {newSitePlatform !== "Magento" && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                        WordPress Username
+                      </label>
+                      <input 
+                        type="text"
+                        value={newSiteUsername}
+                        onChange={(e) => {
+                          setNewSiteUsername(e.target.value);
+                          setConnectionTestStatus("idle");
+                        }}
+                        placeholder="admin"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {/* Password / Token */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                      {newSitePlatform === "Magento" ? "Magento Access Token (Integration Token)" : "WordPress Application Password"}
+                      {newSitePlatform === "Magento" ? "Integration Access Token" : "WordPress Application Password"}
                     </label>
                     <input 
                       type="text"
