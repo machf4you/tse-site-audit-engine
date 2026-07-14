@@ -2,6 +2,17 @@ const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
+// Clean environment variables that node-postgres could fallback to
+delete process.env.PGUSER;
+delete process.env.PGPASSWORD;
+delete process.env.PGHOST;
+delete process.env.PGPORT;
+delete process.env.PGDATABASE;
+delete process.env.USER;
+delete process.env.USERNAME;
+
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const databaseUrl = process.env.DATABASE_URL;
 const fallbackFilePath = path.join(__dirname, 'db_backup.json');
 
@@ -39,12 +50,11 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
 
   // 2. Clean Supabase database
   if (!databaseUrl) {
-    console.log("DATABASE_URL env variable not defined in process.env. Supabase cleanup skipped.");
+    console.log("DATABASE_URL env variable not defined or not found in server/.env. Supabase cleanup skipped.");
     return;
   }
 
-  console.log("Connecting using DATABASE_URL:", databaseUrl.replace(/:[^:@]+@/, ':***@'));
-
+  console.log("Connecting to database using Pool (overrides cleared)...");
   const pool = new Pool({
     connectionString: databaseUrl,
     ssl: {
@@ -55,8 +65,6 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
   try {
     console.log("=== CLEANING DATABASE ===");
     const { rows: sites } = await pool.query('SELECT * FROM websites');
-    console.log("Found site IDs in DB:", sites.map(s => s.id));
-    
     const hf4youSites = sites.filter(s => s.url.trim().toLowerCase().includes('hf4you.co.uk'));
     
     if (hf4youSites.length > 1) {
