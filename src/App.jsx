@@ -1709,35 +1709,73 @@ export default function App() {
     }
     cleanUrl = cleanUrl.replace(/\/+$/, "");
 
-    const cleanId = newSiteName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    let finalId = cleanId;
-    let suffix = 1;
-    while (sites.some(s => s.id === finalId)) {
-      finalId = `${cleanId}-${suffix}`;
-      suffix++;
+    // Check if website URL already exists (case-insensitively, trailing slash ignored)
+    const existingSite = sites.find(s => s.url.trim().toLowerCase().replace(/\/+$/, "") === cleanUrl.toLowerCase());
+
+    let finalId = "";
+    let finalName = newSiteName.trim();
+    let finalPlatform = newSitePlatform;
+    let finalUsername = newSiteUsername.trim();
+    let finalPassword = newSitePassword.trim();
+
+    if (existingSite) {
+      finalId = existingSite.id;
+      const updatedSite = {
+        ...existingSite,
+        name: finalName || existingSite.name,
+        credentials: {
+          username: finalUsername,
+          password: finalPassword
+        },
+        portfolio: newSitePortfolio,
+        platform: finalPlatform,
+        elementorEnabled: newSiteElementorEnabled
+      };
+
+      setSites(prev => prev.map(s => s.id === existingSite.id ? updatedSite : s));
+      setPagesData(prev => {
+        if (prev[existingSite.id]) {
+          return prev; // Preserve existing pages and configuration
+        }
+        return {
+          ...prev,
+          [existingSite.id]: []
+        };
+      });
+      showNotification(`Website "${updatedSite.name}" updated successfully!`);
+    } else {
+      const cleanId = finalName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      let tempId = cleanId;
+      let suffix = 1;
+      while (sites.some(s => s.id === tempId)) {
+        tempId = `${cleanId}-${suffix}`;
+        suffix++;
+      }
+      finalId = tempId;
+
+      const newSite = {
+        id: finalId,
+        name: finalName,
+        url: cleanUrl,
+        status: "Connected",
+        lastAudit: null,
+        tasks: [],
+        credentials: {
+          username: finalUsername,
+          password: finalPassword
+        },
+        portfolio: newSitePortfolio,
+        platform: finalPlatform,
+        elementorEnabled: newSiteElementorEnabled
+      };
+
+      setSites(prev => [...prev, newSite]);
+      setPagesData(prev => ({
+        ...prev,
+        [finalId]: []
+      }));
+      showNotification(`Website "${newSite.name}" connected successfully!`);
     }
-
-    const newSite = {
-      id: finalId,
-      name: newSiteName.trim(),
-      url: cleanUrl,
-      status: "Connected",
-      lastAudit: null,
-      tasks: [],
-      credentials: {
-        username: newSiteUsername.trim(),
-        password: newSitePassword.trim()
-      },
-      portfolio: newSitePortfolio,
-      platform: newSitePlatform,
-      elementorEnabled: newSiteElementorEnabled
-    };
-
-    setSites(prev => [...prev, newSite]);
-    setPagesData(prev => ({
-      ...prev,
-      [finalId]: []
-    }));
 
     setIsAddWebsiteModalOpen(false);
     setNewSiteName("");
@@ -1748,9 +1786,9 @@ export default function App() {
     setNewSitePlatform("WordPress");
     setConnectionTestStatus("idle");
     setConnectionTestMessage("");
-    showNotification(`Website "${newSite.name}" connected successfully!`);
+    setNewSiteElementorEnabled(false);
 
-    await handleSyncWebsitePages(finalId, cleanUrl, newSite.credentials.username, newSite.credentials.password, newSite.platform);
+    await handleSyncWebsitePages(finalId, cleanUrl, finalUsername, finalPassword, finalPlatform);
   };
 
   // Load sites and page configurations from PostgreSQL database on mount

@@ -525,6 +525,15 @@ async function saveAllSites(sites) {
       for (const site of sites) {
         await saveSite(site);
       }
+      const siteIds = sites.map(s => s.id);
+      if (siteIds.length > 0) {
+        await pool.query(
+          'DELETE FROM websites WHERE id NOT IN (' + siteIds.map((_, i) => '$' + (i + 1)).join(', ') + ')',
+          siteIds
+        );
+      } else {
+        await pool.query('DELETE FROM websites');
+      }
       return;
     } catch (err) {
       console.error("Database save all sites failed:", err.message);
@@ -532,6 +541,16 @@ async function saveAllSites(sites) {
   }
   const data = loadFallback();
   data.sites = sites;
+  
+  // Clean up pagesData fallbacks for removed sites
+  const newPagesData = {};
+  sites.forEach(s => {
+    if (data.pagesData && data.pagesData[s.id]) {
+      newPagesData[s.id] = data.pagesData[s.id];
+    }
+  });
+  data.pagesData = newPagesData;
+  
   saveFallback(data);
 }
 
