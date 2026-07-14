@@ -5055,7 +5055,7 @@ export default function App() {
                       disabled={isImporting}
                       style={{ cursor: isImporting ? 'not-allowed' : 'pointer', opacity: isImporting ? 0.7 : 1 }}
                     >
-                      {isImporting ? "Syncing..." : "Sync from WordPress"}
+                      {isImporting ? "Syncing..." : `Sync from ${sites.find(s => s.id === selectedSiteId)?.platform || "WordPress"}`}
                     </button>
 
                     <button 
@@ -5462,7 +5462,7 @@ export default function App() {
                         disabled={isImporting}
                         style={{ cursor: isImporting ? 'not-allowed' : 'pointer', opacity: isImporting ? 0.7 : 1 }}
                       >
-                        {isImporting ? "Syncing..." : "Sync from WordPress"}
+                        {isImporting ? "Syncing..." : `Sync from ${selectedSite?.platform || "WordPress"}`}
                       </button>
                       <button 
                         className="btn-primary"
@@ -9136,7 +9136,7 @@ export default function App() {
                             disabled={isImporting}
                             style={{ cursor: isImporting ? 'not-allowed' : 'pointer' }}
                           >
-                            {isImporting ? "Syncing..." : "Sync from WordPress"}
+                            {isImporting ? "Syncing..." : `Sync from ${selectedSite?.platform || "WordPress"}`}
                           </button>
                         </div>
 
