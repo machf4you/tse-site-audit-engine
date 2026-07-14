@@ -1,3 +1,25 @@
+const API_BASE = window.location.hostname === "localhost" ? "http://localhost:3001/api" : "/api";
+
+async function fetchThroughProxy(url, options = {}) {
+  if (url.startsWith("/") || url.includes(window.location.host) || url.startsWith("http://localhost:3001") || url.startsWith("/api")) {
+    return fetch(url, options);
+  }
+
+  const proxyUrl = `${API_BASE}/platform-proxy`;
+  return fetch(proxyUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      url: url,
+      method: options.method || "GET",
+      headers: options.headers || {},
+      data: options.body || null
+    })
+  });
+}
+
 export class BaseConnectionProvider {
   /**
    * Validates if the base URL matches the expected pattern/structure of the platform.
@@ -92,7 +114,7 @@ export class WordPressProvider extends BaseConnectionProvider {
     let lastError = null;
     for (const testUrl of urls) {
       try {
-        const response = await fetch(testUrl, {
+        const response = await fetchThroughProxy(testUrl, {
           method: "GET",
           headers: {
             "Authorization": authHeaderValue,
@@ -122,7 +144,7 @@ export class WordPressProvider extends BaseConnectionProvider {
     const basic = window.btoa(username.trim() + ":" + password.trim());
     const endpoint = `${url}/wp-json/tse-site-exporter/v1/export`;
 
-    const response = await fetch(endpoint, {
+    const response = await fetchThroughProxy(endpoint, {
       method: "GET",
       headers: {
         "Authorization": `Basic ${basic}`,
@@ -172,7 +194,7 @@ export class MagentoProvider extends BaseConnectionProvider {
     let lastError = null;
     for (const testUrl of urls) {
       try {
-        const response = await fetch(testUrl, {
+        const response = await fetchThroughProxy(testUrl, {
           method: "GET",
           headers: {
             "Authorization": authHeaderValue,
@@ -227,7 +249,7 @@ export class MagentoProvider extends BaseConnectionProvider {
     // 1. Retrieve & Map Category Tree
     console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/default/V1/categories`);
     try {
-      const catRes = await fetch(`${url}/rest/default/V1/categories`, {
+      const catRes = await fetchThroughProxy(`${url}/rest/default/V1/categories`, {
         method: "GET",
         headers: {
           "Authorization": authHeaderValue,
@@ -272,7 +294,7 @@ export class MagentoProvider extends BaseConnectionProvider {
     // 2. Retrieve & Map CMS Pages
     console.log(`[MagentoProvider] Retrieving CMS Pages from: ${url}/rest/default/V1/cmsPage/search`);
     try {
-      const cmsRes = await fetch(`${url}/rest/default/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
+      const cmsRes = await fetchThroughProxy(`${url}/rest/default/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
         method: "GET",
         headers: {
           "Authorization": authHeaderValue,
@@ -287,7 +309,7 @@ export class MagentoProvider extends BaseConnectionProvider {
         if (cmsData.items && Array.isArray(cmsData.items)) {
           const detailPromises = cmsData.items.map(async (item) => {
             try {
-              const detailRes = await fetch(`${url}/rest/default/V1/cmsPage/${item.id}`, {
+              const detailRes = await fetchThroughProxy(`${url}/rest/default/V1/cmsPage/${item.id}`, {
                 method: "GET",
                 headers: {
                   "Authorization": authHeaderValue,

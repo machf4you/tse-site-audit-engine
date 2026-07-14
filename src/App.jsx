@@ -634,6 +634,26 @@ const viewParamTemp = paramsTemp ? paramsTemp.get('view') : null;
 const isAutomationViewTemp = ['results', 'detail', 'edit', 'tasklist'].includes(viewParamTemp);
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+async function fetchThroughProxy(url, options = {}) {
+  if (url.startsWith("/") || url.includes(window.location.host) || url.startsWith("http://localhost:3001") || url.startsWith("/api") || url.startsWith(API_BASE)) {
+    return fetch(url, options);
+  }
+
+  const proxyUrl = `${API_BASE}/platform-proxy`;
+  return fetch(proxyUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      url: url,
+      method: options.method || "GET",
+      headers: options.headers || {},
+      data: options.body || null
+    })
+  });
+}
+
 const BU_PAGES = exporterData["bathroom-upgrades"].pages.map(p => {
   let mapped = { ...p, assignedType: p.assignedType || getPageAuditorAssignedType(p) };
   if (isAutomationViewTemp) {
@@ -3005,7 +3025,7 @@ export default function App() {
       if (!wpPostId) {
         console.log("wpPostId not found in page object. Fetching export to resolve ID...");
         const exportEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/export`;
-        const res = await fetch(exportEndpoint, {
+        const res = await fetchThroughProxy(exportEndpoint, {
           headers: { "Authorization": `Basic ${credentials}` }
         });
         if (!res.ok) {
@@ -3042,7 +3062,7 @@ export default function App() {
         
         // 3. Save changes via POST /update-page
         const updateEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/update-page`;
-        const updateRes = await fetch(updateEndpoint, {
+        const updateRes = await fetchThroughProxy(updateEndpoint, {
           method: "POST",
           headers: {
             "Authorization": `Basic ${credentials}`,
@@ -3064,7 +3084,7 @@ export default function App() {
       // 4. Sync ONLY this page's crawl data from WordPress
       console.log("Fetching updated page export from WordPress...");
       const exportEndpoint = `${cleanUrl}/wp-json/tse-site-exporter/v1/export`;
-      const exportRes = await fetch(exportEndpoint, {
+      const exportRes = await fetchThroughProxy(exportEndpoint, {
         headers: { "Authorization": `Basic ${credentials}` }
       });
       if (!exportRes.ok) {

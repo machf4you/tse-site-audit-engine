@@ -340,6 +340,46 @@ app.post('/api/architecture-notes', async (req, res) => {
   }
 });
 
+// POST Platform proxy (to bypass CORS for WordPress/Magento APIs)
+app.post('/api/platform-proxy', async (req, res) => {
+  const { url, method, headers, data } = req.body;
+  if (!url) {
+    return res.status(400).json({ error: "Missing target URL" });
+  }
+
+  console.log(`[PROXY-PLATFORM] Forwarding ${method || 'GET'} to ${url}`);
+
+  const cleanHeaders = { ...headers };
+  delete cleanHeaders.host;
+  delete cleanHeaders['accept-encoding'];
+
+  try {
+    const response = await axios({
+      method: method || 'GET',
+      url: url,
+      data: data || null,
+      headers: cleanHeaders,
+      timeout: 20000,
+      responseType: 'text'
+    });
+
+    if (response.headers['content-type']) {
+      res.setHeader('content-type', response.headers['content-type']);
+    }
+    res.status(response.status).send(response.data);
+  } catch (error) {
+    console.error(`[PROXY-PLATFORM] Failed for ${url}:`, error.message);
+    if (error.response) {
+      if (error.response.headers['content-type']) {
+        res.setHeader('content-type', error.response.headers['content-type']);
+      }
+      res.status(error.response.status).send(error.response.data);
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
 // GET GitHub Deployment Status
 app.get('/api/github/status', async (req, res) => {
   try {
