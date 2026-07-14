@@ -1,17 +1,9 @@
 const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-const envPath = path.join(__dirname, '.env');
-let databaseUrl = null;
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf8');
-  const match = envContent.match(/DATABASE_URL\s*=\s*(.+)/);
-  if (match) {
-    databaseUrl = match[1].trim();
-  }
-}
-
+const databaseUrl = process.env.DATABASE_URL;
 const fallbackFilePath = path.join(__dirname, 'db_backup.json');
 
 (async () => {
