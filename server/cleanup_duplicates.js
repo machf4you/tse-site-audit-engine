@@ -3,6 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
+// Delete any process environment variables that node-postgres might fall back to
+delete process.env.PGUSER;
+delete process.env.PGPASSWORD;
+delete process.env.PGHOST;
+delete process.env.PGPORT;
+delete process.env.PGDATABASE;
+
 const envPath = path.join(__dirname, '.env');
 let databaseUrl = null;
 if (fs.existsSync(envPath)) {
@@ -53,7 +60,6 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
     return;
   }
 
-  // Explicitly parse connection string to override PGUSER/PGPASSWORD environment variables
   let clientOptions = {};
   try {
     const params = url.parse(databaseUrl);
@@ -68,7 +74,7 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
         rejectUnauthorized: false
       }
     };
-    console.log("Connecting with parsed client options. User:", clientOptions.user);
+    console.log("Connecting with parsed client options. Explicit User:", clientOptions.user);
   } catch (e) {
     console.error("Failed to parse DATABASE_URL, falling back to connectionString:", e.message);
     clientOptions = {
