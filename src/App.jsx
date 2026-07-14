@@ -4624,6 +4624,7 @@ export default function App() {
                         const configuredPages = sitePages.filter(p => p.status === "Configured").length;
                         const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
                         const displayTitle = site.name;
+                        const isConnected = site.status === "Connected" && (site.platform === "Magento" ? !!site.credentials?.password : (!!site.credentials?.username && !!site.credentials?.password));
                         
                         return (
                           <div 
@@ -4680,18 +4681,18 @@ export default function App() {
                                   padding: '3px 8px',
                                   borderRadius: '4px',
                                   fontSize: '0.75rem',
-                                  backgroundColor: (site.status === "Connected" && site.credentials?.username) ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
-                                  color: (site.status === "Connected" && site.credentials?.username) ? '#34d399' : '#fbbf24',
-                                  border: (site.status === "Connected" && site.credentials?.username) ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(245, 158, 11, 0.15)'
+                                  backgroundColor: isConnected ? 'rgba(16, 185, 129, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+                                  color: isConnected ? '#34d399' : '#fbbf24',
+                                  border: isConnected ? '1px solid rgba(16, 185, 129, 0.15)' : '1px solid rgba(245, 158, 11, 0.15)'
                                 }}>
-                                  {(site.status === "Connected" && site.credentials?.username) ? "Connected" : "Setup Required"}
+                                  {isConnected ? "Connected" : "Setup Required"}
                                 </span>
                               </div>
 
-                              {/* WordPress API */}
+                              {/* Platform API */}
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
-                                <span style={{ color: 'var(--text-secondary)' }}>WordPress API</span>
-                                {(site.status === "Connected" && site.credentials?.username) ? (
+                                <span style={{ color: 'var(--text-secondary)' }}>{site.platform === "Magento" ? "Magento API" : "WordPress API"}</span>
+                                {isConnected ? (
                                   <span style={{
                                     fontWeight: 700,
                                     padding: '3px 8px',
