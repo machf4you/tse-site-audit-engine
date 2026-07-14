@@ -1871,7 +1871,11 @@ export default function App() {
         return;
       }
 
-      localStorage.setItem("tse_pages_data", currentStr);
+      try {
+        localStorage.setItem("tse_pages_data", currentStr);
+      } catch (e) {
+        console.warn("localStorage quota exceeded for pages data:", e.message);
+      }
       
       fetch(`${API_BASE}/pages-data/save`, {
         method: "POST",
@@ -1896,7 +1900,11 @@ export default function App() {
         return;
       }
 
-      localStorage.setItem("tse_sites_data", currentStr);
+      try {
+        localStorage.setItem("tse_sites_data", currentStr);
+      } catch (e) {
+        console.warn("localStorage quota exceeded for sites data:", e.message);
+      }
       
       fetch(`${API_BASE}/sites`, {
         method: "POST",
@@ -2702,8 +2710,16 @@ export default function App() {
             setSites(parsed.sites);
             setPagesData(parsed.pagesData);
 
-            localStorage.setItem("tse_sites_data", JSON.stringify(parsed.sites));
-            localStorage.setItem("tse_pages_data", JSON.stringify(parsed.pagesData));
+            try {
+              localStorage.setItem("tse_sites_data", JSON.stringify(parsed.sites));
+            } catch (e) {
+              console.warn("localStorage quota exceeded for sites data on import:", e.message);
+            }
+            try {
+              localStorage.setItem("tse_pages_data", JSON.stringify(parsed.pagesData));
+            } catch (e) {
+              console.warn("localStorage quota exceeded for pages data on import:", e.message);
+            }
 
             showNotification("Successfully imported connected websites and configuration.");
           } catch (error) {
