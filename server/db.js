@@ -535,23 +535,6 @@ async function saveAllSites(sites) {
   saveFallback(data);
 }
 
-async function deleteSite(id) {
-  if (useDb) {
-    try {
-      await pool.query('DELETE FROM websites WHERE id = $1', [id]);
-      return;
-    } catch (err) {
-      console.error("Database delete site failed:", err.message);
-    }
-  }
-  const data = loadFallback();
-  data.sites = data.sites.filter(s => s.id !== id);
-  if (data.pagesData) {
-    delete data.pagesData[id];
-  }
-  saveFallback(data);
-}
-
 async function getPagesData() {
   if (useDb) {
     try {
@@ -772,6 +755,5 @@ module.exports = {
   savePageConfig,
   saveAllPagesForSite,
   getArchitectureNotes,
-  saveArchitectureNotes,
-  deleteSite
+  saveArchitectureNotes
 };

@@ -13,8 +13,7 @@ const {
   savePageConfig,
   saveAllPagesForSite,
   getArchitectureNotes,
-  saveArchitectureNotes,
-  deleteSite
+  saveArchitectureNotes
 } = require('./db');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -256,19 +255,6 @@ app.post('/api/sites', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('POST /api/sites error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DELETE Website
-app.delete('/api/sites/:id', async (req, res) => {
-  const { id } = req.params;
-  console.log(`DELETE /api/sites/${id} requested`);
-  try {
-    await deleteSite(id);
-    res.json({ success: true });
-  } catch (err) {
-    console.error(`DELETE /api/sites/${id} error:`, err.message);
     res.status(500).json({ error: err.message });
   }
 });
