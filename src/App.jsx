@@ -2754,7 +2754,12 @@ export default function App() {
       return;
     }
 
-    if (!site.credentials?.username || !site.credentials?.password) {
+    const platform = site.platform || "WordPress";
+    const hasCredentials = platform === "Magento"
+      ? !!site.credentials?.password
+      : (!!site.credentials?.username && !!site.credentials?.password);
+
+    if (!hasCredentials) {
       showNotification("Error: Credentials not found. Please reconnect the website to set credentials.");
       return;
     }
