@@ -1,6 +1,7 @@
 const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const url = require('url');
 
 const envPath = path.join(__dirname, '.env');
 let databaseUrl = null;
@@ -52,14 +53,33 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
     return;
   }
 
-  console.log("Connecting to database using URL:", databaseUrl.replace(/:[^:@]+@/, ':***@'));
+  // Explicitly parse connection string to override PGUSER/PGPASSWORD environment variables
+  let clientOptions = {};
+  try {
+    const params = url.parse(databaseUrl);
+    const auth = params.auth.split(':');
+    clientOptions = {
+      user: auth[0],
+      password: auth[1],
+      host: params.hostname,
+      port: params.port,
+      database: params.pathname.split('/')[1],
+      ssl: {
+        rejectUnauthorized: false
+      }
+    };
+    console.log("Connecting with parsed client options. User:", clientOptions.user);
+  } catch (e) {
+    console.error("Failed to parse DATABASE_URL, falling back to connectionString:", e.message);
+    clientOptions = {
+      connectionString: databaseUrl,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    };
+  }
 
-  const client = new Client({
-    connectionString: databaseUrl,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
+  const client = new Client(clientOptions);
 
   try {
     await client.connect();
