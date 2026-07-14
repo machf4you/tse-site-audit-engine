@@ -1542,7 +1542,7 @@ export default function App() {
     }
   };
 
-  const handleSyncWebsitePages = async (siteId, siteUrl, username, password) => {
+  const handleSyncWebsitePages = async (siteId, siteUrl, username, password, passedPlatform) => {
     let cleanUrl = siteUrl.trim();
     if (!/^https?:\/\//i.test(cleanUrl)) {
       cleanUrl = "https://" + cleanUrl;
@@ -1550,7 +1550,7 @@ export default function App() {
     cleanUrl = cleanUrl.replace(/\/+$/, "");
 
     const site = sites.find(s => s.id === siteId);
-    const platform = site ? (site.platform || "WordPress") : "WordPress";
+    const platform = passedPlatform || (site ? (site.platform || "WordPress") : "WordPress");
 
     try {
       const provider = ConnectionManager.getProvider(platform);
@@ -1730,7 +1730,7 @@ export default function App() {
     setConnectionTestMessage("");
     showNotification(`Website "${newSite.name}" connected successfully!`);
 
-    await handleSyncWebsitePages(finalId, cleanUrl, newSite.credentials.username, newSite.credentials.password);
+    await handleSyncWebsitePages(finalId, cleanUrl, newSite.credentials.username, newSite.credentials.password, newSite.platform);
   };
 
   // Load sites and page configurations from PostgreSQL database on mount
@@ -2628,7 +2628,8 @@ export default function App() {
       site.id, 
       site.url, 
       site.credentials.username, 
-      site.credentials.password
+      site.credentials.password,
+      site.platform
     );
 
     setSites(prev => prev.map(s => {
