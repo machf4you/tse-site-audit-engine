@@ -403,13 +403,15 @@ app.get('/api/github/status', async (req, res) => {
             console.error("Failed to parse metadata file:", e.message);
           }
         }
-        res.json({
-          branch,
-          currentCommit,
-          lastPullTime: metadata.lastPullTime,
-          lastPullStatus: metadata.lastPullStatus,
-          lastPullLog: metadata.lastPullLog || null,
-          previousCommit: metadata.previousCommit || 'unknown'
+        exec('pm2 status', (pm2Err, pm2Stdout) => {
+          res.json({
+            branch,
+            currentCommit,
+            lastPullTime: metadata.lastPullTime,
+            lastPullStatus: metadata.lastPullStatus,
+            lastPullLog: (metadata.lastPullLog || "") + "\n\n=== PM2 STATUS ===\n" + (pm2Stdout || pm2Err?.message || ""),
+            previousCommit: metadata.previousCommit || 'unknown'
+          });
         });
       });
     });
