@@ -375,14 +375,18 @@ app.post('/api/platform-proxy', async (req, res) => {
     if (response.headers['content-type']) {
       res.setHeader('content-type', response.headers['content-type']);
     }
-    res.status(response.status).send(response.data);
+    const targetStatus = response.status;
+    const mappedStatus = targetStatus === 401 ? 403 : targetStatus;
+    res.status(mappedStatus).send(response.data);
   } catch (error) {
     console.error(`[PROXY-PLATFORM] Failed for ${url}:`, error.message);
     if (error.response) {
       if (error.response.headers['content-type']) {
         res.setHeader('content-type', error.response.headers['content-type']);
       }
-      res.status(error.response.status).send(error.response.data);
+      const targetStatus = error.response.status;
+      const mappedStatus = targetStatus === 401 ? 403 : targetStatus;
+      res.status(mappedStatus).send(error.response.data);
     } else {
       res.status(500).json({ error: error.message });
     }
