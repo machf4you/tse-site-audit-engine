@@ -2754,10 +2754,7 @@ export default function App() {
       return;
     }
 
-    const platform = site.platform || "WordPress";
-    const hasCredentials = platform === "Magento"
-      ? !!site.credentials?.password
-      : (!!site.credentials?.username && !!site.credentials?.password);
+    const hasCredentials = !!site.credentials?.username && !!site.credentials?.password;
 
     if (!hasCredentials) {
       showNotification("Error: Credentials not found. Please reconnect the website to set credentials.");
@@ -9923,10 +9920,10 @@ export default function App() {
                   </div>
 
                   {/* Username */}
-                  {newSitePlatform !== "Magento" && (
+                  {newSitePlatform !== "Other" && (
                     <div>
                       <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                        WordPress Username
+                        {newSitePlatform === "Magento" ? "Magento Admin Username" : "WordPress Username"}
                       </label>
                       <input 
                         type="text"
@@ -9935,7 +9932,7 @@ export default function App() {
                           setNewSiteUsername(e.target.value);
                           setConnectionTestStatus("idle");
                         }}
-                        placeholder="admin"
+                        placeholder={newSitePlatform === "Magento" ? "admin_username" : "admin"}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
@@ -9949,7 +9946,7 @@ export default function App() {
                   {/* Password / Token */}
                   <div>
                     <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                      {newSitePlatform === "Magento" ? "Integration Access Token" : "WordPress Application Password"}
+                      {newSitePlatform === "Magento" ? "Magento Admin Password" : "WordPress Application Password"}
                     </label>
                     <input 
                       type="text"
@@ -9958,7 +9955,7 @@ export default function App() {
                         setNewSitePassword(e.target.value);
                         setConnectionTestStatus("idle");
                       }}
-                      placeholder={newSitePlatform === "Magento" ? "e.g. integration_access_token" : "xxxx xxxx xxxx xxxx"}
+                      placeholder={newSitePlatform === "Magento" ? "admin_password" : "xxxx xxxx xxxx xxxx"}
                       style={{
                         width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                         borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
@@ -10483,13 +10480,13 @@ export default function App() {
                     {/* WordPress Username */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                        {editSitePlatform === "Magento" ? "Magento Admin Username (Optional)" : "WordPress Username"}
+                        {editSitePlatform === "Magento" ? "Magento Admin Username" : "WordPress Username"}
                       </label>
                       <input 
                         type="text"
                         value={editSiteUsername}
                         onChange={(e) => setEditSiteUsername(e.target.value)}
-                        placeholder={editSitePlatform === "Magento" ? "admin (Optional)" : "admin"}
+                        placeholder={editSitePlatform === "Magento" ? "admin_username" : "admin"}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
@@ -10502,13 +10499,13 @@ export default function App() {
                     {/* WordPress Application Password */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                        {editSitePlatform === "Magento" ? "Magento Access Token (Integration Token)" : "WordPress Application Password"}
+                        {editSitePlatform === "Magento" ? "Magento Admin Password" : "WordPress Application Password"}
                       </label>
                       <input 
                         type="password"
                         value={editSitePassword}
                         onChange={(e) => setEditSitePassword(e.target.value)}
-                        placeholder={editSitePlatform === "Magento" ? "e.g. integration_access_token" : "xxxx xxxx xxxx xxxx"}
+                        placeholder={editSitePlatform === "Magento" ? "admin_password" : "xxxx xxxx xxxx xxxx"}
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',

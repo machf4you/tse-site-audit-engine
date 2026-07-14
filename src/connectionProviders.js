@@ -20,6 +20,39 @@ async function fetchThroughProxy(url, options = {}) {
   });
 }
 
+async function getAdminToken(url, username, password) {
+  const paths = [
+    `${url}/rest/V1/integration/admin/token`,
+    `${url}/index.php/rest/V1/integration/admin/token`
+  ];
+  let lastError = null;
+  for (const tokenUrl of paths) {
+    try {
+      const res = await fetchThroughProxy(tokenUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          password: password.trim()
+        })
+      });
+      if (res.ok) {
+        const token = await res.json();
+        if (typeof token === 'string' && token.trim().length > 0) {
+          return token.trim();
+        }
+      }
+      const text = await res.text();
+      lastError = new Error(`Magento returned: ${res.status} - ${text}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error("Failed to obtain Magento Admin Token");
+}
+
 export class BaseConnectionProvider {
   /**
    * Validates if the base URL matches the expected pattern/structure of the platform.
@@ -183,8 +216,19 @@ export class MagentoProvider extends BaseConnectionProvider {
   }
 
   async testCredentials(url, credentials) {
-    const { password } = credentials; // Access Token
-    const authHeaderValue = `Bearer ${password.trim()}`;
+    const { username, password } = credentials || {};
+    if (!username || !password) {
+      return { success: false, status: 400, message: "Magento Admin Username and Password are required." };
+    }
+
+    let token;
+    try {
+      token = await getAdminToken(url, username, password);
+    } catch (err) {
+      return { success: false, status: 401, message: `Authentication failed: ${err.message || "Failed to obtain Magento Admin Token"}` };
+    }
+
+    const authHeaderValue = `Bearer ${token}`;
 
     const urls = [
       `${url}/rest/V1/store/storeConfigs`,
@@ -220,11 +264,20 @@ export class MagentoProvider extends BaseConnectionProvider {
   }
 
   async getPages(url, credentials) {
-    const { password } = credentials || {};
-    if (!password) {
+    const { username, password } = credentials || {};
+    if (!username || !password) {
       return [];
     }
-    const authHeaderValue = `Bearer ${password.trim()}`;
+
+    let token;
+    try {
+      token = await getAdminToken(url, username, password);
+    } catch (err) {
+      console.error("Failed to obtain Magento Admin Token during sync:", err);
+      return [];
+    }
+
+    const authHeaderValue = `Bearer ${token}`;
     const pages = [];
 
     // Helper to recursively flatten category tree
