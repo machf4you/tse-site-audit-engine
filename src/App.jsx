@@ -87,6 +87,63 @@ const getPageSEOScore = (pageOrUrl) => {
   return 4;
 };
 
+function isMagentoExcludedPage(url, title) {
+  const normUrl = (url || "").toLowerCase();
+  const slug = normUrl.replace(/^\/+/, "");
+  const normTitle = (title || "").toLowerCase();
+
+  const exactSlugs = [
+    'about-us', 'about',
+    'contact', 'contact-us',
+    'delivery', 'delivery-information', 'delivery-info', 'shipping',
+    'finance',
+    'privacy-policy', 'privacy', 'privacy-policy-cookie-restriction-mode',
+    'cookie-policy', 'cookies', 'cookie',
+    'terms-and-conditions', 'terms-of-use', 'terms',
+    'returns', 'returns-policy',
+    'refund', 'refund-policy', 'refunds',
+    'gdpr', 'accessibility',
+    'sitemap', 'html-sitemap',
+    'no-route', '404',
+    'login', 'account', 'customer', 'customer-account', 'register',
+    'checkout', 'cart', 'basket', 'checkout-cart'
+  ];
+
+  if (exactSlugs.includes(slug)) return true;
+
+  const exactTitles = [
+    'about us', 'about',
+    'contact us', 'contact',
+    'delivery information', 'delivery info', 'delivery', 'shipping',
+    'finance',
+    'privacy policy', 'cookie policy', 'cookies',
+    'terms & conditions', 'terms and conditions', 'terms of use',
+    'returns policy', 'returns',
+    'refund policy', 'refunds',
+    'gdpr', 'accessibility',
+    'sitemap', 'html sitemap',
+    'page not found', '404',
+    'login', 'my account', 'register',
+    'checkout', 'shopping cart', 'basket'
+  ];
+
+  if (exactTitles.some(t => normTitle === t || normTitle.startsWith(t + ' -') || normTitle.startsWith(t + ' |'))) {
+    return true;
+  }
+
+  const urlSubstrings = [
+    'customer/account',
+    'checkout/cart',
+    '/search',
+    'no-route'
+  ];
+  if (urlSubstrings.some(sub => normUrl.includes(sub))) {
+    return true;
+  }
+
+  return false;
+}
+
 const getPageAuditorAssignedType = (pageOrUrl) => {
   const url = typeof pageOrUrl === 'string' ? pageOrUrl : (pageOrUrl ? pageOrUrl.pageUrl : "");
   const score = getPageSEOScore(url);
@@ -1587,6 +1644,8 @@ export default function App() {
         if (platform === "Magento") {
           if (pageUrl === "/" || pageUrl === "") {
             assignedType = "Hub Page";
+          } else if (isMagentoExcludedPage(pageUrl, record.title)) {
+            assignedType = "Excluded";
           } else if (record.id && String(record.id).startsWith("category-")) {
             assignedType = "Landing Page";
           } else if (record.id && String(record.id).startsWith("cms-")) {
