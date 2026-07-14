@@ -344,9 +344,8 @@ app.post('/api/architecture-notes', async (req, res) => {
 app.post('/api/cleanup-duplicates-tmp', async (req, res) => {
   try {
     const { exec } = require('child_process');
-    exec('node cleanup_duplicates.js', { cwd: __dirname }, (error, stdout, stderr) => {
-      console.log("Cleanup stdout:", stdout);
-      console.error("Cleanup stderr:", stderr);
+    exec('pwd && ls -la && ls -la ..', { cwd: __dirname }, (error, stdout, stderr) => {
+      console.log("Directory structure:", stdout);
       res.json({ success: true, stdout, stderr });
     });
   } catch (err) {
