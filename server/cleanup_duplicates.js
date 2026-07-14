@@ -1,19 +1,7 @@
-const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
+const { initDb, getSites, saveAllSites } = require('./db');
 
-// Clean environment variables that node-postgres could fallback to
-delete process.env.PGUSER;
-delete process.env.PGPASSWORD;
-delete process.env.PGHOST;
-delete process.env.PGPORT;
-delete process.env.PGDATABASE;
-delete process.env.USER;
-delete process.env.USERNAME;
-
-require('dotenv').config({ path: path.join(__dirname, '.env') });
-
-const databaseUrl = process.env.DATABASE_URL;
 const fallbackFilePath = path.join(__dirname, 'db_backup.json');
 
 (async () => {
@@ -48,41 +36,28 @@ const fallbackFilePath = path.join(__dirname, 'db_backup.json');
     }
   }
 
-  // 2. Clean Supabase database
-  if (!databaseUrl) {
-    console.log("DATABASE_URL env variable not defined or not found in server/.env. Supabase cleanup skipped.");
-    return;
-  }
-
-  console.log("Connecting to database using Pool (overrides cleared)...");
-  const pool = new Pool({
-    connectionString: databaseUrl,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
-
+  // 2. Clean database using db.js methods
   try {
-    console.log("=== CLEANING DATABASE ===");
-    const { rows: sites } = await pool.query('SELECT * FROM websites');
-    const hf4youSites = sites.filter(s => s.url.trim().toLowerCase().includes('hf4you.co.uk'));
+    console.log("=== INITIALIZING DATABASE ===");
+    await initDb();
     
+    console.log("=== FETCHING SITES ===");
+    const sites = await getSites();
+    console.log("Found site IDs in DB:", sites.map(s => s.id));
+    
+    const hf4youSites = sites.filter(s => s.url.trim().toLowerCase().includes('hf4you.co.uk'));
     if (hf4youSites.length > 1) {
-      // Keep the first one, delete the rest
+      console.log(`Found ${hf4youSites.length} HF4You sites. Pruning duplicates...`);
       const keepSite = hf4youSites[0];
-      const deleteSites = hf4youSites.slice(1);
+      const cleanedSites = sites.filter(s => !s.url.trim().toLowerCase().includes('hf4you.co.uk') || s.id === keepSite.id);
       
-      for (const ds of deleteSites) {
-        console.log(`Deleting duplicate site row: ${ds.id} (${ds.url})`);
-        await pool.query('DELETE FROM websites WHERE id = $1', [ds.id]);
-      }
-      console.log(`Database cleaned: kept only ${keepSite.id}`);
+      console.log("Saving cleaned sites list:", cleanedSites.map(s => s.id));
+      await saveAllSites(cleanedSites);
+      console.log("Database successfully cleaned via saveAllSites!");
     } else {
       console.log("No duplicate HF4You sites found in database.");
     }
   } catch (err) {
     console.error("Database error during cleanup:", err.message);
-  } finally {
-    await pool.end();
   }
 })();
