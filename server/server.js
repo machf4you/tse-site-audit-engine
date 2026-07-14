@@ -238,6 +238,13 @@ app.get('/api/sites', async (req, res) => {
   }
 });
 
+app.get('/api/dev-logs', (req, res) => {
+  const { exec } = require('child_process');
+  exec('pm2 logs --lines 150 --raw', (err, stdout, stderr) => {
+    res.send(stdout + stderr);
+  });
+});
+
 // POST Save Connected Websites
 app.post('/api/sites', async (req, res) => {
   console.log('POST /api/sites called with sites count:', req.body.sites ? req.body.sites.length : (Array.isArray(req.body) ? req.body.length : 'unknown'));
