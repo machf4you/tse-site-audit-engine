@@ -1492,19 +1492,35 @@ export default function App() {
     }));
   };
 
-  const handleDeleteWebsite = () => {
+  const handleDeleteWebsite = async () => {
     if (!editingSiteId) return;
     const site = sites.find(s => s.id === editingSiteId);
     if (!site) return;
 
     const confirmed = window.confirm(`Are you sure you want to delete the website "${site.name}"? This action cannot be undone.`);
     if (confirmed) {
-      setSites(prev => prev.filter(s => s.id !== editingSiteId));
-      showNotification(`Website "${site.name}" has been deleted.`);
-      setIsEditWebsiteModalOpen(false);
-      if (selectedSiteId === editingSiteId) {
-        setSelectedSiteId(null);
-        setCurrentView("CONNECTED_SITES");
+      try {
+        const res = await fetch(`${API_BASE}/sites/${editingSiteId}`, {
+          method: "DELETE"
+        });
+        if (!res.ok) throw new Error("Failed to delete website from database");
+
+        setSites(prev => prev.filter(s => s.id !== editingSiteId));
+        setPagesData(prev => {
+          const updated = { ...prev };
+          delete updated[editingSiteId];
+          return updated;
+        });
+
+        showNotification(`Website "${site.name}" has been deleted.`);
+        setIsEditWebsiteModalOpen(false);
+        if (selectedSiteId === editingSiteId) {
+          setSelectedSiteId(null);
+          setCurrentView("CONNECTED_SITES");
+        }
+      } catch (err) {
+        console.error("Error deleting website:", err.message);
+        showNotification(`Error deleting website: ${err.message}`);
       }
     }
   };
