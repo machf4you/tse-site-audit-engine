@@ -284,11 +284,18 @@ export class MagentoProvider extends BaseConnectionProvider {
     function flattenCategories(category, parentId = null) {
       let list = [];
       if (category.is_active) {
+        const getCustomAttribute = (c, code) => {
+          if (!c.custom_attributes) return null;
+          const attr = c.custom_attributes.find(a => a.attribute_code === code);
+          return attr ? attr.value : null;
+        };
         list.push({
           id: category.id,
           name: category.name,
           parentId: parentId,
-          level: category.level
+          level: category.level,
+          metaTitle: getCustomAttribute(category, "meta_title") || category.meta_title,
+          metaDescription: getCustomAttribute(category, "meta_description") || category.meta_description
         });
       }
       if (category.children_data && Array.isArray(category.children_data)) {
@@ -327,9 +334,9 @@ export class MagentoProvider extends BaseConnectionProvider {
           pages.push({
             id: `category-${cat.id}`,
             url: pageUrl,
-            title: `${cat.name} | Category`,
+            title: cat.metaTitle || cat.name || "",
             h1: cat.name,
-            metaDescription: `Browse our range of ${cat.name} products.`,
+            metaDescription: cat.metaDescription || "",
             wordCount: 0,
             bodyContent: `Magento Category: ${cat.name}`,
             modifiedAt: new Date().toISOString(),
@@ -395,7 +402,7 @@ export class MagentoProvider extends BaseConnectionProvider {
             pages.push({
               id: `cms-${item.id}`,
               url: pageUrl,
-              title: item.title || "",
+              title: item.meta_title || item.title || "",
               h1: item.content_heading || item.title || "",
               metaDescription: item.meta_description || "",
               wordCount: wordCount,
