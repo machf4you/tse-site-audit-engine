@@ -2425,6 +2425,8 @@ export default function App() {
     valueSelectors: {
       page: (p) => (p.pageTitle || p.pageUrl || "").toLowerCase(),
       status: (p) => (isPageExcluded(p) ? "Excluded" : p.status || "Unconfigured").toLowerCase(),
+      type: (p) => (p.assignedType || "Supporting Page").toLowerCase(),
+      target: (p) => (p.targetPhrase || "").toLowerCase(),
     },
     customSorts: {
       priority: (valA, valB) => {
@@ -5586,11 +5588,11 @@ export default function App() {
                             );
                           }
 
-                          return filteredPages.map((page) => {
+                          return filteredPages.map((page, index) => {
                             const isConfigured = page.status === "Configured";
                             const isExcluded = isPageExcluded(page);
                             return (
-                              <tr key={page.pageUrl} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s' }} className="table-row-hover">
+                              <tr key={`${page.pageUrl}-${index}`} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s' }} className="table-row-hover">
                                 <td style={{ padding: '16px 20px', textAlign: 'left' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{page.pageTitle || "Unnamed Page"}</span>
