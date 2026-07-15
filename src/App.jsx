@@ -549,7 +549,7 @@ const generateFindingsForPage = (page, siteUrl, siteId) => {
   const target = page.targetPhrase || "";
   const title = page.pageTitle || "";
 
-  if (!target || page.status !== "Configured") return []; // Only configured pages are audited
+  if (!target || page.status !== "Configured" || isPageExcluded(page)) return []; // Only configured non-excluded pages are audited
 
   const auditResults = runPageAudit(relUrl, target, title, siteId, page);
   const findings = [];
@@ -586,7 +586,7 @@ const evaluateRulesForPage = (page, siteUrl, siteId) => {
   const title = page.pageTitle || "";
 
   const results = [];
-  if (!target || page.status !== "Configured") {
+  if (!target || page.status !== "Configured" || isPageExcluded(page)) {
     const checks = [
       "Title Tag", "Meta Description", "H1", "H2 Count", 
       "Word Count", "Internal Link Count", "Image Count", "Images Missing Alt Text"
@@ -1649,8 +1649,6 @@ export default function App() {
         if (platform === "Magento") {
           if (pageUrl === "/" || pageUrl === "") {
             assignedType = "Hub Page";
-          } else if (isMagentoExcludedPage(pageUrl, record.title)) {
-            assignedType = "Excluded";
           } else if (record.id && String(record.id).startsWith("category-")) {
             assignedType = "Landing Page";
           } else if (record.id && String(record.id).startsWith("cms-")) {
@@ -1665,7 +1663,7 @@ export default function App() {
             wpPostId: record.id,
             pageTitle: record.title,
             lastModifiedDate: record.modifiedAt,
-            assignedType: assignedType || existingPage.assignedType || getPageAuditorAssignedType(pageUrl),
+            assignedType: existingPage.assignedType || assignedType || getPageAuditorAssignedType(pageUrl),
             crawlData: {
               ...existingPage.crawlData,
               wpPostId: record.id,
@@ -2723,6 +2721,7 @@ export default function App() {
                                  : inputPageType === "Landing Page" ? 2
                                  : inputPageType === "Supporting Page" ? 3
                                  : inputPageType === "Topical Page" ? 4
+                                 : inputPageType === "Excluded" ? 0
                                  : 3;
         const newPage = {
           pageUrl: formattedUrl,
@@ -2755,6 +2754,7 @@ export default function App() {
                                      : inputPageType === "Landing Page" ? 2
                                      : inputPageType === "Supporting Page" ? 3
                                      : inputPageType === "Topical Page" ? 4
+                                     : inputPageType === "Excluded" ? 0
                                      : 3;
             return {
               ...p,
@@ -5516,6 +5516,27 @@ export default function App() {
 
                 {/* Table section */}
                 <div style={{ marginTop: '2rem' }}>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', justifyContent: 'flex-start' }}>
+                    {["all", "configured", "unconfigured", "excluded"].map(f => (
+                      <button
+                        key={f}
+                        onClick={() => setCurrentFilter(f)}
+                        className="btn-secondary"
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '0.8rem',
+                          backgroundColor: currentFilter === f ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.03)',
+                          color: currentFilter === f ? '#10b981' : 'var(--text-secondary)',
+                          borderColor: currentFilter === f ? '#10b981' : 'var(--border-color)',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        {f.charAt(0).toUpperCase() + f.slice(1)}
+                      </button>
+                    ))}
+                  </div>
                   <div style={{ overflowX: 'auto', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', backgroundColor: 'var(--surface-color)', backdropFilter: 'blur(12px)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)' }}>
                     <table className="audit-config-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                       <thead>
@@ -5586,8 +5607,8 @@ export default function App() {
                           }
 
                           return filteredPages.map((page, index) => {
-                            const isConfigured = page.status === "Configured";
                             const isExcluded = isPageExcluded(page);
+                            const isConfigured = page.status === "Configured" && !isExcluded;
                             return (
                               <tr key={`${page.pageUrl}-${index}`} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background-color 0.2s' }} className="table-row-hover">
                                 <td style={{ padding: '16px 20px', textAlign: 'left' }}>
@@ -10802,6 +10823,7 @@ export default function App() {
                       <option value="Landing Page">Landing Page</option>
                       <option value="Supporting Page">Supporting Page</option>
                       <option value="Topical Page">Topical Page</option>
+                      <option value="Excluded">Excluded</option>
                     </select>
                   </div>
 
@@ -10819,6 +10841,7 @@ export default function App() {
                         if (inputPageType === "Landing Page") return "Priority 2";
                         if (inputPageType === "Supporting Page") return "Priority 3";
                         if (inputPageType === "Topical Page") return "Priority 4";
+                        if (inputPageType === "Excluded") return "None";
                         return "Priority 3";
                       })()}
                     </div>
