@@ -2321,6 +2321,7 @@ export default function App() {
 
   const getGroupedPageType = (page) => {
     if (!page) return "Unassigned Pages";
+    if (isPageExcluded(page)) return "Excluded";
     if (page.assignedType) {
       if (page.assignedType === "Homepage") return "Homepage";
       if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
@@ -4729,9 +4730,9 @@ export default function App() {
                       filteredSites.map(site => {
                         const isAudited = site.lastAudit !== null;
                         const sitePages = pagesData[site.id] || [];
-                        const totalPages = sitePages.length;
-                        const configuredPages = sitePages.filter(p => p.status === "Configured").length;
-                        const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured").length;
+                        const totalPages = sitePages.filter(p => !isPageExcluded(p)).length;
+                        const configuredPages = sitePages.filter(p => p.status === "Configured" && !isPageExcluded(p)).length;
+                        const unconfiguredPages = sitePages.filter(p => p.status === "Unconfigured" && !isPageExcluded(p)).length;
                         const displayTitle = site.name;
                         const isConnected = site.status === "Connected" && (site.platform === "Magento" ? !!site.credentials?.password : (!!site.credentials?.username && !!site.credentials?.password));
                         
@@ -6644,6 +6645,7 @@ export default function App() {
                       
                       // Classify page types consistently with the main list
                       const getGroupedPageType = (page) => {
+                        if (isPageExcluded(page)) return "Excluded";
                         if (page.assignedType) {
                           if (page.assignedType === "Homepage") return "Homepage";
                           if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
@@ -6967,7 +6969,7 @@ export default function App() {
                     }
 
                     const sitePages = pagesData[site.id] || [];
-                    const pagesFound = sitePages.length || (site.id === 'bathroom-upgrades' ? 33 : 113);
+                    const pagesFound = sitePages.filter(p => !isPageExcluded(p)).length || (site.id === 'bathroom-upgrades' ? 33 : 113);
                     const configuredPages = sitePages.filter(p => p.status === "Configured" && p.assignedType !== "Excluded").length;
                     const hasAudit = !!site.lastAudit;
                     const auditStatusText = hasAudit ? `Analysed (${site.lastAudit})` : "Pending Analysis";
@@ -6981,6 +6983,7 @@ export default function App() {
                     ];
 
                     const getPageCategory = (page) => {
+                      if (isPageExcluded(page)) return "Excluded";
                       if (page.pageUrl === "/") return "Homepage";
                       if (page.assignedType === "Homepage") return "Homepage";
                       if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
@@ -7136,6 +7139,7 @@ export default function App() {
                             const sortedPages = sortPagesForSEO(sitePages);
 
                             const getGroupedPageType = (page) => {
+                              if (isPageExcluded(page)) return "Excluded";
                               if (page.assignedType) {
                                 if (page.assignedType === "Homepage") return "Homepage";
                                 if (page.assignedType === "Hub Page" || page.assignedType === "Hub Pages" || page.assignedType === "Hub") return "Hub Pages";
@@ -7957,7 +7961,7 @@ export default function App() {
 
           {/* STAGE 2: AUDIT CONFIGURATION */}
           {currentView === "AUDIT_CONFIG" && selectedSiteId && (() => {
-            const sitePages = sortPagesForSEO(pagesData[selectedSiteId] || []);
+            const sitePages = sortPagesForSEO(pagesData[selectedSiteId] || []).filter(p => !isPageExcluded(p));
             const includedPages = sitePages.filter(p => p.status === "Configured");
             const excludedPages = sitePages.filter(p => p.status === "Unconfigured" || p.status === "Planned");
             const siteName = sites.find(s => s.id === selectedSiteId)?.name;
