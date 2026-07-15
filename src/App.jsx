@@ -646,6 +646,7 @@ const getFindingsAndTasksForSite = (siteId, pages, siteUrl, siteName) => {
         generatedTasks.push({
           taskId: nextTaskId,
           id: nextTaskId,
+          wpPostId: page.wpPostId,
           website: siteName,
           pageUrl: siteUrl + finding.pageUrl,
           pageTitle: finding.pageTitle,
@@ -1071,6 +1072,9 @@ export default function App() {
   const [comingSoonModule, setComingSoonModule] = useState("");
   const [selectedPageUrl, setSelectedPageUrl] = useState(null);
   const [reviewPageUrl, setReviewPageUrl] = useState("");
+  const [selectedPageId, setSelectedPageId] = useState(null);
+  const [reviewPageId, setReviewPageId] = useState(null);
+  const [singleAuditPageId, setSingleAuditPageId] = useState(null);
 
   
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
@@ -1171,7 +1175,10 @@ export default function App() {
     tasks: selectedSiteRaw.tasks.map(t => {
       const sitePages = pagesData[selectedSiteRaw.id] || [];
       const relUrl = getRelativeUrl(t.pageUrl, selectedSiteRaw.url);
-      const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+      const isMagento = selectedSiteRaw.platform === "Magento";
+      const pageObj = isMagento && t.wpPostId
+        ? sitePages.find(p => p.wpPostId === t.wpPostId)
+        : sitePages.find(p => p.pageUrl === relUrl);
       let derivedState = t.state || "backlog";
       if (pageObj && pageObj.latestAudit && pageObj.latestAudit.results) {
         const findings = generateFindingsForPage(pageObj, selectedSiteRaw.url, selectedSiteRaw.id);
@@ -1186,7 +1193,10 @@ export default function App() {
     if (!task || !selectedSite) return task;
     const sitePages = pagesData[selectedSite.id] || [];
     const relUrl = getRelativeUrl(task.pageUrl, selectedSite.url);
-    const pageObj = sitePages.find(p => p.pageUrl === relUrl);
+    const isMagento = selectedSite.platform === "Magento";
+    const pageObj = isMagento && task.wpPostId
+      ? sitePages.find(p => p.wpPostId === task.wpPostId)
+      : sitePages.find(p => p.pageUrl === relUrl);
     
     // Derive task state dynamically from audit results
     let derivedState = task.state || "backlog";
@@ -1278,8 +1288,9 @@ export default function App() {
   const [portfolioFilter, setPortfolioFilter] = useState("All");
   const [platformFilter, setPlatformFilter] = useState("All");
 
-  const handleAuditSinglePage = (pageUrl) => {
+  const handleAuditSinglePage = (pageUrl, wpPostId) => {
     setSingleAuditPageUrl(pageUrl);
+    setSingleAuditPageId(wpPostId || null);
     setCurrentView("AUDIT_RUNNING");
   };
 
@@ -1656,7 +1667,9 @@ export default function App() {
           }
         }
 
-        const existingPage = prevPages.find(p => p.pageUrl === pageUrl);
+        const existingPage = platform === "Magento"
+          ? prevPages.find(p => p.wpPostId === record.id)
+          : prevPages.find(p => p.pageUrl === pageUrl);
         if (existingPage) {
           return {
             ...existingPage,
@@ -1904,13 +1917,18 @@ export default function App() {
             Object.keys(pagesJson).forEach(siteId => {
               const dbPagesWithTypes = pagesJson[siteId];
 
+              const siteObj = sitesJson.find(s => s.id === siteId);
+              const isMagento = siteObj?.platform === "Magento";
+              const keySelector = (p) => (isMagento && p.wpPostId ? p.wpPostId : p.pageUrl);
+
               if (!merged[siteId]) {
                 merged[siteId] = dbPagesWithTypes;
               } else {
-                const dbPagesMap = new Map(dbPagesWithTypes.map(p => [p.pageUrl, p]));
+                const dbPagesMap = new Map(dbPagesWithTypes.map(p => [keySelector(p), p]));
                 const updatedPages = merged[siteId].map(localPage => {
-                  if (dbPagesMap.has(localPage.pageUrl)) {
-                    const dbPage = dbPagesMap.get(localPage.pageUrl);
+                  const localKey = keySelector(localPage);
+                  if (dbPagesMap.has(localKey)) {
+                    const dbPage = dbPagesMap.get(localKey);
                     
                     // If local page is configured but database page is not, keep the local configuration
                     const localIsMoreConfigured = (localPage.status === "Configured" || (localPage.targetPhrase && localPage.targetPhrase.trim() !== "")) &&
@@ -1930,9 +1948,9 @@ export default function App() {
                   }
                   return localPage;
                 });
-                const localUrls = new Set(merged[siteId].map(p => p.pageUrl));
+                const localKeys = new Set(merged[siteId].map(p => keySelector(p)));
                 dbPagesWithTypes.forEach(dbPage => {
-                  if (!localUrls.has(dbPage.pageUrl)) {
+                  if (!localKeys.has(keySelector(dbPage))) {
                     updatedPages.push(dbPage);
                   }
                 });
@@ -1947,19 +1965,24 @@ export default function App() {
             const dbSourced = { ...prevPages };
             Object.keys(pagesJson).forEach(siteId => {
               const dbPagesWithTypes = pagesJson[siteId];
+              const siteObj = sitesJson.find(s => s.id === siteId);
+              const isMagento = siteObj?.platform === "Magento";
+              const keySelector = (p) => (isMagento && p.wpPostId ? p.wpPostId : p.pageUrl);
+
               if (!dbSourced[siteId]) {
                 dbSourced[siteId] = dbPagesWithTypes;
               } else {
-                const dbPagesMap = new Map(dbPagesWithTypes.map(p => [p.pageUrl, p]));
+                const dbPagesMap = new Map(dbPagesWithTypes.map(p => [keySelector(p), p]));
                 const updatedPages = dbSourced[siteId].map(localPage => {
-                  if (dbPagesMap.has(localPage.pageUrl)) {
-                    return dbPagesMap.get(localPage.pageUrl);
+                  const localKey = keySelector(localPage);
+                  if (dbPagesMap.has(localKey)) {
+                    return dbPagesMap.get(localKey);
                   }
                   return localPage;
                 });
-                const localUrls = new Set(dbSourced[siteId].map(p => p.pageUrl));
+                const localKeys = new Set(dbSourced[siteId].map(p => keySelector(p)));
                 dbPagesWithTypes.forEach(dbPage => {
-                  if (!localUrls.has(dbPage.pageUrl)) {
+                  if (!localKeys.has(keySelector(dbPage))) {
                     updatedPages.push(dbPage);
                   }
                 });
@@ -2449,8 +2472,9 @@ export default function App() {
       ];
 
       // Filter pages depending on whether this is a single page audit or full site audit
+      const isMagento = site?.platform === "Magento";
       const pagesToScan = singleAuditPageUrl 
-        ? sitePages.filter(p => p.pageUrl === singleAuditPageUrl)
+        ? sitePages.filter(p => isMagento && singleAuditPageId ? p.wpPostId === singleAuditPageId : p.pageUrl === singleAuditPageUrl)
         : sitePages;
 
       pagesToScan.forEach(page => {
@@ -2507,7 +2531,7 @@ export default function App() {
             const site = sites.find(s => s.id === selectedSiteId);
             
             if (singleAuditPageUrl) {
-              const targetPage = sitePages.find(p => p.pageUrl === singleAuditPageUrl);
+              const targetPage = sitePages.find(p => isMagento && singleAuditPageId ? p.wpPostId === singleAuditPageId : p.pageUrl === singleAuditPageUrl);
               const { findings, tasks: newTasks } = getFindingsAndTasksForSite(selectedSiteId, [targetPage], site.url, site.name);
 
               setAuditFindings(findings);
@@ -2517,7 +2541,8 @@ export default function App() {
               setPagesData(prev => ({
                 ...prev,
                 [selectedSiteId]: (prev[selectedSiteId] || []).map(p => {
-                  if (p.pageUrl === singleAuditPageUrl) {
+                  const isTarget = isMagento && singleAuditPageId ? p.wpPostId === singleAuditPageId : p.pageUrl === singleAuditPageUrl;
+                  if (isTarget) {
                     return {
                       ...p,
                       latestAudit: {
@@ -2534,7 +2559,9 @@ export default function App() {
                 if (s.id === selectedSiteId) {
                   // Merge: remove previous tasks for this page path, and append new ones
                   const cleanUrl = s.url + singleAuditPageUrl;
-                  const updatedTasks = s.tasks.filter(t => t.pageUrl !== cleanUrl);
+                  const updatedTasks = isMagento && singleAuditPageId
+                    ? s.tasks.filter(t => t.wpPostId !== singleAuditPageId)
+                    : s.tasks.filter(t => t.pageUrl !== cleanUrl);
                   return {
                     ...s,
                     lastAudit: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -2712,8 +2739,9 @@ export default function App() {
       if (!formattedUrl.endsWith("/")) formattedUrl = formattedUrl + "/";
 
       setPagesData(prev => {
-        // Prevent duplicate URL
-        if (prev[selectedSiteId].some(p => p.pageUrl === formattedUrl)) {
+        // Prevent duplicate URL (only for non-Magento sites since multiple Magento stores can share homepages/pages)
+        const isMagento = selectedSite?.platform === "Magento";
+        if (!isMagento && prev[selectedSiteId].some(p => p.pageUrl === formattedUrl)) {
           showNotification("Page URL already exists!");
           return prev;
         }
@@ -2726,6 +2754,7 @@ export default function App() {
                                  : 3;
         const newPage = {
           pageUrl: formattedUrl,
+          wpPostId: isMagento ? `magento-manual-${Date.now()}` : undefined,
           pageTitle: inputPageTitle.trim() || "Untitled Page",
           proposedPageTitle: inputProposedPageTitle.trim() || inputPageTitle.trim() || "Untitled Page",
           targetPhrase: inputTargetPhrase.trim(),
@@ -2745,9 +2774,13 @@ export default function App() {
     } else {
       if (!editingPage) return;
 
+      const isMagento = selectedSite?.platform === "Magento";
       setPagesData(prev => {
         const updatedSitePages = prev[selectedSiteId].map(p => {
-          if (p.pageUrl === editingPage.pageUrl) {
+          const isMatch = isMagento && editingPage.wpPostId
+            ? p.wpPostId === editingPage.wpPostId
+            : p.pageUrl === editingPage.pageUrl;
+          if (isMatch) {
             const hasTarget = !!inputTargetPhrase.trim();
             // If it was Planned, it remains Planned. If it was Configured/Unconfigured, update based on TargetPhrase presence.
             const updatedStatus = p.status === "Planned" ? "Planned" : (hasTarget ? "Configured" : "Unconfigured");
@@ -5658,7 +5691,9 @@ export default function App() {
                                         }}
                                         onClick={() => {
                                           setSelectedPageUrl(page.pageUrl);
+                                          setSelectedPageId(page.wpPostId || null);
                                           setReviewPageUrl(page.pageUrl);
+                                          setReviewPageId(page.wpPostId || null);
                                           setCurrentView("AUDIT_RESULTS");
                                         }}
                                         onMouseEnter={(e) => {
@@ -5679,7 +5714,7 @@ export default function App() {
                                           boxShadow: 'none', background: '#10b981', backgroundColor: '#10b981', borderColor: '#10b981',
                                           color: '#ffffff', cursor: 'pointer', transition: 'all 0.2s ease', outline: 'none'
                                         }}
-                                        onClick={() => handleAuditSinglePage(page.pageUrl)}
+                                        onClick={() => handleAuditSinglePage(page.pageUrl, page.wpPostId)}
                                         onMouseEnter={(e) => {
                                           e.currentTarget.style.backgroundColor = '#059669';
                                           e.currentTarget.style.borderColor = '#059669';
@@ -8148,7 +8183,10 @@ export default function App() {
             const sitePages = pagesData[selectedSiteId] || [];
             const auditedPages = sitePages.filter(p => p.status === "Configured" || p.latestAudit);
             const currentReviewUrl = reviewPageUrl || (auditedPages[0]?.pageUrl || "");
-            const targetPageObj = sitePages.find(p => p.pageUrl === currentReviewUrl);
+            const isMagento = site?.platform === "Magento";
+            const targetPageObj = isMagento && reviewPageId
+              ? sitePages.find(p => p.wpPostId === reviewPageId)
+              : sitePages.find(p => p.pageUrl === currentReviewUrl);
             const currentTargetPhrase = targetPageObj?.targetPhrase || "";
             const pageTitle = targetPageObj?.pageTitle || "";
             const pageType = getPageType(targetPageObj);
@@ -8222,12 +8260,21 @@ export default function App() {
                     <div style={{ flex: 1, minWidth: '250px', textAlign: 'left' }}>
                       <label style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>Select Page to Review from Dropdown</label>
                       <select
-                        value={currentReviewUrl}
-                        onChange={(e) => setReviewPageUrl(e.target.value)}
+                        value={isMagento ? (reviewPageId || "") : currentReviewUrl}
+                        onChange={(e) => {
+                          if (isMagento) {
+                            const val = e.target.value;
+                            setReviewPageId(val);
+                            const matched = auditedPages.find(p => p.wpPostId === val);
+                            if (matched) setReviewPageUrl(matched.pageUrl);
+                          } else {
+                            setReviewPageUrl(e.target.value);
+                          }
+                        }}
                         style={{ width: '50%', minWidth: '250px', backgroundColor: '#070b13', border: '1px solid var(--border-color)', color: 'var(--text-primary)', padding: '10px', borderRadius: '6px', outline: 'none', fontSize: '0.95rem', fontWeight: 600, marginTop: '4px' }}
                       >
                         {auditedPages.map(p => (
-                          <option key={p.pageUrl} value={p.pageUrl}>{p.pageUrl} ({p.pageTitle})</option>
+                          <option key={isMagento ? p.wpPostId : p.pageUrl} value={isMagento ? p.wpPostId : p.pageUrl}>{p.pageUrl} ({p.pageTitle})</option>
                         ))}
                       </select>
                     </div>
