@@ -1070,6 +1070,8 @@ export default function App() {
   const [comingSoonModule, setComingSoonModule] = useState("");
   const [selectedPageUrl, setSelectedPageUrl] = useState(null);
   const [reviewPageUrl, setReviewPageUrl] = useState("");
+  const [w3SortField, setW3SortField] = useState(null);
+  const [w3SortDirection, setW3SortDirection] = useState('asc');
   
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const initialPagesDataRef = React.useRef(null);
@@ -1212,6 +1214,15 @@ export default function App() {
       ...prev,
       [sectionName]: !prev[sectionName]
     }));
+  };
+  
+  const handleSortClick = (field) => {
+    if (w3SortField === field) {
+      setW3SortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setW3SortField(field);
+      setW3SortDirection('asc');
+    }
   };
   
   // Page Auditor Edit State
@@ -5487,11 +5498,46 @@ export default function App() {
                     <table className="audit-config-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}>Page</th>
-                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}>Type</th>
-                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '100px' }}>Priority</th>
-                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}>Target</th>
-                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}>Status</th>
+                          <th 
+                            className="sortable-th"
+                            onClick={() => handleSortClick('page')}
+                            style={{ padding: '16px 20px', color: w3SortField === 'page' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}
+                          >
+                            Page
+                            {w3SortField === 'page' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                          </th>
+                          <th 
+                            className="sortable-th"
+                            onClick={() => handleSortClick('type')}
+                            style={{ padding: '16px 20px', color: w3SortField === 'type' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}
+                          >
+                            Type
+                            {w3SortField === 'type' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                          </th>
+                          <th 
+                            className="sortable-th"
+                            onClick={() => handleSortClick('priority')}
+                            style={{ padding: '16px 20px', color: w3SortField === 'priority' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '100px' }}
+                          >
+                            Priority
+                            {w3SortField === 'priority' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                          </th>
+                          <th 
+                            className="sortable-th"
+                            onClick={() => handleSortClick('target')}
+                            style={{ padding: '16px 20px', color: w3SortField === 'target' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}
+                          >
+                            Target
+                            {w3SortField === 'target' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                          </th>
+                          <th 
+                            className="sortable-th"
+                            onClick={() => handleSortClick('status')}
+                            style={{ padding: '16px 20px', color: w3SortField === 'status' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}
+                          >
+                            Status
+                            {w3SortField === 'status' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                          </th>
                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
                         </tr>
                       </thead>
@@ -5507,7 +5553,48 @@ export default function App() {
                             return !isExcluded;
                           });
 
-                          if (filteredPages.length === 0) {
+                          const sortedFilteredPages = [...filteredPages];
+                          if (w3SortField) {
+                            sortedFilteredPages.sort((a, b) => {
+                              let comp = 0;
+                              if (w3SortField === 'page') {
+                                const titleA = (a.pageTitle || "").toLowerCase();
+                                const titleB = (b.pageTitle || "").toLowerCase();
+                                if (titleA !== titleB) {
+                                  comp = titleA.localeCompare(titleB);
+                                } else {
+                                  comp = (a.pageUrl || "").toLowerCase().localeCompare((b.pageUrl || "").toLowerCase());
+                                }
+                              } else if (w3SortField === 'type') {
+                                comp = (a.assignedType || "").toLowerCase().localeCompare((b.assignedType || "").toLowerCase());
+                              } else if (w3SortField === 'priority') {
+                                const getPrio = (p) => {
+                                  if (!p) return 0;
+                                  const pl = p.toLowerCase();
+                                  if (pl === 'low') return 1;
+                                  if (pl === 'medium') return 2;
+                                  if (pl === 'high') return 3;
+                                  return 0;
+                                };
+                                comp = getPrio(a.priority) - getPrio(b.priority);
+                              } else if (w3SortField === 'target') {
+                                comp = (a.targetPhrase || "").toLowerCase().localeCompare((b.targetPhrase || "").toLowerCase());
+                              } else if (w3SortField === 'status') {
+                                const isExcludedA = isPageExcluded(a);
+                                const isExcludedB = isPageExcluded(b);
+                                const statusA = (isExcludedA ? "Excluded" : a.status || "Unconfigured").toLowerCase();
+                                const statusB = (isExcludedB ? "Excluded" : b.status || "Unconfigured").toLowerCase();
+                                comp = statusA.localeCompare(statusB);
+                              }
+
+                              if (comp === 0) {
+                                return sitePages.indexOf(a) - sitePages.indexOf(b);
+                              }
+                              return w3SortDirection === 'asc' ? comp : -comp;
+                            });
+                          }
+
+                          if (sortedFilteredPages.length === 0) {
                             return (
                               <tr>
                                 <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -5517,7 +5604,7 @@ export default function App() {
                             );
                           }
 
-                          return filteredPages.map((page) => {
+                          return sortedFilteredPages.map((page) => {
                             const isConfigured = page.status === "Configured";
                             const isExcluded = isPageExcluded(page);
                             return (
