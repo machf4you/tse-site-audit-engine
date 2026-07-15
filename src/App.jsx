@@ -3952,7 +3952,7 @@ export default function App() {
     );
   };
 
-  const renderAppCard = ({ name, description, status, version, appId, accentColor, IconComponent }) => {
+  const renderAppCard = ({ name, description, status, version, appId, accentColor, IconComponent, launchUrl }) => {
     const isLive = status === "Live";
     const isDev = status === "Development";
     
@@ -3963,7 +3963,13 @@ export default function App() {
     
     return (
       <div 
-        onClick={() => setActiveApp(appId)}
+        onClick={() => {
+          if (launchUrl) {
+            window.open(launchUrl, '_blank');
+          } else {
+            setActiveApp(appId);
+          }
+        }}
         style={{
           backgroundColor: '#0c101b',
           border: `1px solid rgba(255, 255, 255, 0.06)`,
@@ -4072,7 +4078,14 @@ export default function App() {
             {version}
           </span>
           <button
-            onClick={() => setActiveApp(appId)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (launchUrl) {
+                window.open(launchUrl, '_blank');
+              } else {
+                setActiveApp(appId);
+              }
+            }}
             style={{
               backgroundColor: isLive ? accentColor : 'rgba(255,255,255,0.04)',
               color: isLive ? '#ffffff' : 'rgba(255,255,255,0.25)',
@@ -4107,7 +4120,7 @@ export default function App() {
           >
             {isLive ? (
               <>
-                Open App
+                {launchUrl ? "Launch" : "Open App"}
                 <ChevronRight size={14} />
               </>
             ) : "Coming Soon"}
@@ -4378,6 +4391,17 @@ export default function App() {
           })}
 
           {renderAppCard({
+            name: "Lead Generator",
+            description: "Find local businesses, extract contact details and prepare websites for the Audit Engine.",
+            status: "Live",
+            version: "v1.0.0",
+            appId: "LEAD_GENERATOR",
+            accentColor: "#6366f1",
+            IconComponent: Database,
+            launchUrl: "http://localhost:5175/"
+          })}
+
+          {renderAppCard({
             name: "Chatza",
             description: "Real-time communication and video collaboration client.",
             status: "Live",
@@ -4483,6 +4507,8 @@ export default function App() {
   if (activeApp !== "WEBSITE_MANAGEMENT") {
     const getPlaceholderParams = () => {
       switch (activeApp) {
+        case "LEAD_GENERATOR":
+          return { activeMenu: "DASHBOARD", title: "Lead Generator", accent: "#6366f1", icon: Database, description: "Find local businesses, extract contact details and prepare websites for the Audit Engine.", statusText: "External Link" };
         case "CHATZA":
           return { activeMenu: "DASHBOARD", title: "Chatza", accent: "#3b82f6", icon: MessageSquare, description: "Real-time communication and video collaboration client.", statusText: "Coming Soon" };
         case "WP_EXPORTER":
