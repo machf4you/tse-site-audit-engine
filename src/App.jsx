@@ -2432,10 +2432,10 @@ export default function App() {
       priority: (valA, valB) => {
         const getPrio = (p) => {
           if (!p) return 0;
-          const pl = p.toLowerCase();
-          if (pl === 'low') return 1;
-          if (pl === 'medium') return 2;
-          if (pl === 'high') return 3;
+          const pl = String(p).toLowerCase();
+          if (pl === 'low' || pl.includes('1')) return 1;
+          if (pl === 'medium' || pl.includes('2')) return 2;
+          if (pl === 'high' || pl.includes('3')) return 3;
           return 0;
         };
         return getPrio(valA) - getPrio(valB);
