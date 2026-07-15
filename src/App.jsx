@@ -2430,15 +2430,12 @@ export default function App() {
     },
     customSorts: {
       priority: (valA, valB) => {
-        const getPrio = (p) => {
+        const getPrioNum = (p) => {
           if (!p) return 0;
-          const pl = String(p).toLowerCase();
-          if (pl === 'low' || pl.includes('1')) return 1;
-          if (pl === 'medium' || pl.includes('2')) return 2;
-          if (pl === 'high' || pl.includes('3')) return 3;
-          return 0;
+          const match = String(p).match(/\d+/);
+          return match ? parseInt(match[0], 10) : 0;
         };
-        return getPrio(valA) - getPrio(valB);
+        return getPrioNum(valA) - getPrioNum(valB);
       }
     }
   });
