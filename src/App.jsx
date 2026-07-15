@@ -9,6 +9,7 @@ import './App.css';
 import { ConnectionManager } from "./connectionProviders";
 import exporterData from './exporter-data.json';
 import LocalPageAuditorApp from './page-auditor/App';
+import { useSortableTable } from './hooks/useSortableTable';
 
 const RemotePageAuditorApp = React.lazy(() => import('page_auditor/App'));
 
@@ -1070,8 +1071,7 @@ export default function App() {
   const [comingSoonModule, setComingSoonModule] = useState("");
   const [selectedPageUrl, setSelectedPageUrl] = useState(null);
   const [reviewPageUrl, setReviewPageUrl] = useState("");
-  const [w3SortField, setW3SortField] = useState(null);
-  const [w3SortDirection, setW3SortDirection] = useState('asc');
+
   
   const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
   const initialPagesDataRef = React.useRef(null);
@@ -1216,14 +1216,7 @@ export default function App() {
     }));
   };
   
-  const handleSortClick = (field) => {
-    if (w3SortField === field) {
-      setW3SortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setW3SortField(field);
-      setW3SortDirection('asc');
-    }
-  };
+
   
   // Page Auditor Edit State
   const defaultTask = INITIAL_SITES[0]?.tasks?.[0] || { id: "t-default", currentVersion: "", keyword: "" };
@@ -2417,6 +2410,36 @@ export default function App() {
       return a.pageUrl.localeCompare(b.pageUrl);
     });
   };
+
+  // Platform standard sortable table hook instantiation for W3 | Manage Pages table
+  const w3Pages = React.useMemo(() => {
+    return sortPagesForSEO(pagesData[selectedSiteId] || []);
+  }, [pagesData, selectedSiteId]);
+
+  const {
+    sortedItems: w3SortedPages,
+    sortField: w3SortField,
+    sortDirection: w3SortDirection,
+    requestSort: handleSortClick,
+  } = useSortableTable(w3Pages, null, {
+    valueSelectors: {
+      page: (p) => (p.pageTitle || p.pageUrl || "").toLowerCase(),
+      status: (p) => (isPageExcluded(p) ? "Excluded" : p.status || "Unconfigured").toLowerCase(),
+    },
+    customSorts: {
+      priority: (valA, valB) => {
+        const getPrio = (p) => {
+          if (!p) return 0;
+          const pl = p.toLowerCase();
+          if (pl === 'low') return 1;
+          if (pl === 'medium') return 2;
+          if (pl === 'high') return 3;
+          return 0;
+        };
+        return getPrio(valA) - getPrio(valB);
+      }
+    }
+  });
 
   useEffect(() => {
     if (currentView === "AUDIT_RUNNING") {
@@ -5543,7 +5566,7 @@ export default function App() {
                       </thead>
                       <tbody>
                         {(() => {
-                          const filteredPages = sitePages.filter(page => {
+                          const filteredPages = w3SortedPages.filter(page => {
                             const isExcluded = isPageExcluded(page);
                             if (currentFilter === "all") return !isExcluded;
                             if (currentFilter === "configured") return page.status === "Configured" && !isExcluded;
@@ -5553,48 +5576,7 @@ export default function App() {
                             return !isExcluded;
                           });
 
-                          const sortedFilteredPages = [...filteredPages];
-                          if (w3SortField) {
-                            sortedFilteredPages.sort((a, b) => {
-                              let comp = 0;
-                              if (w3SortField === 'page') {
-                                const titleA = (a.pageTitle || "").toLowerCase();
-                                const titleB = (b.pageTitle || "").toLowerCase();
-                                if (titleA !== titleB) {
-                                  comp = titleA.localeCompare(titleB);
-                                } else {
-                                  comp = (a.pageUrl || "").toLowerCase().localeCompare((b.pageUrl || "").toLowerCase());
-                                }
-                              } else if (w3SortField === 'type') {
-                                comp = (a.assignedType || "").toLowerCase().localeCompare((b.assignedType || "").toLowerCase());
-                              } else if (w3SortField === 'priority') {
-                                const getPrio = (p) => {
-                                  if (!p) return 0;
-                                  const pl = p.toLowerCase();
-                                  if (pl === 'low') return 1;
-                                  if (pl === 'medium') return 2;
-                                  if (pl === 'high') return 3;
-                                  return 0;
-                                };
-                                comp = getPrio(a.priority) - getPrio(b.priority);
-                              } else if (w3SortField === 'target') {
-                                comp = (a.targetPhrase || "").toLowerCase().localeCompare((b.targetPhrase || "").toLowerCase());
-                              } else if (w3SortField === 'status') {
-                                const isExcludedA = isPageExcluded(a);
-                                const isExcludedB = isPageExcluded(b);
-                                const statusA = (isExcludedA ? "Excluded" : a.status || "Unconfigured").toLowerCase();
-                                const statusB = (isExcludedB ? "Excluded" : b.status || "Unconfigured").toLowerCase();
-                                comp = statusA.localeCompare(statusB);
-                              }
-
-                              if (comp === 0) {
-                                return sitePages.indexOf(a) - sitePages.indexOf(b);
-                              }
-                              return w3SortDirection === 'asc' ? comp : -comp;
-                            });
-                          }
-
-                          if (sortedFilteredPages.length === 0) {
+                          if (filteredPages.length === 0) {
                             return (
                               <tr>
                                 <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
@@ -5604,7 +5586,7 @@ export default function App() {
                             );
                           }
 
-                          return sortedFilteredPages.map((page) => {
+                          return filteredPages.map((page) => {
                             const isConfigured = page.status === "Configured";
                             const isExcluded = isPageExcluded(page);
                             return (
