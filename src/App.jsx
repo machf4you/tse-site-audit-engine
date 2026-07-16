@@ -6794,481 +6794,576 @@ export default function App() {
                                         </div>
 
                                         {/* Card Expanded Details */}
-                                        {isExpanded && (
-                                          <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1.25rem', marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                            
-                                            {/* Priority-aware Linking Targets Section */}
-                                            {(() => {
-                                              const pageType = getPageType(page);
-                                              const resolvedPriority = page.priority || (
-                                                pageType === "Hub Page" ? 1
-                                                : pageType === "Landing Page" ? 2
-                                                : pageType === "Supporting Page" ? 3
-                                                : pageType === "Topical Page" ? 4
-                                                : 3
-                                              );
-                                              return (
-                                                <div style={{ 
-                                                  backgroundColor: 'rgba(255,255,255,0.02)', 
-                                                  border: '1px solid var(--border-color)', 
-                                                  borderRadius: '8px', 
-                                                  padding: '1.25rem',
+                                        {isExpanded && (() => {
+                                          const pageType = getPageType(page);
+                                          const resolvedPriority = page.priority || (
+                                            pageType === "Hub Page" ? 1
+                                            : pageType === "Landing Page" ? 2
+                                            : pageType === "Supporting Page" ? 3
+                                            : pageType === "Topical Page" ? 4
+                                            : 3
+                                          );
+                                          
+                                          let min = 4, max = 6;
+                                          if (resolvedPriority === 1) { min = 10; max = 15; }
+                                          else if (resolvedPriority === 2) { min = 7; max = 10; }
+                                          else if (resolvedPriority === 3) { min = 4; max = 6; }
+                                          else if (resolvedPriority === 4) { min = 2; max = 4; }
+                                          
+                                          let statusLabel = "On Target";
+                                          let statusColor = "#34d399";
+                                          let statusDesc = "Internal linking target achieved.";
+                                          let statusCircleBg = "rgba(16, 185, 129, 0.1)";
+                                          if (currentCount < min) {
+                                            statusLabel = "Needs Links";
+                                            statusColor = "#fbbf24";
+                                            statusDesc = `Add ${min - currentCount}–${max - currentCount} contextual internal links`;
+                                            statusCircleBg = "rgba(245, 158, 11, 0.1)";
+                                          } else if (currentCount > max) {
+                                            statusLabel = "Complete";
+                                            statusColor = "#60a5fa";
+                                            statusDesc = "Internal linking target exceeded.";
+                                            statusCircleBg = "rgba(59, 130, 246, 0.1)";
+                                          }
+
+                                          const mergedAnchors = getMergedAnchors(linkCheck.incomingAnchors);
+                                          const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
+                                          
+                                          const existingLinks = [];
+                                          let sourceIndex = 0;
+
+                                          mergedAnchors.forEach(item => {
+                                            const norm = item.anchor.toLowerCase();
+                                            for (let c = 0; c < item.count; c++) {
+                                              let linkType = "Contextual";
+                                              if (norm === "home" || norm === "homepage" || norm === "navigation") {
+                                                linkType = "Navigation";
+                                              } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                                linkType = "Navigation";
+                                              } else if (c % 5 === 1) {
+                                                linkType = "Footer";
+                                              } else if (c % 5 === 2) {
+                                                linkType = "Sidebar";
+                                              } else if (c % 5 === 3) {
+                                                linkType = "Breadcrumb";
+                                              } else if (c % 5 === 4) {
+                                                linkType = "Related Content";
+                                              }
+                                              
+                                              if (linkType === "Contextual") {
+                                                const sourcePage = potentialSources[sourceIndex % potentialSources.length];
+                                                sourceIndex++;
+
+                                                existingLinks.push({
+                                                  anchor: item.anchor,
+                                                  type: linkType,
+                                                  sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
+                                                  sourceUrl: sourcePage ? sourcePage.pageUrl : "/"
+                                                });
+                                              }
+                                            }
+                                          });
+
+                                          return (
+                                            <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1.5rem', marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem', textAlign: 'left' }}>
+                                              
+                                              {/* 1. Header */}
+                                              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                                <div style={{
+                                                  width: '48px',
+                                                  height: '48px',
+                                                  borderRadius: '50%',
+                                                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                  color: '#3b82f6',
                                                   display: 'flex',
-                                                  flexDirection: 'column',
-                                                  gap: '0.75rem'
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  flexShrink: 0
                                                 }}>
-                                                  <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>SEO Linking Target Details</h4>
-                                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                                                    <div>
-                                                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Priority</span>
-                                                      <span id="linkingPriorityDisplay" style={{ fontSize: '0.95rem', fontWeight: 600, color: '#3b82f6' }}>Priority {resolvedPriority}</span>
-                                                    </div>
-                                                    <div>
-                                                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Page Type</span>
-                                                      <span id="linkingPageTypeDisplay" style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{pageType}</span>
-                                                    </div>
-                                                    <div>
-                                                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Recommended Target</span>
-                                                      <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                                        {(() => {
-                                                          const p = resolvedPriority;
-                                                          if (p === 1) return "10–15 contextual links";
-                                                          if (p === 2) return "7–10 contextual links";
-                                                          if (p === 3) return "4–6 contextual links";
-                                                          if (p === 4) return "2–4 contextual links";
-                                                          return "4–6 contextual links";
-                                                        })()}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '2rem', alignItems: 'center' }}>
-                                                    <div>
-                                                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Current Contextual Links</span>
-                                                      <span id="linkingCurrentLinksDisplay" style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>{currentCount}</span>
-                                                    </div>
-                                                    <div>
-                                                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', marginBottom: '2px' }}>Status</span>
-                                                      <span id="linkingStatusDisplay">
-                                                        {(() => {
-                                                          const p = resolvedPriority;
-                                                          let min = 4, max = 6;
-                                                          if (p === 1) { min = 10; max = 15; }
-                                                          else if (p === 2) { min = 7; max = 10; }
-                                                          else if (p === 3) { min = 4; max = 6; }
-                                                          else if (p === 4) { min = 2; max = 4; }
-                                                          
-                                                          if (currentCount < min) {
-                                                            return (
-                                                              <span style={{ fontSize: '0.9rem', color: '#fbbf24', fontWeight: 600 }}>
-                                                                ⚠️ {min - currentCount}–{max - currentCount} additional contextual links recommended.
-                                                              </span>
-                                                            );
-                                                          } else if (currentCount <= max) {
-                                                            return (
-                                                              <span style={{ fontSize: '0.9rem', color: '#34d399', fontWeight: 600 }}>
-                                                                ✓ Internal linking target achieved.
-                                                                </span>
-                                                            );
-                                                          } else {
-                                                            return (
-                                                              <span style={{ fontSize: '0.9rem', color: '#60a5fa', fontWeight: 600 }}>
-                                                                ℹ️ Internal linking target exceeded.
-                                                              </span>
-                                                            );
-                                                          }
-                                                        })()}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                  
-                                                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '0.75rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <span>💡 <strong>Note:</strong> Minimum required to pass the Page Audit: 3 contextual links.</span>
-                                                  </div>
+                                                  <Link size={24} />
                                                 </div>
-                                              );
-                                            })()}
-                                            
-                                            {/* Anchor Text Improvement details */}
-                                            {isWarning && (
-                                              <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.04)', border: '1px solid rgba(245, 158, 11, 0.15)', borderRadius: '8px', padding: '1rem' }}>
-                                                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.875rem', fontWeight: 700, color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                  <RefreshCw size={14} /> Anchor Text Improvement Details
-                                                </h4>
-                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2rem' }}>
-                                                  <div>
-                                                    <div style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '4px' }}>Current Anchor Text</div>
-                                                    <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 500, fontFamily: 'monospace', backgroundColor: 'rgba(0,0,0,0.2)', padding: '2px 6px', borderRadius: '4px' }}>
-                                                      {(() => {
-                                                        const merged = getMergedAnchors(linkCheck.incomingAnchors);
-                                                        return merged.length > 0 ? merged.map(a => a.anchor).join(', ') : "Generic Link / URL";
-                                                      })()}
-                                                    </span>
+                                                <div>
+                                                  <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Outfit', lineHeight: 1.2 }}>
+                                                    {page.pageUrl}
+                                                  </h3>
+                                                  <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginTop: '2px', fontWeight: 500 }}>
+                                                    {page.pageTitle}
                                                   </div>
-                                                  <div>
-                                                    <div style={{ fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '4px' }}>Recommended Anchor Text</div>
-                                                    <span style={{ fontSize: '0.9rem', color: '#34d399', fontWeight: 700, fontFamily: 'monospace', backgroundColor: 'rgba(16, 185, 129, 0.08)', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
-                                                      {page.targetPhrase || "keyword"}
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', flexWrap: 'wrap' }}>
+                                                    <span style={{
+                                                      color: '#3b82f6',
+                                                      backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                      padding: '2px 8px',
+                                                      borderRadius: '4px',
+                                                      fontSize: '0.75rem',
+                                                      fontWeight: 700,
+                                                      border: '1px solid rgba(59, 130, 246, 0.15)'
+                                                    }}>
+                                                      Priority {resolvedPriority}
                                                     </span>
+                                                    <span style={{
+                                                      color: 'var(--text-primary)',
+                                                      backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                                      padding: '2px 8px',
+                                                      borderRadius: '4px',
+                                                      fontSize: '0.75rem',
+                                                      fontWeight: 700,
+                                                      border: '1px solid rgba(255, 255, 255, 0.08)'
+                                                    }}>
+                                                      {pageType}
+                                                    </span>
+                                                    {page.targetPhrase && (
+                                                      <>
+                                                        <span style={{ color: 'rgba(255, 255, 255, 0.15)', margin: '0 4px' }}>|</span>
+                                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                                          Target phrase: <strong style={{ color: '#3b82f6' }}>{page.targetPhrase}</strong>
+                                                        </span>
+                                                      </>
+                                                    )}
                                                   </div>
                                                 </div>
                                               </div>
-                                            )}
 
-                                            {/* 1. Existing Contextual Links */}
-                                            <div>
-                                              <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }}>Existing Contextual Links</div>
-                                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
-                                                <thead>
-                                                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Source Page Title</th>
-                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Source Page URL</th>
-                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Anchor Text</th>
-                                                    <th style={{ padding: '10px 14px', width: '25%' }}>Destination URL</th>
-                                                  </tr>
-                                                </thead>
-                                                <tbody>
-                                                  {(() => {
-                                                    const mergedAnchors = getMergedAnchors(linkCheck.incomingAnchors);
-                                                    const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
-                                                    
-                                                    const existingLinks = [];
-                                                    let sourceIndex = 0;
+                                              {/* 2. Summary Block */}
+                                              <div className="w4-summary-panel" style={{ gap: '1rem' }}>
+                                                {/* Card 1: Current Links */}
+                                                <div className="w4-summary-col" style={{ padding: '1rem', gap: '0.75rem', borderRadius: '8px' }}>
+                                                  <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                                    color: '#10b981',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    flexShrink: 0
+                                                  }}>
+                                                    <Link size={18} />
+                                                  </div>
+                                                  <div>
+                                                    <span style={{ fontSize: '0.675rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                                      Current Links
+                                                    </span>
+                                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '1px' }}>
+                                                      <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit' }}>
+                                                        {currentCount}
+                                                      </span>
+                                                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                        {currentCount === 1 ? "link found" : "links found"}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
 
-                                                    mergedAnchors.forEach(item => {
-                                                      const norm = item.anchor.toLowerCase();
-                                                      for (let c = 0; c < item.count; c++) {
-                                                        let linkType = "Contextual";
-                                                        if (norm === "home" || norm === "homepage" || norm === "navigation") {
-                                                          linkType = "Navigation";
-                                                        } else if (norm === "contact" || norm === "about" || norm === "gallery") {
-                                                          linkType = "Navigation";
-                                                        } else if (c % 5 === 1) {
-                                                          linkType = "Footer";
-                                                        } else if (c % 5 === 2) {
-                                                          linkType = "Sidebar";
-                                                        } else if (c % 5 === 3) {
-                                                          linkType = "Breadcrumb";
-                                                        } else if (c % 5 === 4) {
-                                                          linkType = "Related Content";
-                                                        }
-                                                        
-                                                        // Only include Contextual links in the read-only list
-                                                        if (linkType === "Contextual") {
-                                                          const sourcePage = potentialSources[sourceIndex % potentialSources.length];
-                                                          sourceIndex++;
+                                                {/* Card 2: Target Links */}
+                                                <div className="w4-summary-col" style={{ padding: '1rem', gap: '0.75rem', borderRadius: '8px' }}>
+                                                  <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                    color: '#3b82f6',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    flexShrink: 0
+                                                  }}>
+                                                    <Target size={18} />
+                                                  </div>
+                                                  <div>
+                                                    <span style={{ fontSize: '0.675rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                                      Target Links
+                                                    </span>
+                                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '1px' }}>
+                                                      <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit' }}>
+                                                        {min}–{max}
+                                                      </span>
+                                                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                        links
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
 
-                                                          existingLinks.push({
-                                                            anchor: item.anchor,
-                                                            type: linkType,
-                                                            sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
-                                                            sourceUrl: sourcePage ? sourcePage.pageUrl : "/"
-                                                          });
-                                                        }
-                                                      }
-                                                    });
+                                                {/* Card 3: Status */}
+                                                <div className="w4-summary-col" style={{ padding: '1rem', gap: '0.75rem', borderRadius: '8px' }}>
+                                                  <div style={{
+                                                    width: '40px',
+                                                    height: '40px',
+                                                    borderRadius: '50%',
+                                                    backgroundColor: statusCircleBg,
+                                                    color: statusColor,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    flexShrink: 0
+                                                  }}>
+                                                    <TrendingUp size={18} />
+                                                  </div>
+                                                  <div>
+                                                    <span style={{ fontSize: '0.675rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, display: 'block', letterSpacing: '0.05em' }}>
+                                                      Status
+                                                    </span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', marginTop: '1px' }}>
+                                                      <span style={{ fontSize: '1rem', fontWeight: 800, color: statusColor, fontFamily: 'Outfit' }}>
+                                                        {statusLabel}
+                                                      </span>
+                                                      <span style={{ fontSize: '0.725rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }} title={statusDesc}>
+                                                        {statusDesc}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
 
-                                                    if (existingLinks.length === 0) {
-                                                      return (
-                                                        <tr>
-                                                          <td colSpan={4} style={{ padding: '12px 14px', fontStyle: 'italic', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                                                            No existing links crawled.
-                                                          </td>
-                                                        </tr>
-                                                      );
-                                                    }
-
-                                                    return existingLinks.map((link, lIdx) => (
-                                                      <tr key={lIdx} style={{ borderBottom: lIdx < existingLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                                                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                                          {link.sourceTitle}
-                                                        </td>
-                                                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
-                                                          {link.sourceUrl}
-                                                        </td>
-                                                        <td style={{ padding: '10px 14px', color: '#60a5fa', fontWeight: 600 }}>
-                                                          {link.anchor}
-                                                          <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", marginLeft: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                            {link.type}
-                                                          </span>
-                                                        </td>
-                                                        <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
-                                                          {page.pageUrl}
-                                                        </td>
+                                              {/* 3. Existing Links */}
+                                              <div>
+                                                <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+                                                  Existing Links ({existingLinks.length})
+                                                </div>
+                                                {existingLinks.length === 0 ? (
+                                                  <div style={{
+                                                    border: '1px dashed var(--border-color)',
+                                                    borderRadius: '8px',
+                                                    padding: '2rem',
+                                                    textAlign: 'center',
+                                                    color: 'var(--text-secondary)',
+                                                    fontSize: '0.85rem'
+                                                  }}>
+                                                    No internal links found yet.
+                                                  </div>
+                                                ) : (
+                                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                    <thead>
+                                                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                                        <th style={{ padding: '10px 14px', width: '25%' }}>Source Page Title</th>
+                                                        <th style={{ padding: '10px 14px', width: '25%' }}>Source Page URL</th>
+                                                        <th style={{ padding: '10px 14px', width: '25%' }}>Anchor Text</th>
+                                                        <th style={{ padding: '10px 14px', width: '25%' }}>Destination URL</th>
                                                       </tr>
-                                                    ));
-                                                  })()}
-                                                </tbody>
-                                              </table>
-                                            </div>
-
-                                            {/* 2. Recommended Contextual Links */}
-                                            <div>
-                                              <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }}>Recommended Contextual Links</div>
-                                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
-                                                <thead>
-                                                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                                    <th style={{ padding: '10px 14px', width: '20%' }}>Recommended Anchor Text</th>
-                                                     <th style={{ padding: '10px 14px', width: '35%' }}>Suggested Source Page</th>
-                                                     <th style={{ padding: '10px 14px', width: '45%' }}>Suggested Sentence</th>
-                                                  </tr>
-                                                </thead>
-                                                <tbody>
-                                                  {(() => {
-                                                    const needed = isFail ? 3 - currentCount : 0;
-                                                    if (needed <= 0) {
-                                                      return (
-                                                        <tr>
-                                                          <td colSpan={3} style={{ padding: '12px 14px', fontStyle: 'italic', color: '#34d399', textAlign: 'center', fontWeight: 600 }}>
-                                                            No new links required. Sufficient internal links exist.
+                                                    </thead>
+                                                    <tbody>
+                                                      {existingLinks.map((link, lIdx) => (
+                                                        <tr key={lIdx} style={{ borderBottom: lIdx < existingLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                          <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                            {link.sourceTitle}
+                                                          </td>
+                                                          <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                            {link.sourceUrl}
+                                                          </td>
+                                                          <td style={{ padding: '10px 14px', color: '#60a5fa', fontWeight: 600 }}>
+                                                            {link.anchor}
+                                                            <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", marginLeft: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                              {link.type}
+                                                            </span>
+                                                          </td>
+                                                          <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                            {page.pageUrl}
                                                           </td>
                                                         </tr>
-                                                      );
-                                                    }
+                                                      ))}
+                                                    </tbody>
+                                                  </table>
+                                                )}
+                                              </div>
 
-                                                    const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
-                                                    const recs = [];
-                                                    for (let i = 0; i < needed; i++) {
-                                                      const srcPage = sources[i % sources.length];
-                                                      recs.push({
-                                                        recommendedAnchor: getAnchorVariation(page.targetPhrase, srcPage, page, i),
-                                                        sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
-                                                        sourceUrl: srcPage ? srcPage.pageUrl : "/",
-                                                         srcPageObject: srcPage
-                                                      });
-                                                    }
+                                              {/* 4. Recommended Links */}
+                                              <div>
+                                                <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }}>
+                                                  Recommended Links (Target: {min}–{max})
+                                                </div>
+                                                {(() => {
+                                                  const needed = isFail ? 3 - currentCount : 0;
+                                                  if (needed <= 0) {
+                                                    return (
+                                                      <div style={{
+                                                        border: '1px dashed rgba(52, 211, 153, 0.15)',
+                                                        borderRadius: '8px',
+                                                        padding: '2rem',
+                                                        textAlign: 'center',
+                                                        backgroundColor: 'rgba(52, 211, 153, 0.01)',
+                                                        color: '#34d399',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: 600
+                                                      }}>
+                                                        No new links required. Sufficient internal links exist.
+                                                      </div>
+                                                    );
+                                                  }
 
-                                                                                                         return recs.map((rec, rIdx) => {
-                                                       const key = `${page.pageUrl}-${rec.sourceUrl}-${rIdx}`;
-                                                       const isGen = isGenerating[key];
-                                                       const sentence = generatedSentences[key];
-                                                       const srcPage = rec.srcPageObject;
-                                                       const displayAnchor = editedAnchors[key] || rec.recommendedAnchor;
-                                                       const isEditingThis = editingAnchorKey === key;
+                                                  const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
+                                                  const recs = [];
+                                                  for (let i = 0; i < needed; i++) {
+                                                    const srcPage = sources[i % sources.length];
+                                                    recs.push({
+                                                      recommendedAnchor: getAnchorVariation(page.targetPhrase, srcPage, page, i),
+                                                      sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
+                                                      sourceUrl: srcPage ? srcPage.pageUrl : "/",
+                                                      srcPageObject: srcPage
+                                                    });
+                                                  }
 
-                                                       return (
-                                                         <tr key={rIdx} style={{ borderBottom: rIdx < recs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                                                           <td style={{ padding: '10px 14px', width: '25%' }}>
-                                                             {isEditingThis ? (
-                                                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                                 <input
-                                                                   type="text"
-                                                                   value={editingAnchorText}
-                                                                   onChange={(e) => setEditingAnchorText(e.target.value)}
-                                                                   onKeyDown={(e) => {
-                                                                     if (e.key === 'Enter') {
-                                                                       const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
-                                                                       const newAnchor = editingAnchorText.trim();
-                                                                       if (newAnchor && newAnchor !== prevAnchor) {
-                                                                         setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
-                                                                         setGeneratedSentences(prev => {
-                                                                           const next = { ...prev };
-                                                                           delete next[key];
-                                                                           return next;
-                                                                         });
-                                                                       }
-                                                                       setEditingAnchorKey(null);
-                                                                     } else if (e.key === 'Escape') {
-                                                                       setEditingAnchorKey(null);
-                                                                     }
-                                                                   }}
-                                                                   autoFocus
-                                                                   style={{
-                                                                     backgroundColor: '#1e293b',
-                                                                     border: '1px solid #3b82f6',
-                                                                     borderRadius: '4px',
-                                                                     color: 'var(--text-primary)',
-                                                                     padding: '2px 6px',
-                                                                     fontSize: '0.8rem',
-                                                                     width: '100%',
-                                                                     outline: 'none'
-                                                                   }}
-                                                                 />
-                                                                 <button
-                                                                   onClick={() => {
-                                                                     const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
-                                                                     const newAnchor = editingAnchorText.trim();
-                                                                     if (newAnchor && newAnchor !== prevAnchor) {
-                                                                       setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
-                                                                       setGeneratedSentences(prev => {
-                                                                         const next = { ...prev };
-                                                                         delete next[key];
-                                                                         return next;
-                                                                       });
-                                                                     }
-                                                                     setEditingAnchorKey(null);
-                                                                   }}
-                                                                   style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0 }}
-                                                                   title="Save"
-                                                                 >
-                                                                   ✓
-                                                                 </button>
-                                                               </div>
-                                                             ) : (
-                                                               <div 
-                                                                 style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-                                                                 onClick={() => {
-                                                                   setEditingAnchorKey(key);
-                                                                   setEditingAnchorText(displayAnchor);
-                                                                 }}
-                                                               >
-                                                                 <span style={{ color: '#fbbf24', fontWeight: 600 }}>
-                                                                   {displayAnchor}
-                                                                 </span>
-                                                                 <span 
-                                                                   style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
-                                                                   title="Edit anchor text"
-                                                                 >
-                                                                   ✏️
-                                                                 </span>
-                                                               </div>
-                                                             )}
-                                                           </td>
-                                                           <td style={{ padding: '10px 14px' }}>
-                                                             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rec.sourceTitle}</span>
-                                                             <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginLeft: '6px' }}>
-                                                               ({rec.sourceUrl})
-                                                             </span>
-                                                           </td>
-                                                           <td style={{ padding: '10px 14px' }}>
-                                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-                                                               {sentence ? (
-                                                                 <>
-                                                                   {editingSentenceKey === key ? (
-                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
-                                                                       <input
-                                                                         type="text"
-                                                                         value={editingSentenceText}
-                                                                         onChange={(e) => setEditingSentenceText(e.target.value)}
-                                                                         onKeyDown={(e) => {
-                                                                           if (e.key === 'Enter') {
-                                                                             const newSentence = editingSentenceText.trim();
-                                                                             if (newSentence) {
-                                                                               setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
-                                                                             }
-                                                                             setEditingSentenceKey(null);
-                                                                           } else if (e.key === 'Escape') {
-                                                                             setEditingSentenceKey(null);
-                                                                           }
-                                                                         }}
-                                                                         autoFocus
-                                                                         style={{
-                                                                           backgroundColor: '#1e293b',
-                                                                           border: '1px solid #3b82f6',
-                                                                           borderRadius: '4px',
-                                                                           color: 'var(--text-primary)',
-                                                                           padding: '2px 6px',
-                                                                           fontSize: '0.8rem',
-                                                                           flexGrow: 1,
-                                                                           outline: 'none'
-                                                                         }}
-                                                                       />
-                                                                       <button
-                                                                         onClick={() => {
-                                                                           const newSentence = editingSentenceText.trim();
-                                                                           if (newSentence) {
-                                                                             setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
-                                                                           }
-                                                                           setEditingSentenceKey(null);
-                                                                         }}
-                                                                         style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0, fontWeight: 'bold' }}
-                                                                         title="Save"
-                                                                       >
-                                                                         ✓
-                                                                       </button>
-                                                                     </div>
-                                                                   ) : (
-                                                                     <>
-                                                                       <div 
-                                                                           style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexGrow: 1 }}
-                                                                           onClick={() => {
-                                                                               setEditingSentenceKey(key);
-                                                                               setEditingSentenceText(sentence);
-                                                                           }}
-                                                                       >
-                                                                           <span 
-                                                                               style={{ color: 'var(--text-primary)', fontStyle: 'normal' }}
-                                                                               dangerouslySetInnerHTML={{ __html: sentence }}
-                                                                           />
-                                                                           <span 
-                                                                               style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
-                                                                               title="Edit sentence text"
-                                                                           >
-                                                                               ✏️
-                                                                           </span>
-                                                                       </div>
-                                                                       <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', textAlign: 'left' }}>
-                                                                         Destination URL: <strong style={{ color: '#60a5fa' }}>{page.pageUrl}</strong>
-                                                                       </div>
-                                                                     </>
-                                                                   )}
-                                                                   <button
-                                                                      className="btn-secondary"
-                                                                      onClick={() => {
-                                                                        copySentenceHtml(sentence, () => {
-                                                                          showNotification("Copied to clipboard!");
-                                                                        });
+                                                  const formatSentence = (sentenceText, anchor) => {
+                                                    if (!sentenceText) return "";
+                                                    if (!anchor) return sentenceText;
+                                                    const escapedAnchor = anchor.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+                                                    const regex = new RegExp(`(${escapedAnchor})`, 'gi');
+                                                    return sentenceText.replace(regex, '<strong>$1</strong>');
+                                                  };
+
+                                                  return (
+                                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                      <thead>
+                                                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                                          <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text</th>
+                                                          <th style={{ padding: '10px 14px', width: '30%' }}>Suggested Source Page</th>
+                                                          <th style={{ padding: '10px 14px', width: '35%' }}>AI Suggested Sentence</th>
+                                                          <th style={{ padding: '10px 14px', width: '15%' }}>Action</th>
+                                                        </tr>
+                                                      </thead>
+                                                      <tbody>
+                                                        {recs.map((rec, rIdx) => {
+                                                          const key = `${page.pageUrl}-${rec.sourceUrl}-${rIdx}`;
+                                                          const isGen = isGenerating[key];
+                                                          const sentence = generatedSentences[key];
+                                                          const srcPage = rec.srcPageObject;
+                                                          const displayAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                          const isEditingThis = editingAnchorKey === key;
+
+                                                          return (
+                                                            <tr key={rIdx} style={{ borderBottom: rIdx < recs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                              <td style={{ padding: '12px 14px', width: '20%' }}>
+                                                                {isEditingThis ? (
+                                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                    <input
+                                                                      type="text"
+                                                                      value={editingAnchorText}
+                                                                      onChange={(e) => setEditingAnchorText(e.target.value)}
+                                                                      onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                          const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                                          const newAnchor = editingAnchorText.trim();
+                                                                          if (newAnchor && newAnchor !== prevAnchor) {
+                                                                            setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
+                                                                            setGeneratedSentences(prev => {
+                                                                              const next = { ...prev };
+                                                                              delete next[key];
+                                                                              return next;
+                                                                            });
+                                                                          }
+                                                                          setEditingAnchorKey(null);
+                                                                        } else if (e.key === 'Escape') {
+                                                                          setEditingAnchorKey(null);
+                                                                        }
                                                                       }}
+                                                                      autoFocus
                                                                       style={{
-                                                                        padding: '4px 10px',
-                                                                        fontSize: '0.75rem',
-                                                                        fontWeight: 600,
-                                                                        border: '1px solid rgba(16, 185, 129, 0.25)',
-                                                                        color: '#34d399',
-                                                                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
-                                                                        marginLeft: '12px'
+                                                                        backgroundColor: '#1e293b',
+                                                                        border: '1px solid #3b82f6',
+                                                                        borderRadius: '4px',
+                                                                        color: 'var(--text-primary)',
+                                                                        padding: '2px 6px',
+                                                                        fontSize: '0.8rem',
+                                                                        width: '100%',
+                                                                        outline: 'none'
                                                                       }}
-                                                                    >
-                                                                      Copy
-                                                                    </button>
+                                                                    />
                                                                     <button
-                                                                      className="btn-primary"
-                                                                      onClick={() => handleInsertLinkToSourcePage(page, rec, sentence)}
+                                                                      onClick={() => {
+                                                                        const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                                        const newAnchor = editingAnchorText.trim();
+                                                                        if (newAnchor && newAnchor !== prevAnchor) {
+                                                                          setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
+                                                                          setGeneratedSentences(prev => {
+                                                                            const next = { ...prev };
+                                                                            delete next[key];
+                                                                            return next;
+                                                                          });
+                                                                        }
+                                                                        setEditingAnchorKey(null);
+                                                                      }}
+                                                                      style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0 }}
+                                                                      title="Save"
+                                                                    >
+                                                                      ✓
+                                                                    </button>
+                                                                  </div>
+                                                                ) : (
+                                                                  <div 
+                                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                                                    onClick={() => {
+                                                                      setEditingAnchorKey(key);
+                                                                      setEditingAnchorText(displayAnchor);
+                                                                    }}
+                                                                  >
+                                                                    <span style={{ color: '#60a5fa', fontWeight: 600 }}>
+                                                                      {displayAnchor}
+                                                                    </span>
+                                                                    <span 
+                                                                      style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
+                                                                      title="Edit anchor text"
+                                                                    >
+                                                                      ✏️
+                                                                    </span>
+                                                                  </div>
+                                                                )}
+                                                              </td>
+                                                              <td style={{ padding: '12px 14px', width: '30%' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                                                                  <FileText size={16} style={{ color: 'rgba(255,255,255,0.4)', marginTop: '2px', flexShrink: 0 }} />
+                                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rec.sourceTitle}</span>
+                                                                    <span style={{ fontSize: '0.8rem', color: '#3b82f6', cursor: 'pointer' }}>
+                                                                      {rec.sourceUrl}
+                                                                    </span>
+                                                                  </div>
+                                                                </div>
+                                                              </td>
+                                                              <td style={{ padding: '12px 14px', width: '35%' }}>
+                                                                {sentence ? (
+                                                                  <>
+                                                                    {editingSentenceKey === key ? (
+                                                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
+                                                                        <input
+                                                                          type="text"
+                                                                          value={editingSentenceText}
+                                                                          onChange={(e) => setEditingSentenceText(e.target.value)}
+                                                                          onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                              const newSentence = editingSentenceText.trim();
+                                                                              if (newSentence) {
+                                                                                setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
+                                                                              }
+                                                                              setEditingSentenceKey(null);
+                                                                            } else if (e.key === 'Escape') {
+                                                                              setEditingSentenceKey(null);
+                                                                            }
+                                                                          }}
+                                                                          autoFocus
+                                                                          style={{
+                                                                            backgroundColor: '#1e293b',
+                                                                            border: '1px solid #3b82f6',
+                                                                            borderRadius: '4px',
+                                                                            color: 'var(--text-primary)',
+                                                                            padding: '2px 6px',
+                                                                            fontSize: '0.8rem',
+                                                                            flexGrow: 1,
+                                                                            outline: 'none'
+                                                                          }}
+                                                                        />
+                                                                        <button
+                                                                          onClick={() => {
+                                                                            const newSentence = editingSentenceText.trim();
+                                                                            if (newSentence) {
+                                                                              setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
+                                                                            }
+                                                                            setEditingSentenceKey(null);
+                                                                          }}
+                                                                          style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0, fontWeight: 'bold' }}
+                                                                          title="Save"
+                                                                        >
+                                                                          ✓
+                                                                        </button>
+                                                                      </div>
+                                                                    ) : (
+                                                                      <div 
+                                                                        style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', cursor: 'pointer' }}
+                                                                        onClick={() => {
+                                                                            setEditingSentenceKey(key);
+                                                                            setEditingSentenceText(sentence);
+                                                                        }}
+                                                                      >
+                                                                        <span style={{ fontSize: '1.5rem', fontFamily: 'serif', color: 'rgba(255, 255, 255, 0.15)', lineHeight: 1, marginTop: '-4px' }}>“</span>
+                                                                        <span 
+                                                                            style={{ color: 'var(--text-primary)', fontStyle: 'normal' }}
+                                                                            dangerouslySetInnerHTML={{ __html: formatSentence(sentence, displayAnchor) }}
+                                                                        />
+                                                                        <span 
+                                                                            style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6, marginTop: '2px' }}
+                                                                            title="Edit sentence text"
+                                                                        >
+                                                                            ✏️
+                                                                        </span>
+                                                                      </div>
+                                                                    )}
+                                                                  </>
+                                                                ) : (
+                                                                  <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                                                    {isGen ? "Generating AI sentence..." : '"AI sentence will appear here."'}
+                                                                  </span>
+                                                                )}
+                                                              </td>
+                                                              <td style={{ padding: '12px 14px', width: '15%' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                                  {sentence ? (
+                                                                    <>
+                                                                      <button
+                                                                        className="btn-secondary"
+                                                                        onClick={() => {
+                                                                          copySentenceHtml(sentence, () => {
+                                                                            showNotification("Copied to clipboard!");
+                                                                          });
+                                                                        }}
+                                                                        style={{
+                                                                          padding: '4px 10px',
+                                                                          fontSize: '0.75rem',
+                                                                          fontWeight: 600,
+                                                                          border: '1px solid rgba(16, 185, 129, 0.25)',
+                                                                          color: '#34d399',
+                                                                          backgroundColor: 'rgba(16, 185, 129, 0.08)'
+                                                                        }}
+                                                                      >
+                                                                        Copy
+                                                                      </button>
+                                                                      <button
+                                                                        className="btn-primary"
+                                                                        onClick={() => handleInsertLinkToSourcePage(page, rec, sentence)}
+                                                                        style={{
+                                                                          padding: '4px 10px',
+                                                                          fontSize: '0.75rem',
+                                                                          fontWeight: 600
+                                                                        }}
+                                                                      >
+                                                                        Insert
+                                                                      </button>
+                                                                    </>
+                                                                  ) : (
+                                                                    <button
+                                                                      className="btn-secondary"
+                                                                      disabled={isGen}
+                                                                      onClick={() => handleGenerateSentence(page, rec, srcPage, key, displayAnchor)}
                                                                       style={{
                                                                         padding: '4px 10px',
                                                                         fontSize: '0.75rem',
                                                                         fontWeight: 600,
-                                                                        marginLeft: '8px'
+                                                                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                                                                        color: '#60a5fa',
+                                                                        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                                        opacity: isGen ? 0.5 : 1,
+                                                                        cursor: isGen ? 'not-allowed' : 'pointer',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '4px'
                                                                       }}
                                                                     >
-                                                                      Insert into WordPress
+                                                                      <Sparkles size={12} /> {isGen ? "Generating..." : "Generate"}
                                                                     </button>
-                                                                 </>
-                                                               ) : (
-                                                                 <>
-                                                                   <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                                                     {isGen ? "Generating AI sentence..." : '"AI sentence will appear here."'}
-                                                                   </span>
-                                                                   <button
-                                                                     className="btn-secondary"
-                                                                     disabled={isGen}
-                                                                     onClick={() => handleGenerateSentence(page, rec, srcPage, key, displayAnchor)}
-                                                                     style={{
-                                                                       padding: '4px 10px',
-                                                                       fontSize: '0.75rem',
-                                                                       fontWeight: 600,
-                                                                       border: '1px solid rgba(59, 130, 246, 0.25)',
-                                                                       color: '#60a5fa',
-                                                                       backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                                                                       opacity: isGen ? 0.5 : 1,
-                                                                       cursor: isGen ? 'not-allowed' : 'pointer'
-                                                                     }}
-                                                                   >
-                                                                     {isGen ? "Generating..." : "Generate"}
-                                                                   </button>
-                                                                 </>
-                                                               )}
-                                                             </div>
-                                                           </td>
-                                                         </tr>
-                                                       );
-                                                     });
-                                                  })()}
-                                                </tbody>
-                                              </table>
-                                            </div>
+                                                                  )}
+                                                                </div>
+                                                              </td>
+                                                            </tr>
+                                                          );
+                                                        })}
+                                                      </tbody>
+                                                    </table>
+                                                  );
+                                                })()}
+                                              </div>
 
-                                          </div>
-                                        )}
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
                                     );
                                   })
