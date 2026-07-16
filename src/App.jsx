@@ -6726,8 +6726,7 @@ export default function App() {
                                           
                                           {/* Badge and action button */}
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            {labelText !== "Add Links" && (
-                                              <span style={{
+                                            <span style={{
                                               color: badgeColor,
                                               backgroundColor: badgeBg,
                                               padding: '4px 12px',
@@ -6739,18 +6738,6 @@ export default function App() {
                                             }}>
                                               {labelText}
                                             </span>
-                                            )}
-
-                                            {labelText !== "No Action Required" && (
-                                              <button
-                                               className="btn-primary"
-                                               onClick={() => {
-                                                 setSelectedLinkPageUrl(page.pageUrl);
-                                               }}
-                                             >
-                                               Generate Link Suggestions
-                                             </button>
-                                            )}
                                           </div>
                                         </div>
 
