@@ -6429,10 +6429,11 @@ export default function App() {
                                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
                                         <thead>
                                           <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                            <th style={{ padding: '10px 14px', width: '30%' }}>Source Page Title</th>
-                                            <th style={{ padding: '10px 14px', width: '30%' }}>Source Page URL</th>
-                                            <th style={{ padding: '10px 14px', width: '25%' }}>Anchor Text</th>
-                                            <th style={{ padding: '10px 14px', width: '15%' }}>Type</th>
+                                            <th style={{ padding: '10px 14px', width: '20%' }}>Source Page Title</th>
+                                            <th style={{ padding: '10px 14px', width: '20%' }}>Source Page URL</th>
+                                            <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text</th>
+                                            <th style={{ padding: '10px 14px', width: '30%' }}>Link Context</th>
+                                            <th style={{ padding: '10px 14px', width: '10%' }}>Type</th>
                                           </tr>
                                         </thead>
                                         <tbody>
@@ -6469,30 +6470,59 @@ export default function App() {
                                                     anchor: item.anchor,
                                                     type: linkType,
                                                     sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
-                                                    sourceUrl: sourcePage ? sourcePage.pageUrl : "/"
+                                                    sourceUrl: sourcePage ? sourcePage.pageUrl : "/",
+                                                    sourcePageObj: sourcePage
                                                   });
                                                 }
                                               }
                                             });
 
-                                            return existingLinks.map((link, lIdx) => (
-                                              <tr key={lIdx} style={{ borderBottom: lIdx < existingLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
-                                                <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                                  {link.sourceTitle}
-                                                </td>
-                                                <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
-                                                  {link.sourceUrl}
-                                                </td>
-                                                <td style={{ padding: '12px 14px', color: '#60a5fa', fontWeight: 600 }}>
-                                                  {link.anchor}
-                                                </td>
-                                                <td style={{ padding: '12px 14px' }}>
-                                                  <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                                    {link.type}
-                                                  </span>
-                                                </td>
-                                              </tr>
-                                            ));
+                                            const getLinkContext = (sourcePage, anchorText) => {
+                                              if (!sourcePage || !sourcePage.crawlData || !sourcePage.crawlData.plainText) {
+                                                return "Context not available";
+                                              }
+                                              const plainText = sourcePage.crawlData.plainText;
+                                              const lowerText = plainText.toLowerCase();
+                                              const lowerAnchor = (anchorText || "").toLowerCase().trim();
+                                              if (!lowerAnchor) return "Context not available";
+                                              
+                                              const idx = lowerText.indexOf(lowerAnchor);
+                                              if (idx === -1) {
+                                                return "Context not found";
+                                              }
+                                              
+                                              const start = Math.max(0, idx - 45);
+                                              const end = Math.min(plainText.length, idx + anchorText.length + 45);
+                                              let snippet = plainText.slice(start, end);
+                                              if (start > 0) snippet = "..." + snippet;
+                                              if (end < plainText.length) snippet = snippet + "...";
+                                              return snippet;
+                                            };
+
+                                            return existingLinks.map((link, lIdx) => {
+                                              const contextText = getLinkContext(link.sourcePageObj, link.anchor);
+                                              return (
+                                                <tr key={lIdx} style={{ borderBottom: lIdx < existingLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                  <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                    {link.sourceTitle}
+                                                  </td>
+                                                  <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                    {link.sourceUrl}
+                                                  </td>
+                                                  <td style={{ padding: '12px 14px', color: '#60a5fa', fontWeight: 600 }}>
+                                                    {link.anchor}
+                                                  </td>
+                                                  <td style={{ padding: '12px 14px', color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.8rem' }} title={contextText}>
+                                                    {contextText}
+                                                  </td>
+                                                  <td style={{ padding: '12px 14px' }}>
+                                                    <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                      {link.type}
+                                                    </span>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            });
                                           })()}
                                         </tbody>
                                       </table>
