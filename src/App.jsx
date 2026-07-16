@@ -6176,22 +6176,22 @@ export default function App() {
                                 : 3
                               );
                               
-                              let min = 4, max = 6;
-                              if (resolvedPriority === 1) { min = 10; max = 15; }
-                              else if (resolvedPriority === 2) { min = 7; max = 10; }
-                              else if (resolvedPriority === 3) { min = 4; max = 6; }
-                              else if (resolvedPriority === 4) { min = 2; max = 4; }
+                              let targetCount = 7;
+                              if (resolvedPriority === 1) { targetCount = 15; }
+                              else if (resolvedPriority === 2) { targetCount = 10; }
+                              else if (resolvedPriority === 3) { targetCount = 7; }
+                              else if (resolvedPriority === 4) { targetCount = 5; }
                               
                               let statusLabel = "On Target";
                               let statusColor = "#34d399";
                               let statusDesc = "Internal linking target achieved.";
                               let statusCircleBg = "rgba(16, 185, 129, 0.1)";
-                              if (currentCount < min) {
+                              if (currentCount < targetCount) {
                                 statusLabel = "Needs Links";
                                 statusColor = "#fbbf24";
-                                statusDesc = `Add ${min - currentCount}–${max - currentCount} contextual internal links`;
+                                statusDesc = `Add ${targetCount - currentCount} contextual internal links`;
                                 statusCircleBg = "rgba(245, 158, 11, 0.1)";
-                              } else if (currentCount > max) {
+                              } else if (currentCount > targetCount) {
                                 statusLabel = "Complete";
                                 statusColor = "#60a5fa";
                                 statusDesc = "Internal linking target exceeded.";
@@ -6214,7 +6214,7 @@ export default function App() {
                                     <button
                                       className="btn-primary"
                                       onClick={() => {
-                                        const needed = isFail ? 3 - currentCount : 0;
+                                        const needed = Math.max(0, targetCount - currentCount);
                                         if (needed > 0) {
                                           const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
                                           for (let i = 0; i < needed; i++) {
@@ -6341,7 +6341,7 @@ export default function App() {
                                         </span>
                                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                                           <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                                            {min}–{max}
+                                            {targetCount}
                                           </span>
                                           <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                                             links
@@ -6540,7 +6540,7 @@ export default function App() {
                                     gap: '1rem'
                                   }}>
                                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <Sparkles size={16} style={{ color: '#fbbf24' }} /> Recommended Links (Target: {min}–{max}) <HelpCircle size={14} style={{ opacity: 0.5, cursor: 'pointer' }} title="AI recommended internal link source page and anchor suggestions." />
+                                      <Sparkles size={16} style={{ color: '#fbbf24' }} /> Recommended Links (Target: {targetCount}) <HelpCircle size={14} style={{ opacity: 0.5, cursor: 'pointer' }} title="AI recommended internal link source page and anchor suggestions." />
                                     </h3>
 
                                     {needed <= 0 ? (
@@ -6955,27 +6955,27 @@ export default function App() {
                                             : 3
                                           );
                                           
-                                          let min = 4, max = 6;
-                                          if (resolvedPriority === 1) { min = 10; max = 15; }
-                                          else if (resolvedPriority === 2) { min = 7; max = 10; }
-                                          else if (resolvedPriority === 3) { min = 4; max = 6; }
-                                          else if (resolvedPriority === 4) { min = 2; max = 4; }
+                                          let targetCount = 7;
+                                           if (resolvedPriority === 1) { targetCount = 15; }
+                                           else if (resolvedPriority === 2) { targetCount = 10; }
+                                           else if (resolvedPriority === 3) { targetCount = 7; }
+                                           else if (resolvedPriority === 4) { targetCount = 5; }
                                           
                                           let statusLabel = "On Target";
                                           let statusColor = "#34d399";
                                           let statusDesc = "Internal linking target achieved.";
                                           let statusCircleBg = "rgba(16, 185, 129, 0.1)";
-                                          if (currentCount < min) {
-                                            statusLabel = "Needs Links";
-                                            statusColor = "#fbbf24";
-                                            statusDesc = `Add ${min - currentCount}–${max - currentCount} contextual internal links`;
-                                            statusCircleBg = "rgba(245, 158, 11, 0.1)";
-                                          } else if (currentCount > max) {
-                                            statusLabel = "Complete";
-                                            statusColor = "#60a5fa";
-                                            statusDesc = "Internal linking target exceeded.";
-                                            statusCircleBg = "rgba(59, 130, 246, 0.1)";
-                                          }
+                                          if (currentCount < targetCount) {
+                                             statusLabel = "Needs Links";
+                                             statusColor = "#fbbf24";
+                                             statusDesc = `Add ${targetCount - currentCount} contextual internal links`;
+                                             statusCircleBg = "rgba(245, 158, 11, 0.1)";
+                                           } else if (currentCount > targetCount) {
+                                             statusLabel = "Complete";
+                                             statusColor = "#60a5fa";
+                                             statusDesc = "Internal linking target exceeded.";
+                                             statusCircleBg = "rgba(59, 130, 246, 0.1)";
+                                           }
 
                                           const mergedAnchors = getMergedAnchors(linkCheck.incomingAnchors);
                                           const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
@@ -7129,7 +7129,7 @@ export default function App() {
                                                     </span>
                                                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginTop: '1px' }}>
                                                       <span style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'Outfit' }}>
-                                                        {min}–{max}
+                                                        {targetCount}
                                                       </span>
                                                       <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                                         links
@@ -7254,10 +7254,10 @@ export default function App() {
                                               {/* 4. Recommended Links */}
                                               <div>
                                                 <div style={{ fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)', fontSize: '0.85rem' }}>
-                                                  Recommended Links (Target: {min}–{max})
+                                                  Recommended Links (Target: {targetCount})
                                                 </div>
                                                 {(() => {
-                                                  const needed = isFail ? 3 - currentCount : 0;
+                                                  const needed = Math.max(0, targetCount - currentCount);
                                                   if (needed <= 0) {
                                                     return (
                                                       <div style={{
