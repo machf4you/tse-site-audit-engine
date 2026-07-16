@@ -764,6 +764,16 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
     // Parse HTML using DOMParser
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, "text/html");
+    
+    // Extract plainText and update it
+    try {
+      const scripts = doc.querySelectorAll("script, style");
+      scripts.forEach(s => s.remove());
+      const text = (doc.body ? doc.body.textContent : doc.textContent).replace(/\s+/g, ' ').trim();
+      srcPage.crawlData.plainText = text;
+    } catch (e) {
+      console.error("Failed to extract plainText during rebuild:", e);
+    }
     const anchors = doc.querySelectorAll("a");
 
     anchors.forEach(a => {
@@ -6516,27 +6526,43 @@ export default function App() {
                                               });
                                             }
 
-                                            const getLinkContext = (sourcePage, anchorText) => {
-                                              if (!sourcePage || !sourcePage.crawlData || !sourcePage.crawlData.plainText) {
-                                                return "Context not available";
-                                              }
-                                              const plainText = sourcePage.crawlData.plainText;
-                                              const lowerText = plainText.toLowerCase();
-                                              const lowerAnchor = (anchorText || "").toLowerCase().trim();
-                                              if (!lowerAnchor) return "Context not available";
-                                              
-                                              const idx = lowerText.indexOf(lowerAnchor);
-                                              if (idx === -1) {
-                                                return "Context not found";
-                                              }
-                                              
-                                              const start = Math.max(0, idx - 45);
-                                              const end = Math.min(plainText.length, idx + anchorText.length + 45);
-                                              let snippet = plainText.slice(start, end);
-                                              if (start > 0) snippet = "..." + snippet;
-                                              if (end < plainText.length) snippet = snippet + "...";
-                                              return snippet;
-                                            };
+                                                                                         const getLinkContext = (sourcePage, anchorText) => {
+                                               if (!sourcePage || !sourcePage.crawlData) {
+                                                 return "Context not available";
+                                               }
+                                               let plainText = sourcePage.crawlData.plainText;
+                                               if (!plainText && sourcePage.crawlData.htmlSnapshot) {
+                                                 try {
+                                                   const parser = new DOMParser();
+                                                   const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
+                                                   const scripts = doc.querySelectorAll("script, style");
+                                                   scripts.forEach(s => s.remove());
+                                                   plainText = (doc.body ? doc.body.textContent : doc.textContent).replace(/\s+/g, ' ').trim();
+                                                   sourcePage.crawlData.plainText = plainText;
+                                                 } catch (e) {
+                                                   console.error("Failed to extract plainText on-the-fly:", e);
+                                                 }
+                                               }
+                                               if (!plainText) {
+                                                 return "Context not available";
+                                               }
+                                               const lowerText = plainText.toLowerCase();
+                                               const lowerAnchor = (anchorText || "").toLowerCase().trim();
+                                               if (!lowerAnchor) return "Context not available";
+                                               
+                                               const idx = lowerText.indexOf(lowerAnchor);
+                                               if (idx === -1) {
+                                                 return "Context not found";
+                                               }
+                                               
+                                               const start = Math.max(0, idx - 45);
+                                               const end = Math.min(plainText.length, idx + anchorText.length + 45);
+                                               let snippet = plainText.slice(start, end);
+                                               if (start > 0) snippet = "..." + snippet;
+                                               if (end < plainText.length) snippet = snippet + "...";
+                                               return snippet;
+                                             };
+                                             // legacy declaration replacement dummy;
 
                                             return existingLinks.map((link, lIdx) => {
                                               const contextText = getLinkContext(link.sourcePageObj, link.anchor);
@@ -7247,11 +7273,26 @@ export default function App() {
                                                      </thead>
                                                      <tbody>
                                                        {(() => {
-                                                         const getLinkContext = (sourcePage, anchorText) => {
-                                                           if (!sourcePage || !sourcePage.crawlData || !sourcePage.crawlData.plainText) {
+                                                                                                                  const getLinkContext = (sourcePage, anchorText) => {
+                                                           if (!sourcePage || !sourcePage.crawlData) {
                                                              return "Context not available";
                                                            }
-                                                           const plainText = sourcePage.crawlData.plainText;
+                                                           let plainText = sourcePage.crawlData.plainText;
+                                                           if (!plainText && sourcePage.crawlData.htmlSnapshot) {
+                                                             try {
+                                                               const parser = new DOMParser();
+                                                               const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
+                                                               const scripts = doc.querySelectorAll("script, style");
+                                                               scripts.forEach(s => s.remove());
+                                                               plainText = (doc.body ? doc.body.textContent : doc.textContent).replace(/\s+/g, ' ').trim();
+                                                               sourcePage.crawlData.plainText = plainText;
+                                                             } catch (e) {
+                                                               console.error("Failed to extract plainText on-the-fly:", e);
+                                                             }
+                                                           }
+                                                           if (!plainText) {
+                                                             return "Context not available";
+                                                           }
                                                            const lowerText = plainText.toLowerCase();
                                                            const lowerAnchor = (anchorText || "").toLowerCase().trim();
                                                            if (!lowerAnchor) return "Context not available";
@@ -7268,6 +7309,7 @@ export default function App() {
                                                            if (end < plainText.length) snippet = snippet + "...";
                                                            return snippet;
                                                          };
+                                                         // legacy declaration replacement dummy;
 
                                                          return existingLinks.map((link, lIdx) => {
                                                            const contextText = getLinkContext(link.sourcePageObj, link.anchor);
