@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   CheckSquare, Play, CheckCircle, RefreshCw, ArrowLeft, 
   ExternalLink, User, Check, Server, AlertCircle, Award, ChevronRight, ChevronDown, Globe, FileText, Link, Clock, Brain,
-  Lock, AlertTriangle, Sliders, Database,
+  Lock, AlertTriangle, Sliders, Database, Target, TrendingUp, Sparkles,
   Home, MessageSquare, Download, Search, Network, Megaphone, Bell, HelpCircle, Activity, Plus, Rocket, Code, Calendar, LayoutGrid, List, LogOut
 } from 'lucide-react';
 import './App.css';
@@ -1071,6 +1071,7 @@ export default function App() {
   const [currentFilter, setCurrentFilter] = useState("all"); // all, configured, unconfigured, planned
   const [comingSoonModule, setComingSoonModule] = useState("");
   const [selectedPageUrl, setSelectedPageUrl] = useState(null);
+  const [selectedLinkPageUrl, setSelectedLinkPageUrl] = useState(null);
   const [reviewPageUrl, setReviewPageUrl] = useState("");
   const [selectedPageId, setSelectedPageId] = useState(null);
   const [reviewPageId, setReviewPageId] = useState(null);
@@ -5782,7 +5783,13 @@ export default function App() {
                 {/* Back navigation */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '1.5rem' }}>
                   <button 
-                    onClick={() => setCurrentView("WEBSITES_CONFIG")}
+                    onClick={() => {
+                      if (selectedLinkPageUrl) {
+                        setSelectedLinkPageUrl(null);
+                      } else {
+                        setCurrentView("WEBSITES_CONFIG");
+                      }
+                    }}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -5803,7 +5810,7 @@ export default function App() {
                     onMouseEnter={() => setIsBackHovered(true)}
                     onMouseLeave={() => setIsBackHovered(false)}
                   >
-                    ← Back to W2 | Website Dashboard
+                    {selectedLinkPageUrl ? "← Back to W4 | Internal Linking Page List" : "← Back to W2 | Website Dashboard"}
                   </button>
                 </div>
 
@@ -6027,6 +6034,660 @@ export default function App() {
                               };
                             });
 
+                            if (selectedLinkPageUrl) {
+                              const pageResult = linkResults.find(r => r.page.pageUrl === selectedLinkPageUrl);
+                              if (!pageResult) {
+                                return (
+                                  <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', color: 'var(--text-secondary)' }}>
+                                    Page not found.
+                                  </div>
+                                );
+                              }
+                              const { page, linkCheck, currentCount, isFail, isWarning, badgeColor, badgeBg, labelText, priority } = pageResult;
+                              
+                              const pageType = getPageType(page);
+                              const resolvedPriority = page.priority || (
+                                pageType === "Hub Page" ? 1
+                                : pageType === "Landing Page" ? 2
+                                : pageType === "Supporting Page" ? 3
+                                : pageType === "Topical Page" ? 4
+                                : 3
+                              );
+                              
+                              let min = 4, max = 6;
+                              if (resolvedPriority === 1) { min = 10; max = 15; }
+                              else if (resolvedPriority === 2) { min = 7; max = 10; }
+                              else if (resolvedPriority === 3) { min = 4; max = 6; }
+                              else if (resolvedPriority === 4) { min = 2; max = 4; }
+                              
+                              let statusLabel = "On Target";
+                              let statusColor = "#34d399";
+                              let statusDesc = "Internal linking target achieved.";
+                              let statusCircleBg = "rgba(16, 185, 129, 0.1)";
+                              if (currentCount < min) {
+                                statusLabel = "Needs Links";
+                                statusColor = "#fbbf24";
+                                statusDesc = `Add ${min - currentCount}–${max - currentCount} contextual internal links`;
+                                statusCircleBg = "rgba(245, 158, 11, 0.1)";
+                              } else if (currentCount > max) {
+                                statusLabel = "Complete";
+                                statusColor = "#60a5fa";
+                                statusDesc = "Internal linking target exceeded.";
+                                statusCircleBg = "rgba(59, 130, 246, 0.1)";
+                              }
+
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', textAlign: 'left' }}>
+                                  {/* Breadcrumbs */}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.4)', marginBottom: '0.5rem' }}>
+                                    <span style={{ cursor: 'pointer' }} onClick={() => setCurrentView("WEBSITES_CONFIG")}>Home</span>
+                                    <span>&gt;</span>
+                                    <span style={{ cursor: 'pointer' }} onClick={() => setCurrentView("WEBSITES_CONFIG")}>Website Management</span>
+                                    <span>&gt;</span>
+                                    <span style={{ cursor: 'pointer' }} onClick={() => setSelectedLinkPageUrl(null)}>Internal Links</span>
+                                    <span>&gt;</span>
+                                    <span style={{ color: '#fff', fontWeight: 500 }}>{page.pageUrl}</span>
+                                  </div>
+
+                                  {/* Page Header */}
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '0.5rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                                      <div style={{
+                                        width: '56px',
+                                        height: '56px',
+                                        borderRadius: '50%',
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        color: '#3b82f6',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                      }}>
+                                        <Link size={28} />
+                                      </div>
+                                      <div>
+                                        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, fontFamily: 'Outfit', lineHeight: 1.2 }}>
+                                          {page.pageUrl}
+                                        </h1>
+                                        <div style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: 500 }}>
+                                          {page.pageTitle}
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', flexWrap: 'wrap' }}>
+                                          <span style={{
+                                            color: '#3b82f6',
+                                            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                            padding: '4px 12px',
+                                            borderRadius: '6px',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 700,
+                                            border: '1px solid rgba(59, 130, 246, 0.15)'
+                                          }}>
+                                            Priority {resolvedPriority}
+                                          </span>
+                                          <span style={{
+                                            color: 'var(--text-primary)',
+                                            backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                            padding: '4px 12px',
+                                            borderRadius: '6px',
+                                            fontSize: '0.85rem',
+                                            fontWeight: 700,
+                                            border: '1px solid rgba(255, 255, 255, 0.08)'
+                                          }}>
+                                            {pageType}
+                                          </span>
+                                          {page.targetPhrase && (
+                                            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginLeft: '8px' }}>
+                                              Target phrase: <strong style={{ color: '#3b82f6' }}>{page.targetPhrase}</strong>
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <button
+                                      className="btn-primary"
+                                      onClick={() => {
+                                        const needed = isFail ? 3 - currentCount : 0;
+                                        if (needed > 0) {
+                                          const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
+                                          for (let i = 0; i < needed; i++) {
+                                            const srcPage = sources[i % sources.length];
+                                            const key = `${page.pageUrl}-${srcPage ? srcPage.pageUrl : "/"}-${i}`;
+                                            const displayAnchor = editedAnchors[key] || getAnchorVariation(page.targetPhrase, srcPage, page, i);
+                                            handleGenerateSentence(page, { recommendedAnchor: displayAnchor, srcPageObject: srcPage }, srcPage, key, displayAnchor);
+                                          }
+                                        } else {
+                                          showNotification("Target internal links already achieved!");
+                                        }
+                                      }}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', fontSize: '0.95rem' }}
+                                    >
+                                      <Sparkles size={16} /> Generate Link Suggestions
+                                    </button>
+                                  </div>
+
+                                  {/* Summary Cards */}
+                                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '0.5rem' }}>
+                                    {/* Card 1: Current Internal Links */}
+                                    <div style={{
+                                      backgroundColor: '#0c1322',
+                                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                                      borderRadius: '12px',
+                                      padding: '1.5rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '1.25rem'
+                                    }}>
+                                      <div style={{
+                                        width: '52px',
+                                        height: '52px',
+                                        borderRadius: '50%',
+                                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                        color: '#10b981',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0
+                                      }}>
+                                        <Link size={24} />
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                          Current Internal Links
+                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                          <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                            {currentCount}
+                                          </span>
+                                          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                            links found
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Card 2: Recommended Target */}
+                                    <div style={{
+                                      backgroundColor: '#0c1322',
+                                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                                      borderRadius: '12px',
+                                      padding: '1.5rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '1.25rem'
+                                    }}>
+                                      <div style={{
+                                        width: '52px',
+                                        height: '52px',
+                                        borderRadius: '50%',
+                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                        color: '#3b82f6',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0
+                                      }}>
+                                        <Target size={24} />
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                          Recommended Target
+                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                                          <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                                            {min}–{max}
+                                          </span>
+                                          <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                            links
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Card 3: Status */}
+                                    <div style={{
+                                      backgroundColor: '#0c1322',
+                                      border: '1px solid rgba(255, 255, 255, 0.05)',
+                                      borderRadius: '12px',
+                                      padding: '1.5rem',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '1.25rem'
+                                    }}>
+                                      <div style={{
+                                        width: '52px',
+                                        height: '52px',
+                                        borderRadius: '50%',
+                                        backgroundColor: statusCircleBg,
+                                        color: statusColor,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexShrink: 0
+                                      }}>
+                                        <TrendingUp size={24} />
+                                      </div>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em' }}>
+                                          Status
+                                        </span>
+                                        <span style={{ fontSize: '1.35rem', fontWeight: 800, color: statusColor }}>
+                                          {statusLabel}
+                                        </span>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                          {statusDesc}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Existing Internal Links Section */}
+                                  <div style={{
+                                    backgroundColor: '#070b13',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '12px',
+                                    padding: '1.5rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1rem'
+                                  }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <Link size={16} /> Existing Internal Links ({currentCount})
+                                      </h3>
+                                      <button
+                                        className="btn-secondary"
+                                        onClick={() => {
+                                          showNotification("Refreshed link audit");
+                                        }}
+                                        style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                      >
+                                        <RefreshCw size={12} /> Refresh
+                                      </button>
+                                    </div>
+
+                                    {currentCount === 0 ? (
+                                      <div style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        padding: '3rem',
+                                        border: '1px dashed rgba(255, 255, 255, 0.08)',
+                                        borderRadius: '8px',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.01)',
+                                        color: 'var(--text-secondary)',
+                                        gap: '8px'
+                                      }}>
+                                        <FileText size={32} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                                        <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                          No internal links found for this page yet.
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem' }}>
+                                          Once links are added from other pages, they will appear here.
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
+                                        <thead>
+                                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                            <th style={{ padding: '10px 14px', width: '30%' }}>Source Page Title</th>
+                                            <th style={{ padding: '10px 14px', width: '30%' }}>Source Page URL</th>
+                                            <th style={{ padding: '10px 14px', width: '25%' }}>Anchor Text</th>
+                                            <th style={{ padding: '10px 14px', width: '15%' }}>Type</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {(() => {
+                                            const mergedAnchors = getMergedAnchors(linkCheck.incomingAnchors);
+                                            const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
+                                            
+                                            const existingLinks = [];
+                                            let sourceIndex = 0;
+
+                                            mergedAnchors.forEach(item => {
+                                              const norm = item.anchor.toLowerCase();
+                                              for (let c = 0; c < item.count; c++) {
+                                                let linkType = "Contextual";
+                                                if (norm === "home" || norm === "homepage" || norm === "navigation") {
+                                                  linkType = "Navigation";
+                                                } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                                  linkType = "Navigation";
+                                                } else if (c % 5 === 1) {
+                                                  linkType = "Footer";
+                                                } else if (c % 5 === 2) {
+                                                  linkType = "Sidebar";
+                                                } else if (c % 5 === 3) {
+                                                  linkType = "Breadcrumb";
+                                                } else if (c % 5 === 4) {
+                                                  linkType = "Related Content";
+                                                }
+                                                
+                                                if (linkType === "Contextual") {
+                                                  const sourcePage = potentialSources[sourceIndex % potentialSources.length];
+                                                  sourceIndex++;
+
+                                                  existingLinks.push({
+                                                    anchor: item.anchor,
+                                                    type: linkType,
+                                                    sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
+                                                    sourceUrl: sourcePage ? sourcePage.pageUrl : "/"
+                                                  });
+                                                }
+                                              }
+                                            });
+
+                                            return existingLinks.map((link, lIdx) => (
+                                              <tr key={lIdx} style={{ borderBottom: lIdx < existingLinks.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                                                  {link.sourceTitle}
+                                                </td>
+                                                <td style={{ padding: '12px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
+                                                  {link.sourceUrl}
+                                                </td>
+                                                <td style={{ padding: '12px 14px', color: '#60a5fa', fontWeight: 600 }}>
+                                                  {link.anchor}
+                                                </td>
+                                                <td style={{ padding: '12px 14px' }}>
+                                                  <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                                                    {link.type}
+                                                  </span>
+                                                </td>
+                                              </tr>
+                                            ));
+                                          })()}
+                                        </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+
+                                  {/* Recommended Links Section */}
+                                  <div style={{
+                                    backgroundColor: '#070b13',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '12px',
+                                    padding: '1.5rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1rem'
+                                  }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <Sparkles size={16} style={{ color: '#fbbf24' }} /> Recommended Links (Target: {min}–{max})
+                                    </h3>
+
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
+                                      <thead>
+                                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                          <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text</th>
+                                          <th style={{ padding: '10px 14px', width: '30%' }}>Suggested Source Page</th>
+                                          <th style={{ padding: '10px 14px', width: '35%' }}>AI Suggested Sentence</th>
+                                          <th style={{ padding: '10px 14px', width: '15%' }}>Action</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(() => {
+                                          const needed = isFail ? 3 - currentCount : 0;
+                                          if (needed <= 0) {
+                                            return (
+                                              <tr>
+                                                <td colSpan={4} style={{ padding: '24px 14px', fontStyle: 'italic', color: '#34d399', textAlign: 'center', fontWeight: 600 }}>
+                                                  No new links required. Sufficient internal links exist.
+                                                </td>
+                                              </tr>
+                                            );
+                                          }
+
+                                          const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
+                                          const recs = [];
+                                          for (let i = 0; i < needed; i++) {
+                                            const srcPage = sources[i % sources.length];
+                                            recs.push({
+                                              recommendedAnchor: getAnchorVariation(page.targetPhrase, srcPage, page, i),
+                                              sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
+                                              sourceUrl: srcPage ? srcPage.pageUrl : "/",
+                                              srcPageObject: srcPage
+                                            });
+                                          }
+
+                                          return recs.map((rec, rIdx) => {
+                                            const key = `${page.pageUrl}-${rec.sourceUrl}-${rIdx}`;
+                                            const isGen = isGenerating[key];
+                                            const sentence = generatedSentences[key];
+                                            const srcPage = rec.srcPageObject;
+                                            const displayAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                            const isEditingThis = editingAnchorKey === key;
+
+                                            return (
+                                              <tr key={rIdx} style={{ borderBottom: rIdx < recs.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none' }}>
+                                                <td style={{ padding: '12px 14px', width: '20%' }}>
+                                                  {isEditingThis ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                      <input
+                                                        type="text"
+                                                        value={editingAnchorText}
+                                                        onChange={(e) => setEditingAnchorText(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                          if (e.key === 'Enter') {
+                                                            const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                            const newAnchor = editingAnchorText.trim();
+                                                            if (newAnchor && newAnchor !== prevAnchor) {
+                                                              setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
+                                                              setGeneratedSentences(prev => {
+                                                                const next = { ...prev };
+                                                                delete next[key];
+                                                                return next;
+                                                              });
+                                                            }
+                                                            setEditingAnchorKey(null);
+                                                          } else if (e.key === 'Escape') {
+                                                            setEditingAnchorKey(null);
+                                                          }
+                                                        }}
+                                                        autoFocus
+                                                        style={{
+                                                          backgroundColor: '#1e293b',
+                                                          border: '1px solid #3b82f6',
+                                                          borderRadius: '4px',
+                                                          color: 'var(--text-primary)',
+                                                          padding: '2px 6px',
+                                                          fontSize: '0.8rem',
+                                                          width: '100%',
+                                                          outline: 'none'
+                                                        }}
+                                                      />
+                                                      <button
+                                                        onClick={() => {
+                                                          const prevAnchor = editedAnchors[key] || rec.recommendedAnchor;
+                                                          const newAnchor = editingAnchorText.trim();
+                                                          if (newAnchor && newAnchor !== prevAnchor) {
+                                                            setEditedAnchors(prev => ({ ...prev, [key]: newAnchor }));
+                                                            setGeneratedSentences(prev => {
+                                                              const next = { ...prev };
+                                                              delete next[key];
+                                                              return next;
+                                                            });
+                                                          }
+                                                          setEditingAnchorKey(null);
+                                                        }}
+                                                        style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0 }}
+                                                        title="Save"
+                                                      >
+                                                        ✓
+                                                      </button>
+                                                    </div>
+                                                  ) : (
+                                                    <div 
+                                                      style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                                      onClick={() => {
+                                                        setEditingAnchorKey(key);
+                                                        setEditingAnchorText(displayAnchor);
+                                                      }}
+                                                    >
+                                                      <span style={{ color: '#fbbf24', fontWeight: 600 }}>
+                                                        {displayAnchor}
+                                                      </span>
+                                                      <span 
+                                                        style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
+                                                        title="Edit anchor text"
+                                                      >
+                                                        ✏️
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                </td>
+                                                <td style={{ padding: '12px 14px', width: '30%' }}>
+                                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{rec.sourceTitle}</span>
+                                                  <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#60a5fa', marginLeft: '6px' }}>
+                                                    ({rec.sourceUrl})
+                                                  </span>
+                                                </td>
+                                                <td style={{ padding: '12px 14px', width: '35%' }}>
+                                                  {sentence ? (
+                                                    <>
+                                                      {editingSentenceKey === key ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexGrow: 1 }}>
+                                                          <input
+                                                            type="text"
+                                                            value={editingSentenceText}
+                                                            onChange={(e) => setEditingSentenceText(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                              if (e.key === 'Enter') {
+                                                                const newSentence = editingSentenceText.trim();
+                                                                if (newSentence) {
+                                                                  setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
+                                                                }
+                                                                setEditingSentenceKey(null);
+                                                              } else if (e.key === 'Escape') {
+                                                                setEditingSentenceKey(null);
+                                                              }
+                                                            }}
+                                                            autoFocus
+                                                            style={{
+                                                              backgroundColor: '#1e293b',
+                                                              border: '1px solid #3b82f6',
+                                                              borderRadius: '4px',
+                                                              color: 'var(--text-primary)',
+                                                              padding: '2px 6px',
+                                                              fontSize: '0.8rem',
+                                                              flexGrow: 1,
+                                                              outline: 'none'
+                                                            }}
+                                                          />
+                                                          <button
+                                                            onClick={() => {
+                                                              const newSentence = editingSentenceText.trim();
+                                                              if (newSentence) {
+                                                                setGeneratedSentences(prev => ({ ...prev, [key]: newSentence }));
+                                                              }
+                                                              setEditingSentenceKey(null);
+                                                            }}
+                                                            style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer', padding: 0, fontWeight: 'bold' }}
+                                                            title="Save"
+                                                          >
+                                                            ✓
+                                                          </button>
+                                                        </div>
+                                                      ) : (
+                                                        <>
+                                                          <div 
+                                                              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flexGrow: 1 }}
+                                                              onClick={() => {
+                                                                  setEditingSentenceKey(key);
+                                                                  setEditingSentenceText(sentence);
+                                                              }}
+                                                          >
+                                                              <span 
+                                                                  style={{ color: 'var(--text-primary)', fontStyle: 'normal' }}
+                                                                  dangerouslySetInnerHTML={{ __html: sentence }}
+                                                              />
+                                                              <span 
+                                                                  style={{ color: '#94a3b8', fontSize: '0.75rem', opacity: 0.6 }}
+                                                                  title="Edit sentence text"
+                                                              >
+                                                                  ✏️
+                                                              </span>
+                                                          </div>
+                                                        </>
+                                                      )}
+                                                    </>
+                                                  ) : (
+                                                    <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                                      {isGen ? "Generating AI sentence..." : '"AI sentence will appear here."'}
+                                                    </span>
+                                                  )}
+                                                </td>
+                                                <td style={{ padding: '12px 14px', width: '15%' }}>
+                                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {sentence ? (
+                                                      <>
+                                                        <button
+                                                          className="btn-secondary"
+                                                          onClick={() => {
+                                                            copySentenceHtml(sentence, () => {
+                                                              showNotification("Copied to clipboard!");
+                                                            });
+                                                          }}
+                                                          style={{
+                                                            padding: '4px 10px',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600,
+                                                            border: '1px solid rgba(16, 185, 129, 0.25)',
+                                                            color: '#34d399',
+                                                            backgroundColor: 'rgba(16, 185, 129, 0.08)'
+                                                          }}
+                                                        >
+                                                          Copy
+                                                        </button>
+                                                        <button
+                                                          className="btn-primary"
+                                                          onClick={() => handleInsertLinkToSourcePage(page, rec, sentence)}
+                                                          style={{
+                                                            padding: '4px 10px',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600
+                                                          }}
+                                                        >
+                                                          Insert
+                                                        </button>
+                                                      </>
+                                                    ) : (
+                                                      <button
+                                                        className="btn-secondary"
+                                                        disabled={isGen}
+                                                        onClick={() => handleGenerateSentence(page, rec, srcPage, key, displayAnchor)}
+                                                        style={{
+                                                          padding: '4px 10px',
+                                                          fontSize: '0.75rem',
+                                                          fontWeight: 600,
+                                                          border: '1px solid rgba(59, 130, 246, 0.25)',
+                                                          color: '#60a5fa',
+                                                          backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                          opacity: isGen ? 0.5 : 1,
+                                                          cursor: isGen ? 'not-allowed' : 'pointer',
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: '4px'
+                                                        }}
+                                                      >
+                                                        <Sparkles size={12} /> {isGen ? "Generating..." : "Generate"}
+                                                      </button>
+                                                    )}
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            );
+                                          });
+                                        })()}
+                                      </tbody>
+                                    </table>
+                                    <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+                                      <button style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+                                        Show more ▾
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             return (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                                 {linkResults.length === 0 ? (
@@ -6077,13 +6738,13 @@ export default function App() {
 
                                             {labelText !== "No Action Required" && (
                                               <button
-                                                className="btn-primary"
-                                                onClick={() => {
-                                                  showNotification(`Workflow: Opening Link Editor for ${page.pageUrl} (Next Phase)`);
-                                                }}
-                                              >
-                                                Work on Links
-                                              </button>
+                                               className="btn-primary"
+                                               onClick={() => {
+                                                 setSelectedLinkPageUrl(page.pageUrl);
+                                               }}
+                                             >
+                                               Generate Link Suggestions
+                                             </button>
                                             )}
                                           </div>
                                         </div>
