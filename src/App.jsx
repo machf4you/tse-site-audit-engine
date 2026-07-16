@@ -781,11 +781,14 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
         destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
         
         const normAnchor = anchorText.toLowerCase();
-        const existingAnchor = destPage.crawlData.incomingAnchors.find(a => (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor);
+        const existingAnchor = destPage.crawlData.incomingAnchors.find(a => 
+          (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor &&
+          a.sourcePageUrl === srcPage.pageUrl
+        );
         if (existingAnchor) {
           existingAnchor.count = (existingAnchor.count || 1) + 1;
         } else {
-          destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1 });
+          destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1, sourcePageUrl: srcPage.pageUrl });
         }
       }
     });
@@ -3451,7 +3454,7 @@ export default function App() {
         updatedSitePages = updatedSitePages.map(p => {
           if (getRelativeUrl(p.pageUrl, selectedSite.url) === destRelativeUrl) {
             const currentIncomingAnchors = p.crawlData?.incomingAnchors || [];
-            const updatedIncomingAnchors = [...currentIncomingAnchors, { anchor: anchorText, count: 1 }];
+            const updatedIncomingAnchors = [...currentIncomingAnchors, { anchor: anchorText, count: 1, sourcePageUrl: activeTask.pageUrl }];
             
             const currentLinkCount = typeof p.crawlData?.internalLinkCount === 'number' 
               ? p.crawlData.internalLinkCount 
@@ -6464,44 +6467,54 @@ export default function App() {
                                         </thead>
                                         <tbody>
                                           {(() => {
-                                            const mergedAnchors = getMergedAnchors(linkCheck.incomingAnchors);
-                                            const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
-                                            
                                             const existingLinks = [];
+                                            const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
                                             let sourceIndex = 0;
 
-                                            mergedAnchors.forEach(item => {
-                                              const norm = item.anchor.toLowerCase();
-                                              for (let c = 0; c < item.count; c++) {
-                                                let linkType = "Contextual";
-                                                if (norm === "home" || norm === "homepage" || norm === "navigation") {
-                                                  linkType = "Navigation";
-                                                } else if (norm === "contact" || norm === "about" || norm === "gallery") {
-                                                  linkType = "Navigation";
-                                                } else if (c % 5 === 1) {
-                                                  linkType = "Footer";
-                                                } else if (c % 5 === 2) {
-                                                  linkType = "Sidebar";
-                                                } else if (c % 5 === 3) {
-                                                  linkType = "Breadcrumb";
-                                                } else if (c % 5 === 4) {
-                                                  linkType = "Related Content";
-                                                }
+                                            if (linkCheck.incomingAnchors) {
+                                              linkCheck.incomingAnchors.forEach(item => {
+                                                const anchorText = item.anchorText || item.anchor || "";
+                                                const norm = anchorText.toLowerCase().trim();
+                                                if (!norm) return;
                                                 
-                                                if (linkType === "Contextual") {
-                                                  const sourcePage = potentialSources[sourceIndex % potentialSources.length];
-                                                  sourceIndex++;
+                                                const count = item.count || 1;
+                                                for (let c = 0; c < count; c++) {
+                                                  let linkType = "Contextual";
+                                                  if (norm === "home" || norm === "homepage" || norm === "navigation") {
+                                                    linkType = "Navigation";
+                                                  } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                                    linkType = "Navigation";
+                                                  } else if (c % 5 === 1) {
+                                                    linkType = "Footer";
+                                                  } else if (c % 5 === 2) {
+                                                    linkType = "Sidebar";
+                                                  } else if (c % 5 === 3) {
+                                                    linkType = "Breadcrumb";
+                                                  } else if (c % 5 === 4) {
+                                                    linkType = "Related Content";
+                                                  }
+                                                  
+                                                  if (linkType === "Contextual") {
+                                                    let sourcePage = null;
+                                                    if (item.sourcePageUrl) {
+                                                      sourcePage = configuredPagesList.find(p => p.pageUrl === item.sourcePageUrl);
+                                                    }
+                                                    if (!sourcePage) {
+                                                      sourcePage = potentialSources[sourceIndex % potentialSources.length];
+                                                      sourceIndex++;
+                                                    }
 
-                                                  existingLinks.push({
-                                                    anchor: item.anchor,
-                                                    type: linkType,
-                                                    sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
-                                                    sourceUrl: sourcePage ? sourcePage.pageUrl : "/",
-                                                    sourcePageObj: sourcePage
-                                                  });
+                                                    existingLinks.push({
+                                                      anchor: anchorText,
+                                                      type: linkType,
+                                                      sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
+                                                      sourceUrl: sourcePage ? sourcePage.pageUrl : "/",
+                                                      sourcePageObj: sourcePage
+                                                    });
+                                                  }
                                                 }
-                                              }
-                                            });
+                                              });
+                                            }
 
                                             const getLinkContext = (sourcePage, anchorText) => {
                                               if (!sourcePage || !sourcePage.crawlData || !sourcePage.crawlData.plainText) {
@@ -7003,44 +7016,54 @@ export default function App() {
                                              statusCircleBg = "rgba(59, 130, 246, 0.1)";
                                            }
 
-                                          const mergedAnchors = getMergedAnchors(linkCheck.incomingAnchors);
-                                          const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
-                                          
                                           const existingLinks = [];
+                                          const potentialSources = configuredPagesList.filter(p => p.pageUrl !== page.pageUrl);
                                           let sourceIndex = 0;
 
-                                          mergedAnchors.forEach(item => {
-                                            const norm = item.anchor.toLowerCase();
-                                            for (let c = 0; c < item.count; c++) {
-                                              let linkType = "Contextual";
-                                              if (norm === "home" || norm === "homepage" || norm === "navigation") {
-                                                linkType = "Navigation";
-                                              } else if (norm === "contact" || norm === "about" || norm === "gallery") {
-                                                linkType = "Navigation";
-                                              } else if (c % 5 === 1) {
-                                                linkType = "Footer";
-                                              } else if (c % 5 === 2) {
-                                                linkType = "Sidebar";
-                                              } else if (c % 5 === 3) {
-                                                linkType = "Breadcrumb";
-                                              } else if (c % 5 === 4) {
-                                                linkType = "Related Content";
-                                              }
+                                          if (linkCheck.incomingAnchors) {
+                                            linkCheck.incomingAnchors.forEach(item => {
+                                              const anchorText = item.anchorText || item.anchor || "";
+                                              const norm = anchorText.toLowerCase().trim();
+                                              if (!norm) return;
                                               
-                                              if (linkType === "Contextual") {
-                                                  const sourcePage = potentialSources[sourceIndex % potentialSources.length];
-                                                  sourceIndex++;
+                                              const count = item.count || 1;
+                                              for (let c = 0; c < count; c++) {
+                                                let linkType = "Contextual";
+                                                if (norm === "home" || norm === "homepage" || norm === "navigation") {
+                                                  linkType = "Navigation";
+                                                } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                                  linkType = "Navigation";
+                                                } else if (c % 5 === 1) {
+                                                  linkType = "Footer";
+                                                } else if (c % 5 === 2) {
+                                                  linkType = "Sidebar";
+                                                } else if (c % 5 === 3) {
+                                                  linkType = "Breadcrumb";
+                                                } else if (c % 5 === 4) {
+                                                  linkType = "Related Content";
+                                                }
+                                                
+                                                if (linkType === "Contextual") {
+                                                  let sourcePage = null;
+                                                  if (item.sourcePageUrl) {
+                                                    sourcePage = configuredPagesList.find(p => p.pageUrl === item.sourcePageUrl);
+                                                  }
+                                                  if (!sourcePage) {
+                                                    sourcePage = potentialSources[sourceIndex % potentialSources.length];
+                                                    sourceIndex++;
+                                                  }
 
                                                   existingLinks.push({
-                                                    anchor: item.anchor,
+                                                    anchor: anchorText,
                                                     type: linkType,
                                                     sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
                                                     sourceUrl: sourcePage ? sourcePage.pageUrl : "/",
                                                     sourcePageObj: sourcePage
                                                   });
                                                 }
-                                            }
-                                          });
+                                              }
+                                            });
+                                          }
 
                                           return (
                                             <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1.5rem', marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem', textAlign: 'left' }}>
