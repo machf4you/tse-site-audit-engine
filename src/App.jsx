@@ -816,19 +816,39 @@ const isPageExcluded = (page) => {
 
 
 const getRelativeUrl = (url, siteUrl) => {
-  if (!url) return "/";
-  if (url.startsWith("/")) return url;
-  try {
-    const parsed = new URL(url);
-    return parsed.pathname;
-  } catch (e) {
-    if (siteUrl) {
-      let rel = url.replace(siteUrl, "");
-      if (!rel.startsWith("/")) rel = "/" + rel;
-      return rel;
+  let rel = "/";
+  if (!url) {
+    rel = "/";
+  } else if (url.startsWith("/")) {
+    rel = url;
+  } else {
+    try {
+      const parsed = new URL(url);
+      rel = parsed.pathname;
+    } catch (e) {
+      if (siteUrl) {
+        let cleanSite = siteUrl.trim().replace(/\/+$/, "");
+        rel = url.replace(cleanSite, "");
+        if (!rel.startsWith("/")) rel = "/" + rel;
+      } else {
+        rel = url;
+      }
     }
-    return url;
   }
+  if (rel) {
+    rel = rel.trim();
+    const hasExtension = /\.[a-z0-9]+$/i.test(rel);
+    if (!hasExtension) {
+      rel = rel.replace(/\/+$/, "");
+      if (!rel.startsWith("/")) rel = "/" + rel;
+      rel = rel + "/";
+    } else {
+      if (!rel.startsWith("/")) rel = "/" + rel;
+    }
+  } else {
+    rel = "/";
+  }
+  return rel;
 };
 
 const makeHtmlSentence = (sentence, anchorText, absoluteDestUrl) => {
