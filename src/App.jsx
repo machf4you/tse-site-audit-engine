@@ -2876,6 +2876,98 @@ export default function App() {
     setIsImporting(false);
   };
 
+  const handleRebuildInternalLinks = async (siteId) => {
+    if (!siteId) return;
+    setIsImporting(true);
+    showNotification("Rebuilding internal links dataset...");
+    try {
+      const site = sites.find(s => s.id === siteId);
+      const cleanUrl = site ? site.url.trim().replace(/\/+$/, "") : "";
+      const prevPages = pagesData[siteId] || [];
+
+      // 1. Initialize link fields to 0/empty for all pages
+      const finalPages = prevPages.map(p => {
+        const crawl = p.crawlData ? { ...p.crawlData } : {};
+        crawl.internalLinkCount = 0;
+        crawl.incomingAnchors = [];
+        return {
+          ...p,
+          crawlData: crawl
+        };
+      });
+
+      // 2. Parse bodyContent to rebuild the incoming internal links dataset
+      finalPages.forEach(srcPage => {
+        const bodyContent = srcPage.crawlData?.bodyContent || "";
+        const linkRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+        let match;
+        while ((match = linkRegex.exec(bodyContent)) !== null) {
+          const href = match[1];
+          const anchor = match[2];
+          const relativeHref = getRelativeUrl(href, cleanUrl);
+          const anchorText = anchor.replace(/<[^>]*>/g, "").trim();
+          
+          if (!anchorText) continue;
+
+          // Find matching destination page
+          const destPage = finalPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
+          if (destPage) {
+            destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
+            
+            const normAnchor = anchorText.toLowerCase();
+            const existingAnchor = destPage.crawlData.incomingAnchors.find(a => (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor);
+            if (existingAnchor) {
+              existingAnchor.count = (existingAnchor.count || 1) + 1;
+            } else {
+              destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1 });
+            }
+          }
+        }
+      });
+
+      // 3. Re-run all Page Audits using the updated data
+      const updatedPagesWithAudits = finalPages.map(page => {
+        const newAuditResults = runPageAudit(
+          page.pageUrl,
+          page.targetPhrase,
+          page.pageTitle,
+          siteId,
+          page
+        );
+        return {
+          ...page,
+          latestAudit: {
+            timestamp: new Date().toISOString(),
+            results: newAuditResults
+          }
+        };
+      });
+
+      // 4. Save updated pages to backend database
+      const saveResponse = await fetch(`${API_BASE}/pages-data/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteId, pages: updatedPagesWithAudits })
+      });
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save pages to the database backend.");
+      }
+
+      setPagesData(prev => ({
+        ...prev,
+        [siteId]: updatedPagesWithAudits
+      }));
+
+      showNotification("Internal links successfully rebuilt!");
+    } catch (err) {
+      console.error("Rebuild error:", err);
+      showNotification(`Rebuild Failed: ${err.message}`);
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   const handleSaveWebsiteConfig = () => {
     if (!selectedSiteId) return;
     setSites(prevSites => prevSites.map(s => {
@@ -5866,6 +5958,28 @@ export default function App() {
                         {selectedSite?.url} <ExternalLink size={12} />
                       </a>
                     </div>
+                    {!selectedLinkPageUrl && (
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <button
+                          className="btn-primary"
+                          onClick={() => handleRebuildInternalLinks(selectedSiteId)}
+                          disabled={isImporting}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '10px 20px',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            cursor: isImporting ? 'not-allowed' : 'pointer',
+                            opacity: isImporting ? 0.75 : 1
+                          }}
+                        >
+                          <RefreshCw size={14} className={isImporting ? "spinner" : ""} />
+                          {isImporting ? "Rebuilding..." : "Rebuild Internal Links"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {renderModuleNavigation("W4")}
                 </div>
@@ -6098,7 +6212,6 @@ export default function App() {
 
                               return (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', textAlign: 'left' }}>
-                                  <h1 style={{ color: '#fbbf24', textAlign: 'center', fontSize: '2.5rem', fontWeight: 800, margin: '1rem 0', fontFamily: 'Outfit' }}>*** TEST BUILD 16 JULY ***</h1>
                                   {/* Breadcrumbs & Actions Row */}
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '1rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.4)' }}>
