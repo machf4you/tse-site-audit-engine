@@ -714,6 +714,102 @@ async function fetchThroughProxy(url, options = {}) {
   });
 }
 
+const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
+  // 1. Initialize link fields to 0/empty for all pages
+  const updatedPages = finalPages.map(p => {
+    const crawl = p.crawlData ? { ...p.crawlData } : {};
+    crawl.internalLinkCount = 0;
+    crawl.incomingAnchors = [];
+    return {
+      ...p,
+      crawlData: crawl
+    };
+  });
+
+  // 2. Fetch HTML for pages that don't have a stored snapshot
+  const htmlResults = await Promise.all(
+    updatedPages.map(async (p) => {
+      if (p.crawlData?.htmlSnapshot) {
+        return { pageUrl: p.pageUrl, html: p.crawlData.htmlSnapshot };
+      }
+      
+      const absoluteUrl = site.url.trim().replace(/\/+$/, "") + p.pageUrl;
+      try {
+        const res = await fetchThroughProxy(absoluteUrl);
+        if (res.ok) {
+          const html = await res.text();
+          return { pageUrl: p.pageUrl, html };
+        }
+      } catch (e) {
+        console.error(`Failed to fetch HTML for ${absoluteUrl}:`, e);
+      }
+      return { pageUrl: p.pageUrl, html: "" };
+    })
+  );
+
+  // Create a map of pageUrl -> html
+  const htmlMap = {};
+  htmlResults.forEach(r => {
+    htmlMap[r.pageUrl] = r.html;
+  });
+
+  // 3. Parse rendered HTML using DOMParser to rebuild the incoming internal links dataset
+  updatedPages.forEach(srcPage => {
+    const html = htmlMap[srcPage.pageUrl] || "";
+    if (!html) return;
+
+    // Save the html snapshot to crawlData so we have it stored
+    srcPage.crawlData.htmlSnapshot = html;
+
+    // Parse HTML using DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+    const anchors = doc.querySelectorAll("a");
+
+    anchors.forEach(a => {
+      const href = a.getAttribute("href");
+      if (!href) return;
+
+      const relativeHref = getRelativeUrl(href, cleanUrl);
+      const anchorText = a.textContent.replace(/<[^>]*>/g, "").trim();
+      
+      if (!anchorText) return;
+
+      // Find matching destination page
+      const destPage = updatedPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
+      if (destPage) {
+        destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
+        
+        const normAnchor = anchorText.toLowerCase();
+        const existingAnchor = destPage.crawlData.incomingAnchors.find(a => (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor);
+        if (existingAnchor) {
+          existingAnchor.count = (existingAnchor.count || 1) + 1;
+        } else {
+          destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1 });
+        }
+      }
+    });
+  });
+
+  // 4. Re-run all Page Audits using the updated data
+  return updatedPages.map(page => {
+    const newAuditResults = runPageAudit(
+      page.pageUrl,
+      page.targetPhrase,
+      page.pageTitle,
+      siteId,
+      page
+    );
+    return {
+      ...page,
+      latestAudit: {
+        timestamp: new Date().toISOString(),
+        results: newAuditResults
+      }
+    };
+  });
+};
+
 const BU_PAGES = exporterData["bathroom-upgrades"].pages.map(p => {
   let mapped = { ...p, assignedType: p.assignedType || getPageAuditorAssignedType(p) };
   if (isAutomationViewTemp) {
@@ -1732,59 +1828,7 @@ export default function App() {
       const plannedPages = prevPages.filter(p => p.status === "Planned" && !syncedUrls.has(p.pageUrl));
       const finalPages = [...formattedPages, ...plannedPages];
 
-      // 1. Initialize link fields to 0/empty for all pages
-      finalPages.forEach(p => {
-        if (!p.crawlData) p.crawlData = {};
-        p.crawlData.internalLinkCount = 0;
-        p.crawlData.incomingAnchors = [];
-      });
-
-      // 2. Parse bodyContent to rebuild the incoming internal links dataset
-      finalPages.forEach(srcPage => {
-        const bodyContent = srcPage.crawlData?.bodyContent || "";
-        const linkRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-        let match;
-        while ((match = linkRegex.exec(bodyContent)) !== null) {
-          const href = match[1];
-          const anchor = match[2];
-          const relativeHref = getRelativeUrl(href, cleanUrl);
-          const anchorText = anchor.replace(/<[^>]*>/g, "").trim();
-          
-          if (!anchorText) continue;
-
-          // Find matching destination page
-          const destPage = finalPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
-          if (destPage) {
-            destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
-            
-            const normAnchor = anchorText.toLowerCase();
-            const existingAnchor = destPage.crawlData.incomingAnchors.find(a => (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor);
-            if (existingAnchor) {
-              existingAnchor.count = (existingAnchor.count || 1) + 1;
-            } else {
-              destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1 });
-            }
-          }
-        }
-      });
-
-      // 3. Re-run all Page Audits using the updated data
-      const updatedPagesWithAudits = finalPages.map(page => {
-        const newAuditResults = runPageAudit(
-          page.pageUrl,
-          page.targetPhrase,
-          page.pageTitle,
-          siteId,
-          page
-        );
-        return {
-          ...page,
-          latestAudit: {
-            timestamp: new Date().toISOString(),
-            results: newAuditResults
-          }
-        };
-      });
+      const updatedPagesWithAudits = await rebuildInternalLinksData(finalPages, site, cleanUrl, siteId);
 
       const saveResponse = await fetch(`${API_BASE}/pages-data/save`, {
         method: "POST",
@@ -2885,65 +2929,9 @@ export default function App() {
       const cleanUrl = site ? site.url.trim().replace(/\/+$/, "") : "";
       const prevPages = pagesData[siteId] || [];
 
-      // 1. Initialize link fields to 0/empty for all pages
-      const finalPages = prevPages.map(p => {
-        const crawl = p.crawlData ? { ...p.crawlData } : {};
-        crawl.internalLinkCount = 0;
-        crawl.incomingAnchors = [];
-        return {
-          ...p,
-          crawlData: crawl
-        };
-      });
+      const updatedPagesWithAudits = await rebuildInternalLinksData(prevPages, site, cleanUrl, siteId);
 
-      // 2. Parse bodyContent to rebuild the incoming internal links dataset
-      finalPages.forEach(srcPage => {
-        const bodyContent = srcPage.crawlData?.bodyContent || "";
-        const linkRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-        let match;
-        while ((match = linkRegex.exec(bodyContent)) !== null) {
-          const href = match[1];
-          const anchor = match[2];
-          const relativeHref = getRelativeUrl(href, cleanUrl);
-          const anchorText = anchor.replace(/<[^>]*>/g, "").trim();
-          
-          if (!anchorText) continue;
-
-          // Find matching destination page
-          const destPage = finalPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
-          if (destPage) {
-            destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
-            
-            const normAnchor = anchorText.toLowerCase();
-            const existingAnchor = destPage.crawlData.incomingAnchors.find(a => (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor);
-            if (existingAnchor) {
-              existingAnchor.count = (existingAnchor.count || 1) + 1;
-            } else {
-              destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1 });
-            }
-          }
-        }
-      });
-
-      // 3. Re-run all Page Audits using the updated data
-      const updatedPagesWithAudits = finalPages.map(page => {
-        const newAuditResults = runPageAudit(
-          page.pageUrl,
-          page.targetPhrase,
-          page.pageTitle,
-          siteId,
-          page
-        );
-        return {
-          ...page,
-          latestAudit: {
-            timestamp: new Date().toISOString(),
-            results: newAuditResults
-          }
-        };
-      });
-
-      // 4. Save updated pages to backend database
+      // Save updated pages to backend database
       const saveResponse = await fetch(`${API_BASE}/pages-data/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
