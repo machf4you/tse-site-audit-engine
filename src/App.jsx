@@ -1250,16 +1250,42 @@ export default function App() {
    }, [currentView]);
 
    useEffect(() => {
-      if (selectedSiteId) {
-        localStorage.setItem("tse_selected_site_id", selectedSiteId);
-        const site = sites.find(s => s.id === selectedSiteId);
-        if (site) {
-          setSitePortfolio(site.portfolio || "Other");
-          setSitePlatform(site.platform || "Other");
-          setSiteElementorEnabled(!!site.elementorEnabled);
+       if (selectedSiteId) {
+         localStorage.setItem("tse_selected_site_id", selectedSiteId);
+         const site = sites.find(s => s.id === selectedSiteId);
+         if (site) {
+           setSitePortfolio(site.portfolio || "Other");
+           setSitePlatform(site.platform || "Other");
+           setSiteElementorEnabled(!!site.elementorEnabled);
+         }
+       }
+     }, [selectedSiteId, sites]);
+
+    useEffect(() => {
+      let faviconUrl = "/favicon.svg";
+      
+      if (activeApp === "PAGE_AUDITOR") {
+        faviconUrl = "/favicon-page-auditor.svg";
+      } else if (activeApp === "LEAD_GENERATOR") {
+        faviconUrl = "/favicon-lead-finder.svg";
+      } else if (activeApp === "WEBSITE_MANAGEMENT") {
+        if (currentView === "WEBSITES_INTERNAL_LINKING") {
+          faviconUrl = "/favicon-internal-linking.svg";
+        } else {
+          faviconUrl = "/favicon-website-management.svg";
         }
       }
-    }, [selectedSiteId, sites]);
+      
+      const link = document.querySelector("link[rel*='icon']");
+      if (link) {
+        link.href = faviconUrl;
+        if (faviconUrl.endsWith('.svg')) {
+          link.setAttribute('type', 'image/svg+xml');
+        } else {
+          link.setAttribute('type', 'image/png');
+        }
+      }
+    }, [activeApp, currentView]);
   const [selectedAnalysisSiteId, setSelectedAnalysisSiteId] = useState(null);
   const [activeModule, setActiveModule] = useState(null);
   const [expandedLinkRows, setExpandedLinkRows] = useState({});
