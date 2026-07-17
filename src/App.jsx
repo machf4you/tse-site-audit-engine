@@ -790,33 +790,42 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
 
     if (srcPage.assignedType === "Excluded") return;
 
-    const isTemplateElement = (el) => {
-      let current = el;
-      while (current) {
-        const tagName = current.tagName ? current.tagName.toLowerCase() : '';
-        if (tagName === 'body' || tagName === 'html') {
-          break;
+    const getPrimaryContentContainer = (d) => {
+      const selectors = [
+        '.entry-content',
+        '.post-content',
+        '.elementor-widget-theme-post-content',
+        'article',
+        'main',
+        'body > div.elementor'
+      ];
+      for (let i = 0; i < selectors.length; i++) {
+        const elms = d.querySelectorAll(selectors[i]);
+        if (elms.length > 0) {
+          if (elms.length === 1) return elms[0];
+          let bestCandidate = elms[0];
+          let bestScore = -1;
+          elms.forEach(el => {
+            const textLength = el.textContent ? el.textContent.trim().length : 0;
+            const pCount = el.querySelectorAll('p').length;
+            const score = textLength + pCount * 100;
+            if (score > bestScore) {
+              bestScore = score;
+              bestCandidate = el;
+            }
+          });
+          return bestCandidate;
         }
-        if (['header', 'nav', 'footer', 'aside'].includes(tagName)) {
-          return true;
-        }
-        const id = current.id ? current.id.toLowerCase() : '';
-        const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
-        if (
-          id.includes('header') || id.includes('footer') || id.includes('nav') || id.includes('menu') || id.includes('sidebar') ||
-          className.includes('header') || className.includes('footer') || className.includes('nav') || className.includes('menu') || className.includes('sidebar')
-        ) {
-          return true;
-        }
-        current = current.parentElement;
       }
-      return false;
+      return null;
     };
 
-    const anchors = doc.querySelectorAll("a");
+    const container = getPrimaryContentContainer(doc);
+    if (!container) return;
+
+    const anchors = container.querySelectorAll("a");
 
     anchors.forEach(a => {
-      if (isTemplateElement(a)) return;
       const href = a.getAttribute("href");
       if (!href) return;
 
@@ -6596,79 +6605,115 @@ export default function App() {
                                                                                              const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
 
 
-                                                                                             const anchors = doc.querySelectorAll("a");
-
-
                                                                                              
 
 
-                                                                                             const isTemplateElement = (el) => {
+                                                                                             const getPrimaryContentContainer = (d) => {
 
 
-                                                                                               let current = el;
+                                                                                               const selectors = [
 
 
-                                                                                               while (current) {
+                                                                                                 '.entry-content',
 
 
-                                                                                                 const tagName = current.tagName ? current.tagName.toLowerCase() : '';
+                                                                                                 '.post-content',
 
 
-                                                                                                 if (tagName === 'body' || tagName === 'html') {
+                                                                                                 '.elementor-widget-theme-post-content',
 
 
-                                                                                                   break;
+                                                                                                 'article',
+
+
+                                                                                                 'main',
+
+
+                                                                                                 'body > div.elementor'
+
+
+                                                                                               ];
+
+
+                                                                                               for (let i = 0; i < selectors.length; i++) {
+
+
+                                                                                                 const elms = d.querySelectorAll(selectors[i]);
+
+
+                                                                                                 if (elms.length > 0) {
+
+
+                                                                                                   if (elms.length === 1) return elms[0];
+
+
+                                                                                                   let bestCandidate = elms[0];
+
+
+                                                                                                   let bestScore = -1;
+
+
+                                                                                                   elms.forEach(el => {
+
+
+                                                                                                     const textLength = el.textContent ? el.textContent.trim().length : 0;
+
+
+                                                                                                     const pCount = el.querySelectorAll('p').length;
+
+
+                                                                                                     const score = textLength + pCount * 100;
+
+
+                                                                                                     if (score > bestScore) {
+
+
+                                                                                                       bestScore = score;
+
+
+                                                                                                       bestCandidate = el;
+
+
+                                                                                                     }
+
+
+                                                                                                   });
+
+
+                                                                                                   return bestCandidate;
 
 
                                                                                                  }
-
-
-                                                                                                 if (['header', 'nav', 'footer', 'aside'].includes(tagName)) {
-
-
-                                                                                                   return true;
-
-
-                                                                                                 }
-
-
-                                                                                                 const id = current.id ? current.id.toLowerCase() : '';
-
-
-                                                                                                 const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
-
-
-                                                                                                 if (
-
-
-                                                                                                   id.includes('header') || id.includes('footer') || id.includes('nav') || id.includes('menu') || id.includes('sidebar') ||
-
-
-                                                                                                   className.includes('header') || className.includes('footer') || className.includes('nav') || className.includes('menu') || className.includes('sidebar')
-
-
-                                                                                                 ) {
-
-
-                                                                                                   return true;
-
-
-                                                                                                 }
-
-
-                                                                                                 current = current.parentElement;
 
 
                                                                                                }
 
 
-                                                                                               return false;
+                                                                                               return null;
 
 
                                                                                              };
 
 
                                                                                              
+
+
+                                                                                             const container = getPrimaryContentContainer(doc);
+
+
+                                                                                             if (!container) {
+
+
+                                                                                               return "Context not found";
+
+
+                                                                                             }
+
+
+                                                                                             
+
+
+                                                                                             const anchors = container.querySelectorAll("a");
 
 
                                                                                              let targetAnchor = null;
@@ -6687,9 +6732,6 @@ export default function App() {
 
 
                                                                                                const a = anchors[i];
-
-
-                                                                                               if (isTemplateElement(a)) continue;
 
 
                                                                                                const href = a.getAttribute("href");
@@ -7569,55 +7611,79 @@ export default function App() {
 
                                                                                                                       const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
 
-                                                                                                                      const anchors = doc.querySelectorAll("a");
-
                                                                                                                       
 
-                                                                                                                      const isTemplateElement = (el) => {
+                                                                                                                      const getPrimaryContentContainer = (d) => {
 
-                                                                                                                        let current = el;
+                                                                                                                        const selectors = [
 
-                                                                                                                        while (current) {
+                                                                                                                          '.entry-content',
 
-                                                                                                                          const tagName = current.tagName ? current.tagName.toLowerCase() : '';
+                                                                                                                          '.post-content',
 
-                                                                                                                          if (tagName === 'body' || tagName === 'html') {
+                                                                                                                          '.elementor-widget-theme-post-content',
 
-                                                                                                                            break;
+                                                                                                                          'article',
+
+                                                                                                                          'main',
+
+                                                                                                                          'body > div.elementor'
+
+                                                                                                                        ];
+
+                                                                                                                        for (let i = 0; i < selectors.length; i++) {
+
+                                                                                                                          const elms = d.querySelectorAll(selectors[i]);
+
+                                                                                                                          if (elms.length > 0) {
+
+                                                                                                                            if (elms.length === 1) return elms[0];
+
+                                                                                                                            let bestCandidate = elms[0];
+
+                                                                                                                            let bestScore = -1;
+
+                                                                                                                            elms.forEach(el => {
+
+                                                                                                                              const textLength = el.textContent ? el.textContent.trim().length : 0;
+
+                                                                                                                              const pCount = el.querySelectorAll('p').length;
+
+                                                                                                                              const score = textLength + pCount * 100;
+
+                                                                                                                              if (score > bestScore) {
+
+                                                                                                                                bestScore = score;
+
+                                                                                                                                bestCandidate = el;
+
+                                                                                                                              }
+
+                                                                                                                            });
+
+                                                                                                                            return bestCandidate;
 
                                                                                                                           }
-
-                                                                                                                          if (['header', 'nav', 'footer', 'aside'].includes(tagName)) {
-
-                                                                                                                            return true;
-
-                                                                                                                          }
-
-                                                                                                                          const id = current.id ? current.id.toLowerCase() : '';
-
-                                                                                                                          const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
-
-                                                                                                                          if (
-
-                                                                                                                            id.includes('header') || id.includes('footer') || id.includes('nav') || id.includes('menu') || id.includes('sidebar') ||
-
-                                                                                                                            className.includes('header') || className.includes('footer') || className.includes('nav') || className.includes('menu') || className.includes('sidebar')
-
-                                                                                                                          ) {
-
-                                                                                                                            return true;
-
-                                                                                                                          }
-
-                                                                                                                          current = current.parentElement;
 
                                                                                                                         }
 
-                                                                                                                        return false;
+                                                                                                                        return null;
 
                                                                                                                       };
 
                                                                                                                       
+
+                                                                                                                      const container = getPrimaryContentContainer(doc);
+
+                                                                                                                      if (!container) {
+
+                                                                                                                        return "Context not found";
+
+                                                                                                                      }
+
+                                                                                                                      
+
+                                                                                                                      const anchors = container.querySelectorAll("a");
 
                                                                                                                       let targetAnchor = null;
 
@@ -7630,8 +7696,6 @@ export default function App() {
                                                                                                                       for (let i = 0; i < anchors.length; i++) {
 
                                                                                                                         const a = anchors[i];
-
-                                                                                                                        if (isTemplateElement(a)) continue;
 
                                                                                                                         const href = a.getAttribute("href");
 

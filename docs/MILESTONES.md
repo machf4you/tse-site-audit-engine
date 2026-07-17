@@ -29,3 +29,10 @@
 - Implemented template element filtering (header, footer, nav, aside, menu, sidebar) in both rendering loops and internal link graph builder.
 - Verified template element filtering correctly cleans the link graph from template navigation links.
 
+## v1.8-internal-link-engine-content-container-first
+- Removed exclusion-based template element filtering completely.
+- Rebuilt Internal Link Engine and Link Context extraction using a content-container-first approach.
+- Implemented selector priority logic (.entry-content, .post-content, .elementor-widget-theme-post-content, article, main, body > div.elementor) and candidate scoring (based on text length and paragraph count) to select the primary content container.
+- Verified link engine successfully limits graph construction to editorial/content links.
+
+
