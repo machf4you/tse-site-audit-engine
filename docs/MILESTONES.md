@@ -23,3 +23,9 @@
 - Fixed target link values.
 - Dynamic browser favicons.
 - Website Management foundation verified.
+
+## v1.7-internal-link-engine-template-filter
+- Switched Link Context extraction to actual DOM <a> element matching.
+- Implemented template element filtering (header, footer, nav, aside, menu, sidebar) in both rendering loops and internal link graph builder.
+- Verified template element filtering correctly cleans the link graph from template navigation links.
+
