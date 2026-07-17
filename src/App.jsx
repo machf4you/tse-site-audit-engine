@@ -1022,6 +1022,11 @@ const getRelativeUrl = (url, siteUrl) => {
   } else {
     rel = "/";
   }
+  if (rel === "//" || rel === "" || rel === "///") {
+    rel = "/";
+  } else if (rel.startsWith("//")) {
+    rel = rel.replace(/^\/+/, "/");
+  }
   return rel;
 };
 
