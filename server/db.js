@@ -319,6 +319,12 @@ async function initDb() {
       ADD COLUMN IF NOT EXISTS priority INTEGER
     `);
 
+    // Clean up duplicate homepages or double slash URLs
+    await pool.query(`
+      DELETE FROM page_configurations 
+      WHERE page_url = '//' OR page_url LIKE '%//%'
+    `);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS page_classifications (
         site_id VARCHAR(100) REFERENCES websites(id) ON DELETE CASCADE,

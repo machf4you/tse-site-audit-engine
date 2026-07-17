@@ -159,6 +159,15 @@ const getPageAuditorAssignedType = (pageOrUrl) => {
   }
 };
 
+const getPriorityFromAssignedType = (type) => {
+  const t = (type || "").toLowerCase().trim();
+  if (t === "hub" || t === "hub page" || t === "hub pages" || t === "homepage") return 1;
+  if (t === "landing" || t === "landing page" || t === "landing pages" || t === "primary landing page") return 2;
+  if (t === "supporting" || t === "supporting page" || t === "supporting pages") return 3;
+  if (t === "topical" || t === "topical page" || t === "topical pages") return 4;
+  return 3;
+};
+
 const runPageAudit = (pageUrl, targetPhrase, pageTitle, siteId, livePageObj) => {
   let foundPage = livePageObj || null;
   
@@ -788,17 +797,14 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
       // Find matching destination page
       const destPage = updatedPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
       if (destPage) {
-        destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
-        
         const normAnchor = anchorText.toLowerCase();
         const existingAnchor = destPage.crawlData.incomingAnchors.find(a => 
           (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor &&
           a.sourcePageUrl === srcPage.pageUrl
         );
-        if (existingAnchor) {
-          existingAnchor.count = (existingAnchor.count || 1) + 1;
-        } else {
+        if (!existingAnchor) {
           destPage.crawlData.incomingAnchors.push({ anchor: anchorText, count: 1, sourcePageUrl: srcPage.pageUrl });
+          destPage.crawlData.internalLinkCount = (destPage.crawlData.internalLinkCount || 0) + 1;
         }
       }
     });
@@ -949,8 +955,12 @@ const getRelativeUrl = (url, siteUrl) => {
     const hasExtension = /\.[a-z0-9]+$/i.test(rel);
     if (!hasExtension) {
       rel = rel.replace(/\/+$/, "");
-      if (!rel.startsWith("/")) rel = "/" + rel;
-      rel = rel + "/";
+      if (rel === "") {
+        rel = "/";
+      } else {
+        if (!rel.startsWith("/")) rel = "/" + rel;
+        rel = rel + "/";
+      }
     } else {
       if (!rel.startsWith("/")) rel = "/" + rel;
     }
@@ -1808,7 +1818,17 @@ export default function App() {
       const prevPages = pagesData[siteId] || [];
       const syncedUrls = new Set();
 
-      const formattedPages = parsedRecords.map(record => {
+      const uniqueRecords = [];
+      const seenUrls = new Set();
+      parsedRecords.forEach(record => {
+        const pageUrl = getRelativeUrl(record.url, cleanUrl);
+        if (!seenUrls.has(pageUrl)) {
+          seenUrls.add(pageUrl);
+          uniqueRecords.push(record);
+        }
+      });
+
+      const formattedPages = uniqueRecords.map(record => {
         const pageUrl = getRelativeUrl(record.url, cleanUrl);
         syncedUrls.add(pageUrl);
 
@@ -1823,6 +1843,12 @@ export default function App() {
           }
         }
 
+        let pageType = assignedType || getPageAuditorAssignedType(pageUrl);
+        if (pageUrl === "/") {
+          pageType = "Hub";
+        }
+        const pagePriority = getPriorityFromAssignedType(pageType);
+
         const existingPage = platform === "Magento"
           ? prevPages.find(p => p.wpPostId === record.id)
           : prevPages.find(p => p.pageUrl === pageUrl);
@@ -1832,7 +1858,8 @@ export default function App() {
             wpPostId: record.id,
             pageTitle: record.title,
             lastModifiedDate: record.modifiedAt,
-            assignedType: existingPage.assignedType || assignedType || getPageAuditorAssignedType(pageUrl),
+            assignedType: pageType,
+            priority: pagePriority,
             crawlData: {
               ...existingPage.crawlData,
               wpPostId: record.id,
@@ -1849,7 +1876,8 @@ export default function App() {
             pageTitle: record.title,
             targetPhrase: record.focusKeywords?.[0] || "",
             parentPage: record.parent ? String(record.parent) : "/",
-            assignedType: assignedType || getPageAuditorAssignedType(pageUrl),
+            assignedType: pageType,
+            priority: pagePriority,
             status: "Unconfigured",
             lastModifiedDate: record.modifiedAt,
             crawlData: {
@@ -6487,41 +6515,30 @@ export default function App() {
                                                 const norm = anchorText.toLowerCase().trim();
                                                 if (!norm) return;
                                                 
-                                                const count = item.count || 1;
-                                                for (let c = 0; c < count; c++) {
-                                                  let linkType = "Contextual";
-                                                  if (norm === "home" || norm === "homepage" || norm === "navigation") {
-                                                    linkType = "Navigation";
-                                                  } else if (norm === "contact" || norm === "about" || norm === "gallery") {
-                                                    linkType = "Navigation";
-                                                  } else if (c % 5 === 1) {
-                                                    linkType = "Footer";
-                                                  } else if (c % 5 === 2) {
-                                                    linkType = "Sidebar";
-                                                  } else if (c % 5 === 3) {
-                                                    linkType = "Breadcrumb";
-                                                  } else if (c % 5 === 4) {
-                                                    linkType = "Related Content";
+                                                let linkType = "Contextual";
+                                                if (norm === "home" || norm === "homepage" || norm === "navigation") {
+                                                  linkType = "Navigation";
+                                                } else if (norm === "contact" || norm === "about" || norm === "gallery") {
+                                                  linkType = "Navigation";
+                                                }
+                                                
+                                                if (linkType === "Contextual") {
+                                                  let sourcePage = null;
+                                                  if (item.sourcePageUrl) {
+                                                    sourcePage = sortedPages.find(p => p.pageUrl === item.sourcePageUrl);
                                                   }
-                                                  
-                                                  if (linkType === "Contextual") {
-                                                    let sourcePage = null;
-                                                    if (item.sourcePageUrl) {
-                                                      sourcePage = configuredPagesList.find(p => p.pageUrl === item.sourcePageUrl);
-                                                    }
-                                                    if (!sourcePage) {
-                                                      sourcePage = potentialSources[sourceIndex % potentialSources.length];
-                                                      sourceIndex++;
-                                                    }
+                                                  if (!sourcePage) {
+                                                    sourcePage = potentialSources[sourceIndex % potentialSources.length];
+                                                    sourceIndex++;
+                                                  }
 
-                                                    existingLinks.push({
-                                                      anchor: anchorText,
-                                                      type: linkType,
-                                                      sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
-                                                      sourceUrl: sourcePage ? sourcePage.pageUrl : "/",
-                                                      sourcePageObj: sourcePage
-                                                    });
-                                                  }
+                                                  existingLinks.push({
+                                                    anchor: anchorText,
+                                                    type: linkType,
+                                                    sourceTitle: sourcePage ? sourcePage.pageTitle : "Unknown Source",
+                                                    sourceUrl: sourcePage ? sourcePage.pageUrl : "/",
+                                                    sourcePageObj: sourcePage
+                                                  });
                                                 }
                                               });
                                             }
@@ -7047,32 +7064,22 @@ export default function App() {
                                           let sourceIndex = 0;
 
                                           if (linkCheck.incomingAnchors) {
-                                            linkCheck.incomingAnchors.forEach(item => {
-                                              const anchorText = item.anchorText || item.anchor || "";
-                                              const norm = anchorText.toLowerCase().trim();
-                                              if (!norm) return;
-                                              
-                                              const count = item.count || 1;
-                                              for (let c = 0; c < count; c++) {
+                                              linkCheck.incomingAnchors.forEach(item => {
+                                                const anchorText = item.anchorText || item.anchor || "";
+                                                const norm = anchorText.toLowerCase().trim();
+                                                if (!norm) return;
+                                                
                                                 let linkType = "Contextual";
                                                 if (norm === "home" || norm === "homepage" || norm === "navigation") {
                                                   linkType = "Navigation";
                                                 } else if (norm === "contact" || norm === "about" || norm === "gallery") {
                                                   linkType = "Navigation";
-                                                } else if (c % 5 === 1) {
-                                                  linkType = "Footer";
-                                                } else if (c % 5 === 2) {
-                                                  linkType = "Sidebar";
-                                                } else if (c % 5 === 3) {
-                                                  linkType = "Breadcrumb";
-                                                } else if (c % 5 === 4) {
-                                                  linkType = "Related Content";
                                                 }
                                                 
                                                 if (linkType === "Contextual") {
                                                   let sourcePage = null;
                                                   if (item.sourcePageUrl) {
-                                                    sourcePage = configuredPagesList.find(p => p.pageUrl === item.sourcePageUrl);
+                                                    sourcePage = sortedPages.find(p => p.pageUrl === item.sourcePageUrl);
                                                   }
                                                   if (!sourcePage) {
                                                     sourcePage = potentialSources[sourceIndex % potentialSources.length];
@@ -7087,9 +7094,8 @@ export default function App() {
                                                     sourcePageObj: sourcePage
                                                   });
                                                 }
-                                              }
-                                            });
-                                          }
+                                              });
+                                            }
 
                                           return (
                                             <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '1.5rem', marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem', textAlign: 'left' }}>
