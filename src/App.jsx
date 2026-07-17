@@ -7019,8 +7019,9 @@ export default function App() {
                                             {(() => {
                                               const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
                                               const recs = [];
-                                              for (let i = 0; i < needed; i++) {
-                                                const srcPage = sources[i % sources.length];
+                                              const limit = Math.min(needed, sources.length);
+                                              for (let i = 0; i < limit; i++) {
+                                                const srcPage = sources[i];
                                                 recs.push({
                                                   recommendedAnchor: getAnchorVariation(page.targetPhrase, srcPage, page, i),
                                                   sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
@@ -7273,6 +7274,28 @@ export default function App() {
                                             })()}
                                           </tbody>
                                         </table>
+                                        {(() => {
+                                          const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
+                                          return sources.length < needed && (
+                                            <div style={{
+                                              marginTop: '12px',
+                                              padding: '10px 14px',
+                                              borderRadius: '6px',
+                                              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                                              border: '1px solid rgba(245, 158, 11, 0.15)',
+                                              color: '#fbbf24',
+                                              fontSize: '0.8rem',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '8px'
+                                            }}>
+                                              <AlertTriangle size={14} />
+                                              <span>
+                                                Only {sources.length} unique source page{sources.length === 1 ? '' : 's'} {sources.length === 1 ? 'is' : 'are'} currently available. Add more content or configure additional pages to increase internal linking opportunities.
+                                              </span>
+                                            </div>
+                                          );
+                                        })()}
                                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginTop: '1rem' }}>
                                           <span style={{ color: '#3b82f6', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Show more</span>
                                           <ChevronDown size={14} style={{ color: '#3b82f6' }} />
@@ -7902,8 +7925,9 @@ export default function App() {
 
                                                   const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
                                                   const recs = [];
-                                                  for (let i = 0; i < needed; i++) {
-                                                    const srcPage = sources[i % sources.length];
+                                                  const limit = Math.min(needed, sources.length);
+                                                  for (let i = 0; i < limit; i++) {
+                                                    const srcPage = sources[i];
                                                     recs.push({
                                                       recommendedAnchor: getAnchorVariation(page.targetPhrase, srcPage, page, i),
                                                       sourceTitle: srcPage ? srcPage.pageTitle : "Hub Page",
@@ -7921,7 +7945,8 @@ export default function App() {
                                                   };
 
                                                   return (
-                                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
+                                                    <>
+                                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', color: '#cbd5e1', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '6px', overflow: 'hidden' }}>
                                                       <thead>
                                                         <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                                                           <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text</th>
@@ -8165,6 +8190,29 @@ export default function App() {
                                                         })}
                                                       </tbody>
                                                     </table>
+                                                    {(() => {
+                                                      const sources = getSuggestedSources(page, configuredPagesList, linkCheck.incomingAnchors);
+                                                      return sources.length < needed && (
+                                                        <div style={{
+                                                          marginTop: '12px',
+                                                          padding: '10px 14px',
+                                                          borderRadius: '6px',
+                                                          backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                                                          border: '1px solid rgba(245, 158, 11, 0.15)',
+                                                          color: '#fbbf24',
+                                                          fontSize: '0.8rem',
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: '8px'
+                                                        }}>
+                                                          <AlertTriangle size={14} />
+                                                          <span>
+                                                            Only {sources.length} unique source page{sources.length === 1 ? '' : 's'} {sources.length === 1 ? 'is' : 'are'} currently available. Add more content or configure additional pages to increase internal linking opportunities.
+                                                          </span>
+                                                        </div>
+                                                      );
+                                                    })()}
+                                                    </>
                                                   );
                                                 })()}
                                               </div>
