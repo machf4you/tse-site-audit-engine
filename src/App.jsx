@@ -783,6 +783,9 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
     } catch (e) {
       console.error("Failed to extract plainText during rebuild:", e);
     }
+
+    if (srcPage.assignedType === "Excluded") return;
+
     const anchors = doc.querySelectorAll("a");
 
     anchors.forEach(a => {
@@ -797,6 +800,7 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
       // Find matching destination page
       const destPage = updatedPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
       if (destPage) {
+        if (destPage.assignedType === "Excluded") return;
         const normAnchor = anchorText.toLowerCase();
         const existingAnchor = destPage.crawlData.incomingAnchors.find(a => 
           (a.anchorText || a.anchor || "").toLowerCase().trim() === normAnchor &&
