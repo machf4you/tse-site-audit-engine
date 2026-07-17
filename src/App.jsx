@@ -7337,9 +7337,6 @@ export default function App() {
                                                                </td>
                                                                <td style={{ padding: '10px 14px', color: '#cbd5e1', fontWeight: 600 }}>
                                                                  {link.anchor}
-                                                                 <span style={{ fontSize: '0.7rem', padding: '1px 5px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", marginLeft: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                                                   {link.type}
-                                                                 </span>
                                                                </td>
                                                                <td style={{ padding: '10px 14px', color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.75rem' }} title={contextText}>
                                                                  {contextText}
