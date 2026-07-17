@@ -790,9 +790,33 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
 
     if (srcPage.assignedType === "Excluded") return;
 
+    const isTemplateElement = (el) => {
+      let current = el;
+      while (current) {
+        const tagName = current.tagName ? current.tagName.toLowerCase() : '';
+        if (tagName === 'body' || tagName === 'html') {
+          break;
+        }
+        if (['header', 'nav', 'footer', 'aside'].includes(tagName)) {
+          return true;
+        }
+        const id = current.id ? current.id.toLowerCase() : '';
+        const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
+        if (
+          id.includes('header') || id.includes('footer') || id.includes('nav') || id.includes('menu') || id.includes('sidebar') ||
+          className.includes('header') || className.includes('footer') || className.includes('nav') || className.includes('menu') || className.includes('sidebar')
+        ) {
+          return true;
+        }
+        current = current.parentElement;
+      }
+      return false;
+    };
+
     const anchors = doc.querySelectorAll("a");
 
     anchors.forEach(a => {
+      if (isTemplateElement(a)) return;
       const href = a.getAttribute("href");
       if (!href) return;
 
