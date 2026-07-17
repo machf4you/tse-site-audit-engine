@@ -43,6 +43,10 @@ const getPageSEOScore = (pageOrUrl) => {
   const url = typeof pageOrUrl === 'string' ? pageOrUrl : (pageOrUrl ? pageOrUrl.pageUrl : "");
   if (!url) return 4;
   
+  if (url.includes("thank-you") || url.includes("confirmation")) {
+    return 5;
+  }
+  
   if (url === "/") return 0;
   
   if (url.includes("elementor_library") || url.includes("template") || url.includes("library")) {
