@@ -40,5 +40,11 @@
 - Matched anchor text is highlighted using a bright yellow text color (#facc15).
 - Displays context normally if anchor text is not found in the snippet.
 
+## v2.0-internal-link-engine-cta-filter
+- Implemented generic call-to-action (CTA) anchor text filtering in rebuildInternalLinksData.
+- Generic CTA anchors ("Learn More", "Read More", "Find Out More", "View More", "See More", "Discover More", "Click Here") are excluded case-insensitively.
+- Excluded CTA anchors do not contribute to link graph relationships, counts, context, or recommendation metrics.
+
+
 
 

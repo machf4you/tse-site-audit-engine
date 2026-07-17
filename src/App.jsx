@@ -727,6 +727,17 @@ async function fetchThroughProxy(url, options = {}) {
   });
 }
 
+// Excluded CTA anchors for the internal link engine
+const EXCLUDED_CTA_ANCHORS = [
+  "learn more",
+  "read more",
+  "find out more",
+  "view more",
+  "see more",
+  "discover more",
+  "click here"
+];
+
 const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
   // 1. Initialize link fields to 0/empty for all pages
   const updatedPages = finalPages.map(p => {
@@ -833,6 +844,9 @@ const rebuildInternalLinksData = async (finalPages, site, cleanUrl, siteId) => {
       const anchorText = a.textContent.replace(/<[^>]*>/g, "").trim();
       
       if (!anchorText) return;
+
+      const normAnchor = anchorText.toLowerCase().trim();
+      if (EXCLUDED_CTA_ANCHORS.includes(normAnchor)) return;
 
       // Find matching destination page
       const destPage = updatedPages.find(p => getRelativeUrl(p.pageUrl, cleanUrl) === getRelativeUrl(relativeHref, cleanUrl));
