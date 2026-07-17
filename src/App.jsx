@@ -6578,6 +6578,75 @@ export default function App() {
                                                                                              
 
 
+                                                                                             const isTemplateElement = (el) => {
+
+
+                                                                                               let current = el;
+
+
+                                                                                               while (current) {
+
+
+                                                                                                 const tagName = current.tagName ? current.tagName.toLowerCase() : '';
+
+
+                                                                                                 if (tagName === 'body' || tagName === 'html') {
+
+
+                                                                                                   break;
+
+
+                                                                                                 }
+
+
+                                                                                                 if (['header', 'nav', 'footer', 'aside'].includes(tagName)) {
+
+
+                                                                                                   return true;
+
+
+                                                                                                 }
+
+
+                                                                                                 const id = current.id ? current.id.toLowerCase() : '';
+
+
+                                                                                                 const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
+
+
+                                                                                                 if (
+
+
+                                                                                                   id.includes('header') || id.includes('footer') || id.includes('nav') || id.includes('menu') || id.includes('sidebar') ||
+
+
+                                                                                                   className.includes('header') || className.includes('footer') || className.includes('nav') || className.includes('menu') || className.includes('sidebar')
+
+
+                                                                                                 ) {
+
+
+                                                                                                   return true;
+
+
+                                                                                                 }
+
+
+                                                                                                 current = current.parentElement;
+
+
+                                                                                               }
+
+
+                                                                                               return false;
+
+
+                                                                                             };
+
+
+                                                                                             
+
+
                                                                                              let targetAnchor = null;
 
 
@@ -6594,6 +6663,9 @@ export default function App() {
 
 
                                                                                                const a = anchors[i];
+
+
+                                                                                               if (isTemplateElement(a)) continue;
 
 
                                                                                                const href = a.getAttribute("href");
@@ -7477,6 +7549,52 @@ export default function App() {
 
                                                                                                                       
 
+                                                                                                                      const isTemplateElement = (el) => {
+
+                                                                                                                        let current = el;
+
+                                                                                                                        while (current) {
+
+                                                                                                                          const tagName = current.tagName ? current.tagName.toLowerCase() : '';
+
+                                                                                                                          if (tagName === 'body' || tagName === 'html') {
+
+                                                                                                                            break;
+
+                                                                                                                          }
+
+                                                                                                                          if (['header', 'nav', 'footer', 'aside'].includes(tagName)) {
+
+                                                                                                                            return true;
+
+                                                                                                                          }
+
+                                                                                                                          const id = current.id ? current.id.toLowerCase() : '';
+
+                                                                                                                          const className = typeof current.className === 'string' ? current.className.toLowerCase() : '';
+
+                                                                                                                          if (
+
+                                                                                                                            id.includes('header') || id.includes('footer') || id.includes('nav') || id.includes('menu') || id.includes('sidebar') ||
+
+                                                                                                                            className.includes('header') || className.includes('footer') || className.includes('nav') || className.includes('menu') || className.includes('sidebar')
+
+                                                                                                                          ) {
+
+                                                                                                                            return true;
+
+                                                                                                                          }
+
+                                                                                                                          current = current.parentElement;
+
+                                                                                                                        }
+
+                                                                                                                        return false;
+
+                                                                                                                      };
+
+                                                                                                                      
+
                                                                                                                       let targetAnchor = null;
 
                                                                                                                       const destRel = getRelativeUrl(page.pageUrl, selectedSite.url);
@@ -7488,6 +7606,8 @@ export default function App() {
                                                                                                                       for (let i = 0; i < anchors.length; i++) {
 
                                                                                                                         const a = anchors[i];
+
+                                                                                                                        if (isTemplateElement(a)) continue;
 
                                                                                                                         const href = a.getAttribute("href");
 
