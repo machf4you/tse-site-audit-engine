@@ -1011,6 +1011,32 @@ const getRelativeUrl = (url, siteUrl) => {
   return rel;
 };
 
+const renderHighlightedContext = (contextText, anchorText) => {
+  if (!contextText || !anchorText) return contextText;
+  
+  const lowerContext = contextText.toLowerCase();
+  const lowerAnchor = anchorText.toLowerCase().trim();
+  
+  if (!lowerAnchor) return contextText;
+  
+  const idx = lowerContext.indexOf(lowerAnchor);
+  if (idx === -1) {
+    return contextText;
+  }
+  
+  const before = contextText.slice(0, idx);
+  const matched = contextText.slice(idx, idx + anchorText.length);
+  const after = contextText.slice(idx + anchorText.length);
+  
+  return (
+    <>
+      {before}
+      <span style={{ color: '#facc15', fontWeight: 'bold' }}>{matched}</span>
+      {after}
+    </>
+  );
+};
+
 const makeHtmlSentence = (sentence, anchorText, absoluteDestUrl) => {
   if (!sentence || !anchorText) return sentence;
   const escapedAnchor = anchorText.replace(/[-\/\\^$\*+?.()|[\]{}]/g, '\\$&');
@@ -6913,7 +6939,7 @@ export default function App() {
                                                     {link.anchor}
                                                   </td>
                                                   <td style={{ padding: '12px 14px', color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.8rem' }} title={contextText}>
-                                                    {contextText}
+                                                    {renderHighlightedContext(contextText, link.anchor)}
                                                   </td>
                                                   <td style={{ padding: '12px 14px' }}>
                                                     <span style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", border: '1px solid rgba(16, 185, 129, 0.2)' }}>
@@ -7822,7 +7848,7 @@ export default function App() {
                                                                  {link.anchor}
                                                                </td>
                                                                <td style={{ padding: '10px 14px', color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.75rem' }} title={contextText}>
-                                                                 {contextText}
+                                                                 {renderHighlightedContext(contextText, link.anchor)}
                                                                </td>
                                                                <td style={{ padding: '10px 14px', fontFamily: 'monospace', color: '#94a3b8' }}>
                                                                  {page.pageUrl}

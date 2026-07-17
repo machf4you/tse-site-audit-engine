@@ -35,4 +35,10 @@
 - Implemented selector priority logic (.entry-content, .post-content, .elementor-widget-theme-post-content, article, main, body > div.elementor) and candidate scoring (based on text length and paragraph count) to select the primary content container.
 - Verified link engine successfully limits graph construction to editorial/content links.
 
+## v1.9-internal-link-engine-highlight-context
+- Implemented case-insensitive anchor text highlighting in Link Context display.
+- Matched anchor text is highlighted using a bright yellow text color (#facc15).
+- Displays context normally if anchor text is not found in the snippet.
+
+
 
