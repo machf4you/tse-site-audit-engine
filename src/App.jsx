@@ -6552,41 +6552,213 @@ export default function App() {
                                             }
 
                                                                                          const getLinkContext = (sourcePage, anchorText) => {
-                                               if (!sourcePage || !sourcePage.crawlData) {
-                                                 return "Context not available";
-                                               }
-                                               let plainText = sourcePage.crawlData.plainText;
-                                               if (!plainText && sourcePage.crawlData.htmlSnapshot) {
-                                                 try {
-                                                   const parser = new DOMParser();
-                                                   const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
-                                                   const scripts = doc.querySelectorAll("script, style");
-                                                   scripts.forEach(s => s.remove());
-                                                   plainText = (doc.body ? doc.body.textContent : doc.textContent).replace(/\s+/g, ' ').trim();
-                                                   sourcePage.crawlData.plainText = plainText;
-                                                 } catch (e) {
-                                                   console.error("Failed to extract plainText on-the-fly:", e);
-                                                 }
-                                               }
-                                               if (!plainText) {
-                                                 return "Context not available";
-                                               }
-                                               const lowerText = plainText.toLowerCase();
-                                               const lowerAnchor = (anchorText || "").toLowerCase().trim();
-                                               if (!lowerAnchor) return "Context not available";
-                                               
-                                               const idx = lowerText.indexOf(lowerAnchor);
-                                               if (idx === -1) {
-                                                 return "Context not found";
-                                               }
-                                               
-                                               const start = Math.max(0, idx - 45);
-                                               const end = Math.min(plainText.length, idx + anchorText.length + 45);
-                                               let snippet = plainText.slice(start, end);
-                                               if (start > 0) snippet = "..." + snippet;
-                                               if (end < plainText.length) snippet = snippet + "...";
-                                               return snippet;
-                                             };
+
+
+                                                                                           if (!sourcePage || !sourcePage.crawlData || !sourcePage.crawlData.htmlSnapshot) {
+
+
+                                                                                             return "Context not available";
+
+
+                                                                                           }
+
+
+                                                                                           try {
+
+
+                                                                                             const parser = new DOMParser();
+
+
+                                                                                             const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
+
+
+                                                                                             const anchors = doc.querySelectorAll("a");
+
+
+                                                                                             
+
+
+                                                                                             let targetAnchor = null;
+
+
+                                                                                             const destRel = getRelativeUrl(page.pageUrl, selectedSite.url);
+
+
+                                                                                             const cleanAnchor = (anchorText || "").toLowerCase().trim();
+
+
+                                                                                             
+
+
+                                                                                             for (let i = 0; i < anchors.length; i++) {
+
+
+                                                                                               const a = anchors[i];
+
+
+                                                                                               const href = a.getAttribute("href");
+
+
+                                                                                               if (!href) continue;
+
+
+                                                                                               const hrefRel = getRelativeUrl(href, selectedSite.url);
+
+
+                                                                                               if (hrefRel === destRel && a.textContent.replace(/<[^>]*>/g, "").trim().toLowerCase() === cleanAnchor) {
+
+
+                                                                                                 targetAnchor = a;
+
+
+                                                                                                 break;
+
+
+                                                                                               }
+
+
+                                                                                             }
+
+
+                                                                                             
+
+
+                                                                                             if (!targetAnchor) {
+
+
+                                                                                               return "Context not found";
+
+
+                                                                                             }
+
+
+                                                                                             
+
+
+                                                                                             let textBefore = "";
+
+
+                                                                                             let textAfter = "";
+
+
+                                                                                             
+
+
+                                                                                             let prev = targetAnchor.previousSibling;
+
+
+                                                                                             while (prev && textBefore.length < 50) {
+
+
+                                                                                               textBefore = (prev.textContent || "") + textBefore;
+
+
+                                                                                               prev = prev.previousSibling;
+
+
+                                                                                             }
+
+
+                                                                                             if (textBefore.length < 50 && targetAnchor.parentElement) {
+
+
+                                                                                               let parentPrev = targetAnchor.parentElement.previousSibling;
+
+
+                                                                                               while (parentPrev && textBefore.length < 50) {
+
+
+                                                                                                 textBefore = (parentPrev.textContent || "") + textBefore;
+
+
+                                                                                                 parentPrev = parentPrev.previousSibling;
+
+
+                                                                                               }
+
+
+                                                                                             }
+
+
+                                                                                             
+
+
+                                                                                             let next = targetAnchor.nextSibling;
+
+
+                                                                                             while (next && textAfter.length < 50) {
+
+
+                                                                                               textAfter = textAfter + (next.textContent || "");
+
+
+                                                                                               next = next.nextSibling;
+
+
+                                                                                             }
+
+
+                                                                                             if (textAfter.length < 50 && targetAnchor.parentElement) {
+
+
+                                                                                               let parentNext = targetAnchor.parentElement.nextSibling;
+
+
+                                                                                               while (parentNext && textAfter.length < 50) {
+
+
+                                                                                                 textAfter = textAfter + (parentNext.textContent || "");
+
+
+                                                                                                 parentNext = parentNext.nextSibling;
+
+
+                                                                                               }
+
+
+                                                                                             }
+
+
+                                                                                             
+
+
+                                                                                             textBefore = textBefore.replace(/\s+/g, ' ');
+
+
+                                                                                             textAfter = textAfter.replace(/\s+/g, ' ');
+
+
+                                                                                             
+
+
+                                                                                             const slicedBefore = textBefore.slice(-45);
+
+
+                                                                                             const slicedAfter = textAfter.slice(0, 45);
+
+
+                                                                                             
+
+
+                                                                                             let snippet = (slicedBefore ? "..." : "") + slicedBefore + targetAnchor.textContent.trim() + slicedAfter + (slicedAfter ? "..." : "");
+
+
+                                                                                             return snippet.replace(/\s+/g, ' ').trim();
+
+
+                                                                                           } catch (e) {
+
+
+                                                                                             console.error("Failed to extract hyperlink context:", e);
+
+
+                                                                                             return "Context not available";
+
+
+                                                                                           }
+
+
+                                                                                         };
                                              // legacy declaration replacement dummy;
 
                                             return existingLinks.map((link, lIdx) => {
@@ -7288,41 +7460,144 @@ export default function App() {
                                                      <tbody>
                                                        {(() => {
                                                                                                                   const getLinkContext = (sourcePage, anchorText) => {
-                                                           if (!sourcePage || !sourcePage.crawlData) {
-                                                             return "Context not available";
-                                                           }
-                                                           let plainText = sourcePage.crawlData.plainText;
-                                                           if (!plainText && sourcePage.crawlData.htmlSnapshot) {
-                                                             try {
-                                                               const parser = new DOMParser();
-                                                               const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
-                                                               const scripts = doc.querySelectorAll("script, style");
-                                                               scripts.forEach(s => s.remove());
-                                                               plainText = (doc.body ? doc.body.textContent : doc.textContent).replace(/\s+/g, ' ').trim();
-                                                               sourcePage.crawlData.plainText = plainText;
-                                                             } catch (e) {
-                                                               console.error("Failed to extract plainText on-the-fly:", e);
-                                                             }
-                                                           }
-                                                           if (!plainText) {
-                                                             return "Context not available";
-                                                           }
-                                                           const lowerText = plainText.toLowerCase();
-                                                           const lowerAnchor = (anchorText || "").toLowerCase().trim();
-                                                           if (!lowerAnchor) return "Context not available";
-                                                           
-                                                           const idx = lowerText.indexOf(lowerAnchor);
-                                                           if (idx === -1) {
-                                                             return "Context not found";
-                                                           }
-                                                           
-                                                           const start = Math.max(0, idx - 45);
-                                                           const end = Math.min(plainText.length, idx + anchorText.length + 45);
-                                                           let snippet = plainText.slice(start, end);
-                                                           if (start > 0) snippet = "..." + snippet;
-                                                           if (end < plainText.length) snippet = snippet + "...";
-                                                           return snippet;
-                                                         };
+
+                                                                                                                    if (!sourcePage || !sourcePage.crawlData || !sourcePage.crawlData.htmlSnapshot) {
+
+                                                                                                                      return "Context not available";
+
+                                                                                                                    }
+
+                                                                                                                    try {
+
+                                                                                                                      const parser = new DOMParser();
+
+                                                                                                                      const doc = parser.parseFromString(sourcePage.crawlData.htmlSnapshot, "text/html");
+
+                                                                                                                      const anchors = doc.querySelectorAll("a");
+
+                                                                                                                      
+
+                                                                                                                      let targetAnchor = null;
+
+                                                                                                                      const destRel = getRelativeUrl(page.pageUrl, selectedSite.url);
+
+                                                                                                                      const cleanAnchor = (anchorText || "").toLowerCase().trim();
+
+                                                                                                                      
+
+                                                                                                                      for (let i = 0; i < anchors.length; i++) {
+
+                                                                                                                        const a = anchors[i];
+
+                                                                                                                        const href = a.getAttribute("href");
+
+                                                                                                                        if (!href) continue;
+
+                                                                                                                        const hrefRel = getRelativeUrl(href, selectedSite.url);
+
+                                                                                                                        if (hrefRel === destRel && a.textContent.replace(/<[^>]*>/g, "").trim().toLowerCase() === cleanAnchor) {
+
+                                                                                                                          targetAnchor = a;
+
+                                                                                                                          break;
+
+                                                                                                                        }
+
+                                                                                                                      }
+
+                                                                                                                      
+
+                                                                                                                      if (!targetAnchor) {
+
+                                                                                                                        return "Context not found";
+
+                                                                                                                      }
+
+                                                                                                                      
+
+                                                                                                                      let textBefore = "";
+
+                                                                                                                      let textAfter = "";
+
+                                                                                                                      
+
+                                                                                                                      let prev = targetAnchor.previousSibling;
+
+                                                                                                                      while (prev && textBefore.length < 50) {
+
+                                                                                                                        textBefore = (prev.textContent || "") + textBefore;
+
+                                                                                                                        prev = prev.previousSibling;
+
+                                                                                                                      }
+
+                                                                                                                      if (textBefore.length < 50 && targetAnchor.parentElement) {
+
+                                                                                                                        let parentPrev = targetAnchor.parentElement.previousSibling;
+
+                                                                                                                        while (parentPrev && textBefore.length < 50) {
+
+                                                                                                                          textBefore = (parentPrev.textContent || "") + textBefore;
+
+                                                                                                                          parentPrev = parentPrev.previousSibling;
+
+                                                                                                                        }
+
+                                                                                                                      }
+
+                                                                                                                      
+
+                                                                                                                      let next = targetAnchor.nextSibling;
+
+                                                                                                                      while (next && textAfter.length < 50) {
+
+                                                                                                                        textAfter = textAfter + (next.textContent || "");
+
+                                                                                                                        next = next.nextSibling;
+
+                                                                                                                      }
+
+                                                                                                                      if (textAfter.length < 50 && targetAnchor.parentElement) {
+
+                                                                                                                        let parentNext = targetAnchor.parentElement.nextSibling;
+
+                                                                                                                        while (parentNext && textAfter.length < 50) {
+
+                                                                                                                          textAfter = textAfter + (parentNext.textContent || "");
+
+                                                                                                                          parentNext = parentNext.nextSibling;
+
+                                                                                                                        }
+
+                                                                                                                      }
+
+                                                                                                                      
+
+                                                                                                                      textBefore = textBefore.replace(/\s+/g, ' ');
+
+                                                                                                                      textAfter = textAfter.replace(/\s+/g, ' ');
+
+                                                                                                                      
+
+                                                                                                                      const slicedBefore = textBefore.slice(-45);
+
+                                                                                                                      const slicedAfter = textAfter.slice(0, 45);
+
+                                                                                                                      
+
+                                                                                                                      let snippet = (slicedBefore ? "..." : "") + slicedBefore + targetAnchor.textContent.trim() + slicedAfter + (slicedAfter ? "..." : "");
+
+                                                                                                                      return snippet.replace(/\s+/g, ' ').trim();
+
+                                                                                                                    } catch (e) {
+
+                                                                                                                      console.error("Failed to extract hyperlink context:", e);
+
+                                                                                                                      return "Context not available";
+
+                                                                                                                    }
+
+                                                                                                                  };
                                                          // legacy declaration replacement dummy;
 
                                                          return existingLinks.map((link, lIdx) => {
