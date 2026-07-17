@@ -6506,7 +6506,7 @@ export default function App() {
                                           <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                                             <th style={{ padding: '10px 14px', width: '20%' }}>Source Page Title</th>
                                             <th style={{ padding: '10px 14px', width: '20%' }}>Source Page URL</th>
-                                            <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text</th>
+                                            <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text (Contextual)</th>
                                             <th style={{ padding: '10px 14px', width: '30%' }}>Link Context</th>
                                             <th style={{ padding: '10px 14px', width: '10%' }}>Type</th>
                                           </tr>
@@ -7280,7 +7280,7 @@ export default function App() {
                                                        <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'left', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                                                          <th style={{ padding: '10px 14px', width: '20%' }}>Source Page Title</th>
                                                          <th style={{ padding: '10px 14px', width: '20%' }}>Source Page URL</th>
-                                                         <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text</th>
+                                                         <th style={{ padding: '10px 14px', width: '20%' }}>Anchor Text (Contextual)</th>
                                                          <th style={{ padding: '10px 14px', width: '25%' }}>Link Context</th>
                                                          <th style={{ padding: '10px 14px', width: '15%' }}>Destination URL</th>
                                                        </tr>
