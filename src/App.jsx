@@ -1521,7 +1521,6 @@ export default function App() {
   const [extDateAdded, setExtDateAdded] = useState("");
   const [extLastChecked, setExtLastChecked] = useState("Never");
   const [extNotes, setExtNotes] = useState("");
-  const [isCheckingIndexing, setIsCheckingIndexing] = useState(false);
   
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
   const selectedSite = selectedSiteRaw ? {
@@ -1843,141 +1842,6 @@ export default function App() {
       showNotification("External link deleted successfully!");
       setIsExternalLinkModalOpen(false);
     }
-  };
-
-  const handleCheckIndexingStatus = async () => {
-    const site = sites.find(s => s.id === selectedSiteId);
-    if (!site) return;
-
-    const currentLinks = site.externalLinks || [];
-    if (currentLinks.length === 0) {
-      showNotification("No external links to check.");
-      return;
-    }
-
-    setIsCheckingIndexing(true);
-    showNotification("Contacting IndexChecker API...");
-
-    try {
-      const sourceUrls = currentLinks.map(l => l.sourceUrl);
-      const projectId = site.indexCheckerProjectId;
-
-      let targetProjectId = projectId;
-      let needsSync = !projectId;
-
-      // 1. If project exists, check details first to verify if it contains all URLs
-      if (projectId) {
-        try {
-          const detailsRes = await fetch(`/api/index-checker/details?projectId=${projectId}`);
-          if (detailsRes.status === 404) {
-            needsSync = true;
-          } else if (!detailsRes.ok) {
-            const errData = await detailsRes.json();
-            throw new Error(errData.error || "Failed to fetch project details.");
-          } else {
-            const details = await detailsRes.json();
-            const projectUrls = new Set((details.urls || []).map(u => u.url.toLowerCase()));
-            
-            // Check if any local URLs are missing from the IndexChecker project
-            const hasMissingUrls = sourceUrls.some(url => !projectUrls.has(url.toLowerCase()));
-            if (hasMissingUrls) {
-              needsSync = true;
-            } else {
-              // Map the results back to external links
-              mapIndexCheckerResults(details.urls || []);
-              showNotification("Indexing status updated successfully!");
-              setIsCheckingIndexing(false);
-              return;
-            }
-          }
-        } catch (err) {
-          console.warn("[IndexChecker] Details check failed, falling back to sync:", err.message);
-          needsSync = true;
-        }
-      }
-
-      // 2. If no project exists or details check indicated sync is needed
-      if (needsSync) {
-        showNotification("Syncing external links project with IndexChecker...");
-        const syncRes = await fetch('/api/index-checker/sync', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            siteId: site.id,
-            siteName: site.name,
-            urls: sourceUrls,
-            existingProjectId: projectId
-          })
-        });
-
-        if (!syncRes.ok) {
-          const errData = await syncRes.json();
-          throw new Error(errData.error || "Failed to sync project with IndexChecker.");
-        }
-
-        const syncData = await syncRes.json();
-        targetProjectId = syncData.projectId;
-
-        // Save new project ID to the website object in global state
-        setSites(prevSites => prevSites.map(s => {
-          if (s.id === selectedSiteId) {
-            return { ...s, indexCheckerProjectId: targetProjectId };
-          }
-          return s;
-        }));
-
-        showNotification("Indexing project created. Please wait for IndexChecker to queue URLs.");
-        
-        // Wait a small delay and pull project details
-        setTimeout(async () => {
-          try {
-            const detailsRes = await fetch(`/api/index-checker/details?projectId=${targetProjectId}`);
-            if (detailsRes.ok) {
-              const details = await detailsRes.json();
-              mapIndexCheckerResults(details.urls || []);
-              showNotification("Indexing status retrieved!");
-            }
-          } catch (err) {
-            console.error("Failed to retrieve details after sync:", err);
-          } finally {
-            setIsCheckingIndexing(false);
-          }
-        }, 3000);
-      }
-    } catch (error) {
-      console.error("[IndexChecker] Error checking indexing status:", error);
-      showNotification(`Indexing check failed: ${error.message}`);
-      setIsCheckingIndexing(false);
-    }
-  };
-
-  const mapIndexCheckerResults = (apiUrls) => {
-    const apiMap = new Map();
-    apiUrls.forEach(item => {
-      apiMap.set(item.url.toLowerCase(), item);
-    });
-
-    setSites(prevSites => prevSites.map(s => {
-      if (s.id === selectedSiteId) {
-        const currentLinks = s.externalLinks || [];
-        const updatedLinks = currentLinks.map(l => {
-          const match = apiMap.get(l.sourceUrl.toLowerCase());
-          if (match) {
-            return {
-              ...l,
-              indexed: match.indexed || l.indexed,
-              lastChecked: match.last_checked || l.lastChecked,
-              notes: match.error_msg ? `[IndexChecker Error] ${match.error_msg}` : (l.notes || "")
-            };
-          }
-          return l;
-        });
-        return { ...s, externalLinks: updatedLinks };
-      }
-      return s;
-    }));
   };
 
   const starterPackUrls = [
@@ -9509,14 +9373,6 @@ export default function App() {
                                       style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
                                     >
                                       📥 Import Starter Pack
-                                    </button>
-                                    <button
-                                      className="btn-secondary"
-                                      onClick={handleCheckIndexingStatus}
-                                      disabled={isCheckingIndexing}
-                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
-                                    >
-                                      {isCheckingIndexing ? "🔍 Checking..." : "🔍 Check Indexing Status"}
                                     </button>
                                     <button
                                       className="btn-primary"
