@@ -1792,6 +1792,7 @@ export default function App() {
       if (s.id === selectedSiteId) {
         const currentLinks = s.externalLinks || [];
         let updatedLinks;
+        const currentDate = new Date().toISOString().split('T')[0];
         if (editingExternalLinkId) {
           updatedLinks = currentLinks.map(l => l.id === editingExternalLinkId ? {
             ...l,
@@ -1801,7 +1802,7 @@ export default function App() {
             linkType: extLinkType,
             status: extStatus,
             indexed: extIndexed,
-            dateAdded: extDateAdded,
+            dateAdded: extDateAdded || currentDate,
             lastChecked: extLastChecked,
             notes: extNotes.trim()
           } : l);
@@ -1814,7 +1815,7 @@ export default function App() {
             linkType: extLinkType,
             status: extStatus,
             indexed: extIndexed,
-            dateAdded: new Date().toISOString().split('T')[0],
+            dateAdded: extDateAdded || currentDate,
             lastChecked: extLastChecked,
             notes: extNotes.trim()
           };
