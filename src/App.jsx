@@ -1784,7 +1784,7 @@ export default function App() {
 
   const handleSaveExternalLink = () => {
     if (!extLinkName.trim() || !extSourceUrl.trim() || !extTargetUrl.trim()) {
-      alert("Link Name, Source URL, and Target URL are required!");
+      alert("Link Name, Source URL, and Published URL are required!");
       return;
     }
 
@@ -1814,7 +1814,7 @@ export default function App() {
             linkType: extLinkType,
             status: extStatus,
             indexed: extIndexed,
-            dateAdded: extDateAdded,
+            dateAdded: new Date().toISOString().split('T')[0],
             lastChecked: extLastChecked,
             notes: extNotes.trim()
           };
@@ -1839,6 +1839,7 @@ export default function App() {
         return s;
       }));
       showNotification("External link deleted successfully!");
+      setIsExternalLinkModalOpen(false);
     }
   };
 
@@ -1898,7 +1899,7 @@ export default function App() {
               linkType: "Starter Pack",
               status: "Pending",
               indexed: "Unknown",
-              dateAdded: "",
+              dateAdded: new Date().toISOString().split('T')[0],
               lastChecked: "",
               notes: ""
             });
@@ -1910,7 +1911,7 @@ export default function App() {
           return s;
         }
 
-        const updatedLinks = [...currentLinks, ...newLinksToAdd];
+        const updatedLinks = [...currentLinks, ...newLinksToAdd].sort((a, b) => a.linkName.localeCompare(b.linkName));
         showNotification(`Imported ${newLinksToAdd.length} starter backlink(s)!`);
         return { ...s, externalLinks: updatedLinks };
       }
@@ -9411,14 +9412,18 @@ export default function App() {
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {externalLinks.length === 0 ? (
-                                          <tr>
-                                            <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                              No external links found. Click "+ Add External Link" to begin tracking.
-                                            </td>
-                                          </tr>
-                                        ) : (
-                                          externalLinks.map((link) => (
+                                        {(() => {
+                                          const sortedLinks = [...externalLinks].sort((a, b) => a.linkName.localeCompare(b.linkName));
+                                          if (sortedLinks.length === 0) {
+                                            return (
+                                              <tr>
+                                                <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                                  No external links found. Click "+ Add External Link" to begin tracking.
+                                                </td>
+                                              </tr>
+                                            );
+                                          }
+                                          return sortedLinks.map((link) => (
                                             <tr key={link.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
                                               <td style={{ padding: '16px 20px' }}>
                                                 <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{link.linkName}</div>
@@ -9460,7 +9465,7 @@ export default function App() {
                                               <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                                 <button
                                                   className="btn-secondary site-btn-sm"
-                                                  style={{ display: 'inline-flex', width: 'auto', marginRight: '8px', padding: '4px 8px' }}
+                                                  style={{ display: 'inline-flex', width: 'auto', padding: '4px 8px' }}
                                                   onClick={() => {
                                                     setEditingExternalLinkId(link.id);
                                                     setExtLinkName(link.linkName || "");
@@ -9477,17 +9482,10 @@ export default function App() {
                                                 >
                                                   Edit
                                                 </button>
-                                                <button
-                                                  className="btn-secondary site-btn-sm"
-                                                  style={{ display: 'inline-flex', width: 'auto', padding: '4px 8px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }}
-                                                  onClick={() => handleDeleteExternalLink(site.id, link.id)}
-                                                >
-                                                  Delete
-                                                </button>
                                               </td>
                                             </tr>
-                                          ))
-                                        )}
+                                          ));
+                                        })()}
                                       </tbody>
                                     </table>
                                   </div>
@@ -12255,9 +12253,9 @@ export default function App() {
                       />
                     </div>
 
-                    {/* Target URL */}
+                    {/* Published URL */}
                     <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Target URL</label>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Published URL</label>
                       <input
                         type="text"
                         value={extTargetUrl}
@@ -12380,21 +12378,37 @@ export default function App() {
                 </div>
 
                 {/* Footer buttons */}
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setIsExternalLinkModalOpen(false)}
-                    style={{ padding: '10px 20px', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="btn-primary"
-                    onClick={handleSaveExternalLink}
-                    style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 700 }}
-                  >
-                    {editingExternalLinkId ? "Save Changes" : "Add Link"}
-                  </button>
+                <div style={{ display: 'flex', justifyContent: editingExternalLinkId ? 'space-between' : 'flex-end', gap: '1rem', alignItems: 'center' }}>
+                  {editingExternalLinkId && (
+                    <button
+                      className="btn-secondary"
+                      onClick={() => handleDeleteExternalLink(selectedSiteId, editingExternalLinkId)}
+                      style={{ 
+                        padding: '10px 20px', 
+                        cursor: 'pointer', 
+                        color: '#ef4444', 
+                        borderColor: 'rgba(239, 68, 68, 0.2)' 
+                      }}
+                    >
+                      Delete Link
+                    </button>
+                  )}
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setIsExternalLinkModalOpen(false)}
+                      style={{ padding: '10px 20px', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-primary"
+                      onClick={handleSaveExternalLink}
+                      style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 700 }}
+                    >
+                      {editingExternalLinkId ? "Save Changes" : "Add Link"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
