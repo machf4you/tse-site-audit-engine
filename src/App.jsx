@@ -9300,9 +9300,7 @@ export default function App() {
                                       <thead>
                                         <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Link Name</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Source URL</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Target URL</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Link Type</th>
+                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Published URL</th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Status</th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Indexed</th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Date Added</th>
@@ -9314,31 +9312,26 @@ export default function App() {
                                       <tbody>
                                         {externalLinks.length === 0 ? (
                                           <tr>
-                                            <td colSpan="10" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                            <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                               No external links found. Click "+ Add External Link" to begin tracking.
                                             </td>
                                           </tr>
                                         ) : (
                                           externalLinks.map((link) => (
                                             <tr key={link.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                                              <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>{link.linkName}</td>
                                               <td style={{ padding: '16px 20px' }}>
-                                                <a href={link.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'none', wordBreak: 'break-all' }}>
-                                                  {link.sourceUrl}
-                                                </a>
+                                                <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{link.linkName}</div>
+                                                <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                  <a href={link.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'none', wordBreak: 'break-all', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                    {link.sourceUrl}
+                                                    <ExternalLink size={12} />
+                                                  </a>
+                                                </div>
                                               </td>
                                               <td style={{ padding: '16px 20px' }}>
                                                 <a href={link.targetUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', wordBreak: 'break-all' }}>
                                                   {link.targetUrl}
                                                 </a>
-                                              </td>
-                                              <td style={{ padding: '16px 20px' }}>
-                                                <span style={{
-                                                  padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
-                                                  backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)'
-                                                }}>
-                                                  {link.linkType}
-                                                </span>
                                               </td>
                                               <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                                                 <span style={{
