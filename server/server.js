@@ -786,6 +786,98 @@ Requirements:
   }
 });
 
+// POST /api/index-checker/sync
+app.post('/api/index-checker/sync', async (req, res) => {
+  const { siteId, siteName, urls, existingProjectId } = req.body;
+  const apiKey = process.env.INDEX_CHECKER_API_KEY;
+
+  if (!apiKey) {
+    return res.status(400).json({ error: "IndexChecker API Key is not configured on the server environment." });
+  }
+
+  try {
+    // 1. Delete existing project if present
+    if (existingProjectId) {
+      console.log(`[IndexChecker] Deleting existing project ID: ${existingProjectId}`);
+      try {
+        const deleteParams = new URLSearchParams();
+        deleteParams.append('api_key', apiKey);
+        deleteParams.append('project_id', existingProjectId);
+        await axios.post('https://api.indexchecker.com/v1/projects/delete', deleteParams.toString(), {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+      } catch (delErr) {
+        console.warn(`[IndexChecker] Failed to delete existing project ${existingProjectId}:`, delErr.message);
+      }
+    }
+
+    // 2. Create new project with current list of source URLs
+    console.log(`[IndexChecker] Creating new project for site: ${siteName}`);
+    
+    const params = new URLSearchParams();
+    params.append('api_key', apiKey);
+    params.append('project_name', siteName);
+    (urls || []).forEach(url => {
+      params.append('urls[]', url);
+    });
+
+    const createRes = await axios.post('https://api.indexchecker.com/v1/projects/create', params.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    if (createRes.data && createRes.data.success) {
+      return res.json({
+        success: true,
+        projectId: createRes.data.project_id,
+        message: createRes.data.message
+      });
+    } else {
+      return res.status(500).json({ 
+        error: createRes.data?.message || "Failed to create IndexChecker project." 
+      });
+    }
+  } catch (error) {
+    console.error("[IndexChecker] Sync error:", error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data?.message || error.message });
+  }
+});
+
+// GET /api/index-checker/details
+app.get('/api/index-checker/details', async (req, res) => {
+  const { projectId } = req.query;
+  const apiKey = process.env.INDEX_CHECKER_API_KEY;
+
+  if (!apiKey) {
+    return res.status(400).json({ error: "IndexChecker API Key is not configured on the server environment." });
+  }
+
+  if (!projectId) {
+    return res.status(400).json({ error: "projectId query parameter is required." });
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('api_key', apiKey);
+    params.append('project_id', projectId);
+
+    const detailsRes = await axios.post('https://api.indexchecker.com/v1/projects/details', params.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    return res.json(detailsRes.data);
+  } catch (error) {
+    console.error("[IndexChecker] Details error:", error.response?.data || error.message);
+    const status = error.response?.status || 500;
+    res.status(status).json({ error: error.response?.data?.message || error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Backend server listening at http://localhost:${port}`);
 });
