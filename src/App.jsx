@@ -1272,6 +1272,107 @@ export default function App() {
     }
     return INITIAL_PAGES_DATA;
   });
+
+  const [globalExternalLinks, setGlobalExternalLinks] = useState(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem("tse_global_external_links") : null;
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Failed to parse saved global external links:", e);
+      }
+    }
+    return [
+      { id: "gen-1", linkName: "Crunchbase", sourceUrl: "https://www.crunchbase.com/" },
+      { id: "gen-2", linkName: "OpenStreetMap", sourceUrl: "https://www.openstreetmap.org/" }
+    ];
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("tse_global_external_links", JSON.stringify(globalExternalLinks));
+    }
+  }, [globalExternalLinks]);
+
+  const [newGlobalLinkName, setNewGlobalLinkName] = useState("");
+  const [newGlobalSourceUrl, setNewGlobalSourceUrl] = useState("");
+  const [globalLinkSearch, setGlobalLinkSearch] = useState("");
+
+  const handleCSVImport = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      const lines = text.split(/\r?\n/);
+      const newLinks = [];
+      let headerPassed = false;
+      let nameIndex = 0;
+      let urlIndex = 1;
+
+      lines.forEach((line) => {
+        if (!line.trim()) return;
+        
+        // Simple comma split that handles double quotes
+        const parts = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            parts.push(current.trim());
+            current = "";
+          } else {
+            current += char;
+          }
+        }
+        parts.push(current.trim());
+
+        if (parts.length < 2) return;
+
+        if (!headerPassed) {
+          const first = parts[0].toLowerCase();
+          const second = parts[1].toLowerCase();
+          if (first.includes("name") || first.includes("title") || second.includes("url") || second.includes("link") || second.includes("href")) {
+            if (first.includes("url") || first.includes("link") || first.includes("href")) {
+              nameIndex = 1;
+              urlIndex = 0;
+            } else {
+              nameIndex = 0;
+              urlIndex = 1;
+            }
+            headerPassed = true;
+            return;
+          }
+          headerPassed = true;
+        }
+
+        const name = parts[nameIndex]?.replace(/^"|"$/g, '').trim();
+        const url = parts[urlIndex]?.replace(/^"|"$/g, '').trim();
+
+        if (name && url) {
+          newLinks.push({
+            id: `global-ext-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            linkName: name,
+            sourceUrl: url
+          });
+        }
+      });
+
+      if (newLinks.length > 0) {
+        setGlobalExternalLinks(prev => [...prev, ...newLinks]);
+        showNotification(`Successfully imported ${newLinks.length} global external links.`);
+      } else {
+        showNotification("No valid links found in CSV. Expected headers: Link Name, Source URL.");
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = null;
+  };
+
   const [isAutomation, setIsAutomation] = useState(isAutomationViewTemp);
   const [isImporting, setIsImporting] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
@@ -10964,7 +11065,8 @@ export default function App() {
                     title: "GENERAL",
                     items: [
                       { id: "general_settings", label: "General Settings" },
-                      { id: "default_settings", label: "Default Settings" }
+                      { id: "default_settings", label: "Default Settings" },
+                      { id: "external_link_library", label: "External Link Library" }
                     ]
                   },
                   {
@@ -11575,8 +11677,220 @@ export default function App() {
                           </div>
                         )})()}
 
+                      {/* Global External Link Library */}
+                      {activeSettingsTab === "external_link_library" && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            Manage a global library of core external links. These links are available across all websites added to the system.
+                          </p>
+
+                          {/* Controls bar */}
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            flexWrap: 'wrap', 
+                            gap: '1rem',
+                            backgroundColor: 'rgba(255,255,255,0.01)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '12px',
+                            padding: '1.25rem'
+                          }}>
+                            {/* Search */}
+                            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', minWidth: '240px' }}>
+                              <Search size={16} style={{ position: 'absolute', left: '12px', color: 'var(--text-secondary)' }} />
+                              <input
+                                type="text"
+                                placeholder="Search library..."
+                                value={globalLinkSearch}
+                                onChange={(e) => setGlobalLinkSearch(e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '8px 12px 8px 36px',
+                                  backgroundColor: '#070b13',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.85rem',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+
+                            {/* Add manually / Import CSV */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                <input
+                                  type="text"
+                                  placeholder="Link Name (e.g. Crunchbase)"
+                                  value={newGlobalLinkName}
+                                  onChange={(e) => setNewGlobalLinkName(e.target.value)}
+                                  style={{
+                                    padding: '8px 12px',
+                                    backgroundColor: '#070b13',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '0.85rem',
+                                    outline: 'none',
+                                    width: '180px'
+                                  }}
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Source URL (e.g. https://...)"
+                                  value={newGlobalSourceUrl}
+                                  onChange={(e) => setNewGlobalSourceUrl(e.target.value)}
+                                  style={{
+                                    padding: '8px 12px',
+                                    backgroundColor: '#070b13',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: '8px',
+                                    color: 'var(--text-primary)',
+                                    fontSize: '0.85rem',
+                                    outline: 'none',
+                                    width: '240px'
+                                  }}
+                                />
+                                <button
+                                  className="btn-primary"
+                                  onClick={() => {
+                                    if (!newGlobalLinkName.trim() || !newGlobalSourceUrl.trim()) {
+                                      showNotification("Link Name and Source URL are required!");
+                                      return;
+                                    }
+                                    setGlobalExternalLinks(prev => [
+                                      ...prev,
+                                      {
+                                        id: `global-ext-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                                        linkName: newGlobalLinkName.trim(),
+                                        sourceUrl: newGlobalSourceUrl.trim()
+                                      }
+                                    ]);
+                                    setNewGlobalLinkName("");
+                                    setNewGlobalSourceUrl("");
+                                    showNotification("Link added to global library.");
+                                  }}
+                                  style={{ padding: '8px 16px', fontWeight: 700, fontSize: '0.85rem' }}
+                                >
+                                  + Add Link
+                                </button>
+                              </div>
+
+                              <div style={{ height: '24px', width: '1px', backgroundColor: 'var(--border-color)' }}></div>
+
+                              {/* CSV Import */}
+                              <label
+                                className="btn-secondary"
+                                style={{ 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  gap: '6px', 
+                                  fontSize: '0.85rem', 
+                                  padding: '8px 16px', 
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                📥 Import CSV
+                                <input
+                                  type="file"
+                                  accept=".csv"
+                                  onChange={handleCSVImport}
+                                  style={{ display: 'none' }}
+                                />
+                              </label>
+
+                              {/* Clear all */}
+                              <button
+                                className="btn-secondary"
+                                onClick={() => {
+                                  if (window.confirm("Are you sure you want to clear all links from the global library?")) {
+                                    setGlobalExternalLinks([]);
+                                    showNotification("Global library cleared.");
+                                  }
+                                }}
+                                style={{ 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  fontSize: '0.85rem', 
+                                  padding: '8px 16px', 
+                                  fontWeight: 700,
+                                  color: '#ef4444',
+                                  borderColor: 'rgba(239, 68, 68, 0.2)'
+                                }}
+                              >
+                                Clear All
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Table */}
+                          <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+                            <div style={{ overflowX: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Link Name</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Source URL</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {(() => {
+                                    const filtered = globalExternalLinks.filter(lnk => 
+                                      lnk.linkName.toLowerCase().includes(globalLinkSearch.toLowerCase()) ||
+                                      lnk.sourceUrl.toLowerCase().includes(globalLinkSearch.toLowerCase())
+                                    );
+
+                                    if (filtered.length === 0) {
+                                      return (
+                                        <tr>
+                                          <td colSpan="3" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                            {globalExternalLinks.length === 0 
+                                              ? "No links in the global library. Add one manually or upload a CSV."
+                                              : "No matching links found in library."
+                                            }
+                                          </td>
+                                        </tr>
+                                      );
+                                    }
+
+                                    return filtered.map((lnk) => (
+                                      <tr key={lnk.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                        <td style={{ padding: '16px 20px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                          {lnk.linkName}
+                                        </td>
+                                        <td style={{ padding: '16px 20px' }}>
+                                          <a href={lnk.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'none', wordBreak: 'break-all', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                            {lnk.sourceUrl}
+                                            <ExternalLink size={12} />
+                                          </a>
+                                        </td>
+                                        <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                          <button
+                                            className="btn-secondary site-btn-sm"
+                                            onClick={() => {
+                                              setGlobalExternalLinks(prev => prev.filter(x => x.id !== lnk.id));
+                                              showNotification("Link removed from global library.");
+                                            }}
+                                            style={{ display: 'inline-flex', width: 'auto', padding: '4px 8px', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }}
+                                          >
+                                            Delete
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ));
+                                  })()}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Coming Soon placeholders for other settings sub-pages */}
-                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && (
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && (
                         <div style={{
                           backgroundColor: '#070b13',
                           border: '1px solid rgba(255, 255, 255, 0.06)',
