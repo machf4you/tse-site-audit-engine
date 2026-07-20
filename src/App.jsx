@@ -1522,6 +1522,8 @@ export default function App() {
   const [extLastChecked, setExtLastChecked] = useState("Never");
   const [extNotes, setExtNotes] = useState("");
   const [isCheckingIndexStatus, setIsCheckingIndexStatus] = useState(false);
+  const [extSortKey, setExtSortKey] = useState(null);
+  const [extSortDir, setExtSortDir] = useState(null);
   
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
   const selectedSite = selectedSiteRaw ? {
@@ -1915,25 +1917,19 @@ export default function App() {
             const statusVal = urlStatusMap[link.sourceUrl];
             if (statusVal !== undefined) {
               let indexed = "Unknown";
-              let notes = link.notes || "";
               if (statusVal === 1 || statusVal === "1") {
                 indexed = "Indexed";
-                notes = "";
               } else if (statusVal === 0 || statusVal === "0") {
                 indexed = "Not Indexed";
-                notes = "";
               } else if (statusVal === -1 || statusVal === "-1") {
                 indexed = "Pending";
-                notes = "Check pending";
               } else {
                 indexed = "Error";
-                notes = typeof statusVal === 'string' ? statusVal : "Check failed";
               }
               return {
                 ...link,
                 indexed: indexed,
-                lastChecked: currentDate,
-                notes: notes
+                lastChecked: currentDate
               };
             }
             return link;
@@ -1950,6 +1946,81 @@ export default function App() {
     } finally {
       setIsCheckingIndexStatus(false);
     }
+  };
+
+  const handleSort = (key) => {
+    if (extSortKey !== key) {
+      setExtSortKey(key);
+      setExtSortDir('asc');
+    } else {
+      if (extSortDir === 'asc') {
+        setExtSortDir('desc');
+      } else if (extSortDir === 'desc') {
+        setExtSortKey(null);
+        setExtSortDir(null);
+      } else {
+        setExtSortDir('asc');
+      }
+    }
+  };
+
+  const getSortedExternalLinks = (links) => {
+    const defaultSorted = [...links].sort((a, b) => (a.linkName || '').localeCompare(b.linkName || ''));
+    if (!extSortKey || !extSortDir) {
+      return defaultSorted;
+    }
+
+    return [...links].sort((a, b) => {
+      let valA = a[extSortKey] || '';
+      let valB = b[extSortKey] || '';
+
+      // Normalize Yes/No mapping for legacy indexed values to match display
+      if (extSortKey === 'indexed') {
+        if (valA === 'Yes') valA = 'Indexed';
+        if (valA === 'No') valA = 'Not Indexed';
+        if (valB === 'Yes') valB = 'Indexed';
+        if (valB === 'No') valB = 'Not Indexed';
+        
+        // Remove "Unknown" as a displayed value once a link has been checked.
+        const hasBeenCheckedA = a.lastChecked && a.lastChecked !== "Never";
+        if (valA === "Unknown" && hasBeenCheckedA) {
+          if (a.notes && a.notes.toLowerCase().includes('pending')) {
+            valA = "Pending";
+          } else {
+            valA = "Error";
+          }
+        }
+        const hasBeenCheckedB = b.lastChecked && b.lastChecked !== "Never";
+        if (valB === "Unknown" && hasBeenCheckedB) {
+          if (b.notes && b.notes.toLowerCase().includes('pending')) {
+            valB = "Pending";
+          } else {
+            valB = "Error";
+          }
+        }
+      }
+
+      // Handle dates specifically
+      if (extSortKey === 'dateAdded' || extSortKey === 'lastChecked') {
+        const isNeverA = !valA || valA === 'Never' || valA === 'Never Checked';
+        const isNeverB = !valB || valB === 'Never' || valB === 'Never Checked';
+        if (isNeverA && isNeverB) return 0;
+        if (isNeverA) return extSortDir === 'asc' ? -1 : 1;
+        if (isNeverB) return extSortDir === 'asc' ? 1 : -1;
+        
+        const dateA = new Date(valA);
+        const dateB = new Date(valB);
+        return extSortDir === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+
+      // Fallback to string comparison
+      const strA = String(valA).toLowerCase();
+      const strB = String(valB).toLowerCase();
+      
+      if (strA < strB) return extSortDir === 'asc' ? -1 : 1;
+      if (strA > strB) return extSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
   };
 
   const starterPackUrls = [
@@ -9517,19 +9588,85 @@ export default function App() {
                                   <div style={{ overflowX: 'auto' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                                       <thead>
-                                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Link Name</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Published URL</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Indexed</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Date Added</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Last Checked</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Notes</th>
+                                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)', userSelect: 'none' }}>
+                                          <th 
+                                            style={{ padding: '16px 20px', color: extSortKey === 'linkName' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={() => handleSort('linkName')}
+                                          >
+                                            <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                              Link Name
+                                              <span style={{ display: 'inline-flex', flexDirection: 'row', gap: '2px', fontSize: '0.7rem', marginLeft: '6px' }}>
+                                                <span style={{ color: (extSortKey === 'linkName' && extSortDir === 'asc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'linkName' && extSortDir === 'asc') ? 900 : 400 }}>▲</span>
+                                                <span style={{ color: (extSortKey === 'linkName' && extSortDir === 'desc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'linkName' && extSortDir === 'desc') ? 900 : 400 }}>▼</span>
+                                              </span>
+                                            </div>
+                                          </th>
+                                          <th 
+                                            style={{ padding: '16px 20px', color: extSortKey === 'targetUrl' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={() => handleSort('targetUrl')}
+                                          >
+                                            <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                              Published URL
+                                              <span style={{ display: 'inline-flex', flexDirection: 'row', gap: '2px', fontSize: '0.7rem', marginLeft: '6px' }}>
+                                                <span style={{ color: (extSortKey === 'targetUrl' && extSortDir === 'asc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'targetUrl' && extSortDir === 'asc') ? 900 : 400 }}>▲</span>
+                                                <span style={{ color: (extSortKey === 'targetUrl' && extSortDir === 'desc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'targetUrl' && extSortDir === 'desc') ? 900 : 400 }}>▼</span>
+                                              </span>
+                                            </div>
+                                          </th>
+                                          <th 
+                                            style={{ padding: '16px 20px', color: extSortKey === 'indexed' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, textAlign: 'center', cursor: 'pointer' }}
+                                            onClick={() => handleSort('indexed')}
+                                          >
+                                            <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                                              Indexed
+                                              <span style={{ display: 'inline-flex', flexDirection: 'row', gap: '2px', fontSize: '0.7rem', marginLeft: '6px' }}>
+                                                <span style={{ color: (extSortKey === 'indexed' && extSortDir === 'asc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'indexed' && extSortDir === 'asc') ? 900 : 400 }}>▲</span>
+                                                <span style={{ color: (extSortKey === 'indexed' && extSortDir === 'desc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'indexed' && extSortDir === 'desc') ? 900 : 400 }}>▼</span>
+                                              </span>
+                                            </div>
+                                          </th>
+                                          <th 
+                                            style={{ padding: '16px 20px', color: extSortKey === 'dateAdded' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={() => handleSort('dateAdded')}
+                                          >
+                                            <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                              Date Added
+                                              <span style={{ display: 'inline-flex', flexDirection: 'row', gap: '2px', fontSize: '0.7rem', marginLeft: '6px' }}>
+                                                <span style={{ color: (extSortKey === 'dateAdded' && extSortDir === 'asc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'dateAdded' && extSortDir === 'asc') ? 900 : 400 }}>▲</span>
+                                                <span style={{ color: (extSortKey === 'dateAdded' && extSortDir === 'desc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'dateAdded' && extSortDir === 'desc') ? 900 : 400 }}>▼</span>
+                                              </span>
+                                            </div>
+                                          </th>
+                                          <th 
+                                            style={{ padding: '16px 20px', color: extSortKey === 'lastChecked' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={() => handleSort('lastChecked')}
+                                          >
+                                            <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                              Last Checked
+                                              <span style={{ display: 'inline-flex', flexDirection: 'row', gap: '2px', fontSize: '0.7rem', marginLeft: '6px' }}>
+                                                <span style={{ color: (extSortKey === 'lastChecked' && extSortDir === 'asc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'lastChecked' && extSortDir === 'asc') ? 900 : 400 }}>▲</span>
+                                                <span style={{ color: (extSortKey === 'lastChecked' && extSortDir === 'desc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'lastChecked' && extSortDir === 'desc') ? 900 : 400 }}>▼</span>
+                                              </span>
+                                            </div>
+                                          </th>
+                                          <th 
+                                            style={{ padding: '16px 20px', color: extSortKey === 'notes' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}
+                                            onClick={() => handleSort('notes')}
+                                          >
+                                            <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                              Notes
+                                              <span style={{ display: 'inline-flex', flexDirection: 'row', gap: '2px', fontSize: '0.7rem', marginLeft: '6px' }}>
+                                                <span style={{ color: (extSortKey === 'notes' && extSortDir === 'asc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'notes' && extSortDir === 'asc') ? 900 : 400 }}>▲</span>
+                                                <span style={{ color: (extSortKey === 'notes' && extSortDir === 'desc') ? '#3b82f6' : 'rgba(255,255,255,0.25)', fontWeight: (extSortKey === 'notes' && extSortDir === 'desc') ? 900 : 400 }}>▼</span>
+                                              </span>
+                                            </div>
+                                          </th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
                                         </tr>
                                       </thead>
                                       <tbody>
                                         {(() => {
-                                          const sortedLinks = [...externalLinks].sort((a, b) => a.linkName.localeCompare(b.linkName));
+                                          const sortedLinks = getSortedExternalLinks(externalLinks);
                                           if (sortedLinks.length === 0) {
                                             return (
                                               <tr>
