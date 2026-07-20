@@ -1530,6 +1530,10 @@ export default function App() {
   const [importCompleted, setImportCompleted] = useState(false);
   const [indexCheckerMessage, setIndexCheckerMessage] = useState("");
   const [selectedExtLinkIds, setSelectedExtLinkIds] = useState([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState("");
+  const [bulkDeleteAction, setBulkDeleteAction] = useState(null);
+  const [bulkDeleteMessage, setBulkDeleteMessage] = useState("");
   const pollingTimerRef = useRef(null);
   
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
@@ -2030,7 +2034,12 @@ export default function App() {
   };
 
   const handleBulkDelete = () => {
-    if (window.confirm(`Are you sure you want to delete the ${selectedExtLinkIds.length} selected external links?`)) {
+    const count = selectedExtLinkIds.length;
+    if (count === 0) return;
+
+    setBulkDeleteMessage(`You are about to permanently delete ${count} external links. This action cannot be undone.`);
+    setBulkDeleteConfirmText("");
+    setBulkDeleteAction(() => () => {
       setSites(prev => prev.map(s => {
         if (s.id === selectedSiteId) {
           const updatedLinks = (s.externalLinks || []).filter(l => !selectedExtLinkIds.includes(l.id));
@@ -2040,26 +2049,8 @@ export default function App() {
       }));
       setSelectedExtLinkIds([]);
       showNotification("Selected external links deleted successfully!");
-    }
-  };
-
-  const handleBulkClearPublishedUrls = () => {
-    if (window.confirm(`Are you sure you want to clear the Published URLs of the ${selectedExtLinkIds.length} selected external links?`)) {
-      setSites(prev => prev.map(s => {
-        if (s.id === selectedSiteId) {
-          const updatedLinks = (s.externalLinks || []).map(l => {
-            if (selectedExtLinkIds.includes(l.id)) {
-              return { ...l, targetUrl: "" };
-            }
-            return l;
-          });
-          return { ...s, externalLinks: updatedLinks };
-        }
-        return s;
-      }));
-      setSelectedExtLinkIds([]);
-      showNotification("Cleared Published URLs of selected links successfully!");
-    }
+    });
+    setIsBulkDeleteModalOpen(true);
   };
 
   const handleBulkExportCsv = () => {
@@ -9969,13 +9960,6 @@ export default function App() {
                                         🔍 Check Indexing
                                       </button>
                                       <button
-                                        onClick={handleBulkClearPublishedUrls}
-                                        className="btn-secondary"
-                                        style={{ padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-                                      >
-                                        🔗 Clear Published URLs
-                                      </button>
-                                      <button
                                         onClick={handleBulkExportCsv}
                                         className="btn-secondary"
                                         style={{ padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
@@ -12657,6 +12641,109 @@ export default function App() {
           )}
 
 
+
+          {/* Bulk Destructive Action Safety Confirmation Modal */}
+          {isBulkDeleteModalOpen && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(5, 7, 11, 0.85)', backdropFilter: 'blur(8px)',
+              display: 'flex', justifyContent: 'center', alignItems: 'center',
+              zIndex: 4000, padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: '#0c101b', border: '1px solid rgba(239, 68, 68, 0.2)',
+                borderRadius: '16px', padding: '2rem', maxWidth: '480px', width: '100%',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
+                textAlign: 'left'
+              }}>
+                <button
+                  onClick={() => {
+                    setIsBulkDeleteModalOpen(false);
+                    setBulkDeleteConfirmText("");
+                  }}
+                  style={{
+                    position: 'absolute', top: '1rem', right: '1rem',
+                    background: 'none', border: 'none', color: 'var(--text-secondary)',
+                    fontSize: '1.25rem', cursor: 'pointer', outline: 'none'
+                  }}
+                >
+                  ✕
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem', color: '#ef4444' }}>
+                  <span style={{ fontSize: '1.75rem' }}>⚠️</span>
+                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.35rem', fontWeight: 800, margin: 0 }}>
+                    Confirm Destructive Action
+                  </h3>
+                </div>
+
+                <p style={{ fontSize: '0.9rem', color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.08)', border: '1px solid rgba(239, 68, 68, 0.15)', borderRadius: '8px', padding: '1rem', margin: '0 0 1.5rem 0', fontWeight: 500, lineHeight: 1.5 }}>
+                  {bulkDeleteMessage}
+                </p>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.5rem' }}>
+                    Type <strong style={{ color: 'var(--text-primary)' }}>DELETE</strong> to confirm:
+                  </label>
+                  <input 
+                    type="text"
+                    placeholder="DELETE"
+                    value={bulkDeleteConfirmText}
+                    onChange={(e) => setBulkDeleteConfirmText(e.target.value)}
+                    style={{
+                      width: '100%',
+                      backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '10px 14px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.9rem',
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.1em',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => {
+                      setIsBulkDeleteModalOpen(false);
+                      setBulkDeleteConfirmText("");
+                    }}
+                    className="btn-secondary"
+                    style={{ padding: '8px 16px', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={bulkDeleteConfirmText !== "DELETE"}
+                    onClick={() => {
+                      if (bulkDeleteAction) {
+                        bulkDeleteAction();
+                      }
+                      setIsBulkDeleteModalOpen(false);
+                      setBulkDeleteConfirmText("");
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      backgroundColor: bulkDeleteConfirmText === "DELETE" ? '#ef4444' : 'rgba(239, 68, 68, 0.2)',
+                      color: bulkDeleteConfirmText === "DELETE" ? '#ffffff' : 'rgba(255, 255, 255, 0.3)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: bulkDeleteConfirmText === "DELETE" ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    Confirm Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Add Website Onboarding Modal */}
           {isAddWebsiteModalOpen && (
