@@ -1529,6 +1529,7 @@ export default function App() {
   const [csvSummary, setCsvSummary] = useState(null);
   const [importCompleted, setImportCompleted] = useState(false);
   const [indexCheckerMessage, setIndexCheckerMessage] = useState("");
+  const [selectedExtLinkIds, setSelectedExtLinkIds] = useState([]);
   const pollingTimerRef = useRef(null);
   
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
@@ -1566,6 +1567,7 @@ export default function App() {
     }
     setIsCheckingIndexStatus(false);
     setIndexCheckerMessage("");
+    setSelectedExtLinkIds([]);
   }, [selectedSiteId]);
 
   const getEnrichedTask = (task) => {
@@ -1870,12 +1872,16 @@ export default function App() {
     }
   };
 
-  const handleCheckIndexingStatus = async () => {
+  const handleCheckIndexingStatus = async (specificLinks = null) => {
     const site = sites.find(s => s.id === selectedSiteId);
     if (!site) return;
 
     const externalLinks = site.externalLinks || [];
-    const linksToCheck = externalLinks.filter(l => l.targetUrl && l.targetUrl.trim() !== "");
+    const targetLinks = specificLinks 
+      ? externalLinks.filter(l => specificLinks.includes(l.id))
+      : externalLinks;
+
+    const linksToCheck = targetLinks.filter(l => l.targetUrl && l.targetUrl.trim() !== "");
 
     if (linksToCheck.length === 0) {
       showNotification("No external links with a populated Published URL found to check.");
@@ -1961,7 +1967,7 @@ export default function App() {
           setSites(prev => prev.map(s => {
             if (s.id === site.id) {
               const updatedLinks = (s.externalLinks || []).map(link => {
-                const isChecked = link.targetUrl && link.targetUrl.trim() !== "";
+                const isChecked = linksToCheck.some(l => l.id === link.id);
                 if (!isChecked) {
                   return link;
                 }
@@ -2015,6 +2021,87 @@ export default function App() {
       setIndexCheckerMessage(`Failed to check indexing: ${err.message}`);
       showNotification(`Failed to check indexing status: ${err.message}`);
     }
+  };
+
+  const handleBulkCheckIndexingStatus = () => {
+    handleCheckIndexingStatus(selectedExtLinkIds);
+    // Clear selection after action triggers
+    setSelectedExtLinkIds([]);
+  };
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`Are you sure you want to delete the ${selectedExtLinkIds.length} selected external links?`)) {
+      setSites(prev => prev.map(s => {
+        if (s.id === selectedSiteId) {
+          const updatedLinks = (s.externalLinks || []).filter(l => !selectedExtLinkIds.includes(l.id));
+          return { ...s, externalLinks: updatedLinks };
+        }
+        return s;
+      }));
+      setSelectedExtLinkIds([]);
+      showNotification("Selected external links deleted successfully!");
+    }
+  };
+
+  const handleBulkClearPublishedUrls = () => {
+    if (window.confirm(`Are you sure you want to clear the Published URLs of the ${selectedExtLinkIds.length} selected external links?`)) {
+      setSites(prev => prev.map(s => {
+        if (s.id === selectedSiteId) {
+          const updatedLinks = (s.externalLinks || []).map(l => {
+            if (selectedExtLinkIds.includes(l.id)) {
+              return { ...l, targetUrl: "" };
+            }
+            return l;
+          });
+          return { ...s, externalLinks: updatedLinks };
+        }
+        return s;
+      }));
+      setSelectedExtLinkIds([]);
+      showNotification("Cleared Published URLs of selected links successfully!");
+    }
+  };
+
+  const handleBulkExportCsv = () => {
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (!site) return;
+
+    const selectedLinks = (site.externalLinks || []).filter(l => selectedExtLinkIds.includes(l.id));
+    if (selectedLinks.length === 0) return;
+
+    const headers = ["Name", "Source URL", "Published URL", "Link Type", "Status", "Indexed", "Last Checked", "Notes"];
+    const csvRows = [headers.join(",")];
+
+    selectedLinks.forEach(l => {
+      const escapeCsv = (str) => {
+        if (str === null || str === undefined) return "";
+        const value = String(str).replace(/"/g, '""');
+        return value.includes(",") || value.includes("\n") || value.includes('"') ? `"${value}"` : value;
+      };
+
+      const row = [
+        escapeCsv(l.linkName),
+        escapeCsv(l.sourceUrl),
+        escapeCsv(l.targetUrl),
+        escapeCsv(l.linkType),
+        escapeCsv(l.status),
+        escapeCsv(l.indexed),
+        escapeCsv(l.lastChecked),
+        escapeCsv(l.notes)
+      ];
+      csvRows.push(row.join(","));
+    });
+
+    const blob = new Blob([csvRows.join("\n")], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${site.siteName || 'site'}_selected_external_links.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showNotification("Exported selected links to CSV successfully!");
   };
 
   const handleSort = (key) => {
@@ -9766,6 +9853,7 @@ export default function App() {
                             const liveLinks = externalLinks.filter(l => l.status === "Live").length;
                             const indexedLinks = externalLinks.filter(l => l.indexed === "Yes" || l.indexed === "Indexed").length;
                             const pendingLinks = externalLinks.filter(l => l.status === "Pending").length;
+                            const sortedLinks = getSortedExternalLinks(externalLinks);
 
                             return (
                               <div style={{ textAlign: 'left' }}>
@@ -9843,12 +9931,117 @@ export default function App() {
                                   </div>
                                 </div>
 
+                                {/* Bulk Actions Toolbar */}
+                                {selectedExtLinkIds.length > 0 && (
+                                  <div style={{
+                                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                                    border: '1px solid rgba(59, 130, 246, 0.2)',
+                                    borderRadius: '12px',
+                                    padding: '1rem 1.5rem',
+                                    marginBottom: '1.25rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    gap: '1rem',
+                                    flexWrap: 'wrap'
+                                  }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                      <span style={{
+                                        backgroundColor: '#3b82f6',
+                                        color: '#ffffff',
+                                        padding: '2px 8px',
+                                        borderRadius: '9999px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700
+                                      }}>
+                                        {selectedExtLinkIds.length}
+                                      </span>
+                                      <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                                        {selectedExtLinkIds.length === 1 ? 'link selected' : 'links selected'}
+                                      </span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                      <button
+                                        onClick={handleBulkCheckIndexingStatus}
+                                        className="btn-secondary"
+                                        style={{ padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                      >
+                                        🔍 Check Indexing
+                                      </button>
+                                      <button
+                                        onClick={handleBulkClearPublishedUrls}
+                                        className="btn-secondary"
+                                        style={{ padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                      >
+                                        🔗 Clear Published URLs
+                                      </button>
+                                      <button
+                                        onClick={handleBulkExportCsv}
+                                        className="btn-secondary"
+                                        style={{ padding: '6px 12px', fontSize: '0.85rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                                      >
+                                        📥 Export to CSV
+                                      </button>
+                                      <button
+                                        onClick={handleBulkDelete}
+                                        className="btn-secondary"
+                                        style={{ 
+                                          padding: '6px 12px', 
+                                          fontSize: '0.85rem', 
+                                          fontWeight: 700, 
+                                          display: 'inline-flex', 
+                                          alignItems: 'center', 
+                                          gap: '6px',
+                                          color: '#ef4444',
+                                          borderColor: 'rgba(239, 68, 68, 0.2)',
+                                          cursor: 'pointer'
+                                        }}
+                                      >
+                                        🗑️ Delete Selected
+                                      </button>
+                                      <button
+                                        onClick={() => setSelectedExtLinkIds([])}
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          color: 'var(--text-secondary)',
+                                          cursor: 'pointer',
+                                          fontSize: '0.85rem',
+                                          textDecoration: 'underline',
+                                          padding: '0 0.5rem'
+                                        }}
+                                      >
+                                        Clear Selection
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+
                                 {/* External Links Table */}
                                 <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
                                   <div style={{ overflowX: 'auto' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                                       <thead>
                                         <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)', userSelect: 'none' }}>
+                                          <th style={{ padding: '16px 20px', width: '40px', textAlign: 'center' }}>
+                                            <input 
+                                              type="checkbox"
+                                              checked={sortedLinks.length > 0 && sortedLinks.every(link => selectedExtLinkIds.includes(link.id))}
+                                              onChange={(e) => {
+                                                if (e.target.checked) {
+                                                  const allIds = sortedLinks.map(link => link.id);
+                                                  setSelectedExtLinkIds(prev => {
+                                                    const union = new Set([...prev, ...allIds]);
+                                                    return Array.from(union);
+                                                  });
+                                                } else {
+                                                  const visibleSet = new Set(sortedLinks.map(link => link.id));
+                                                  setSelectedExtLinkIds(prev => prev.filter(id => !visibleSet.has(id)));
+                                                }
+                                              }}
+                                              style={{ cursor: 'pointer' }}
+                                            />
+                                          </th>
                                           <th 
                                             style={{ padding: '16px 20px', color: extSortKey === 'linkName' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer' }}
                                             onClick={() => handleSort('linkName')}
@@ -9926,25 +10119,22 @@ export default function App() {
                                       </thead>
                                       <tbody>
                                         {(() => {
-                                          const sortedLinks = getSortedExternalLinks(externalLinks);
                                           if (sortedLinks.length === 0) {
                                             return (
                                               <tr>
-                                                <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                                <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                                   No external links found. Click "+ Add External Link" to begin tracking.
                                                 </td>
                                               </tr>
                                             );
                                           }
                                           return sortedLinks.map((link) => {
-                                            // Determine the checking status of the link
                                             const isCheckingLink = isCheckingIndexStatus && link.targetUrl && link.targetUrl.trim() !== "";
                                             
                                             let displayIndexed = link.indexed || "Unknown";
                                             if (displayIndexed === "Yes") displayIndexed = "Indexed";
                                             if (displayIndexed === "No") displayIndexed = "Not Indexed";
 
-                                            // Remove "Unknown" as a displayed value once a link has been checked.
                                             const hasBeenChecked = link.lastChecked && link.lastChecked !== "Never";
                                             if (displayIndexed === "Unknown" && hasBeenChecked) {
                                               if (link.notes && link.notes.toLowerCase().includes('pending')) {
@@ -9963,6 +10153,20 @@ export default function App() {
 
                                             return (
                                               <tr key={link.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                                <td style={{ padding: '16px 20px', textAlign: 'center', width: '40px' }}>
+                                                  <input 
+                                                    type="checkbox"
+                                                    checked={selectedExtLinkIds.includes(link.id)}
+                                                    onChange={(e) => {
+                                                      if (e.target.checked) {
+                                                        setSelectedExtLinkIds(prev => [...prev, link.id]);
+                                                      } else {
+                                                        setSelectedExtLinkIds(prev => prev.filter(id => id !== link.id));
+                                                      }
+                                                    }}
+                                                    style={{ cursor: 'pointer' }}
+                                                  />
+                                                </td>
                                                 <td style={{ padding: '16px 20px' }}>
                                                   <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{link.linkName}</div>
                                                   <div style={{ display: 'inline-flex', alignItems: 'center' }}>
