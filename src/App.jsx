@@ -1521,6 +1521,7 @@ export default function App() {
   const [extDateAdded, setExtDateAdded] = useState("");
   const [extLastChecked, setExtLastChecked] = useState("Never");
   const [extNotes, setExtNotes] = useState("");
+  const [isCheckingIndexStatus, setIsCheckingIndexStatus] = useState(false);
   
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
   const selectedSite = selectedSiteRaw ? {
@@ -1841,6 +1842,101 @@ export default function App() {
       }));
       showNotification("External link deleted successfully!");
       setIsExternalLinkModalOpen(false);
+    }
+  };
+
+  const handleCheckIndexingStatus = async () => {
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (!site) return;
+
+    const externalLinks = site.externalLinks || [];
+    if (externalLinks.length === 0) {
+      showNotification("No external links found to check indexing status.");
+      return;
+    }
+
+    setIsCheckingIndexStatus(true);
+    showNotification("Checking indexing status...");
+
+    try {
+      const urls = externalLinks.map(l => l.sourceUrl).filter(Boolean);
+      let projectId = site.indexCheckerProjectId;
+
+      if (!projectId) {
+        const syncResponse = await fetch(`${API_BASE}/index-checker/sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            siteId: site.id,
+            siteName: site.siteName || site.name || `site-${site.id}`,
+            urls: urls,
+            existingProjectId: null
+          })
+        });
+
+        if (!syncResponse.ok) {
+          const errData = await syncResponse.json();
+          throw new Error(errData.error || "Failed to create IndexChecker project.");
+        }
+
+        const syncData = await syncResponse.json();
+        projectId = syncData.projectId;
+        if (!projectId) {
+          throw new Error("No project ID was returned from the server.");
+        }
+
+        // Save project ID against the website
+        setSites(prev => prev.map(s => s.id === site.id ? { ...s, indexCheckerProjectId: projectId } : s));
+      }
+
+      // Fetch project details
+      const detailsResponse = await fetch(`${API_BASE}/index-checker/details?projectId=${projectId}`);
+      if (!detailsResponse.ok) {
+        const errData = await detailsResponse.json();
+        throw new Error(errData.error || "Failed to fetch project details.");
+      }
+
+      const detailsData = await detailsResponse.json();
+      const urlStatusMap = detailsData.urls || {};
+      const currentDate = new Date().toISOString().split('T')[0];
+
+      setSites(prev => prev.map(s => {
+        if (s.id === site.id) {
+          const updatedLinks = (s.externalLinks || []).map(link => {
+            const statusVal = urlStatusMap[link.sourceUrl];
+            if (statusVal !== undefined) {
+              let indexed = "Unknown";
+              let notes = link.notes || "";
+              if (statusVal === 1 || statusVal === "1") {
+                indexed = "Yes";
+                notes = "";
+              } else if (statusVal === 0 || statusVal === "0") {
+                indexed = "No";
+                notes = "";
+              } else if (statusVal === -1 || statusVal === "-1") {
+                indexed = "Unknown";
+                notes = "Check pending";
+              }
+              return {
+                ...link,
+                indexed: indexed,
+                lastChecked: currentDate,
+                notes: notes
+              };
+            }
+            return link;
+          });
+          return { ...s, externalLinks: updatedLinks };
+        }
+        return s;
+      }));
+
+      showNotification("Indexing status updated successfully!");
+    } catch (err) {
+      console.error("[IndexChecker] Check error:", err);
+      showNotification(`Failed to check indexing status: ${err.message}`);
+    } finally {
+      setIsCheckingIndexStatus(false);
     }
   };
 
@@ -9373,6 +9469,14 @@ export default function App() {
                                       style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
                                     >
                                       📥 Import Starter Pack
+                                    </button>
+                                    <button
+                                      className="btn-secondary"
+                                      onClick={handleCheckIndexingStatus}
+                                      disabled={isCheckingIndexStatus}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700, opacity: isCheckingIndexStatus ? 0.7 : 1 }}
+                                    >
+                                      {isCheckingIndexStatus ? "Checking..." : "🔍 Check Indexing Status"}
                                     </button>
                                     <button
                                       className="btn-primary"

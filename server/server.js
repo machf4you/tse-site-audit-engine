@@ -801,9 +801,9 @@ app.post('/api/index-checker/sync', async (req, res) => {
       console.log(`[IndexChecker] Deleting existing project ID: ${existingProjectId}`);
       try {
         const deleteParams = new URLSearchParams();
-        deleteParams.append('api_key', apiKey);
-        deleteParams.append('project_id', existingProjectId);
-        await axios.post('https://api.indexchecker.com/v1/projects/delete', deleteParams.toString(), {
+        deleteParams.append('apikey', apiKey);
+        deleteParams.append('project_id', existingProjectId.toString());
+        await axios.post('https://app.indexchecker.link/api/project/delete', deleteParams.toString(), {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
           }
@@ -817,22 +817,22 @@ app.post('/api/index-checker/sync', async (req, res) => {
     console.log(`[IndexChecker] Creating new project for site: ${siteName}`);
     
     const params = new URLSearchParams();
-    params.append('api_key', apiKey);
+    params.append('apikey', apiKey);
     params.append('project_name', siteName);
-    (urls || []).forEach(url => {
-      params.append('urls[]', url);
-    });
+    // Join URLs with a pipe symbol | as required by app.indexchecker.link
+    params.append('urls', (urls || []).join('|'));
 
-    const createRes = await axios.post('https://api.indexchecker.com/v1/projects/create', params.toString(), {
+    const createRes = await axios.post('https://app.indexchecker.link/api/project/create', params.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
 
-    if (createRes.data && createRes.data.success) {
+    if (createRes.data && createRes.data.error === 0) {
+      const pId = createRes.data.project_id || createRes.data.procjet_id;
       return res.json({
         success: true,
-        projectId: createRes.data.project_id,
+        projectId: pId,
         message: createRes.data.message
       });
     } else {
@@ -861,10 +861,10 @@ app.get('/api/index-checker/details', async (req, res) => {
 
   try {
     const params = new URLSearchParams();
-    params.append('api_key', apiKey);
-    params.append('project_id', projectId);
+    params.append('apikey', apiKey);
+    params.append('project_id', projectId.toString());
 
-    const detailsRes = await axios.post('https://api.indexchecker.com/v1/projects/details', params.toString(), {
+    const detailsRes = await axios.post('https://app.indexchecker.link/api/project/show', params.toString(), {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
