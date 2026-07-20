@@ -1524,6 +1524,10 @@ export default function App() {
   const [isCheckingIndexStatus, setIsCheckingIndexStatus] = useState(false);
   const [extSortKey, setExtSortKey] = useState(null);
   const [extSortDir, setExtSortDir] = useState(null);
+  const [extLinkTab, setExtLinkTab] = useState('single');
+  const [csvPreviewRows, setCsvPreviewRows] = useState([]);
+  const [csvSummary, setCsvSummary] = useState(null);
+  const [importCompleted, setImportCompleted] = useState(false);
   
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
   const selectedSite = selectedSiteRaw ? {
@@ -2021,6 +2025,186 @@ export default function App() {
       if (strA > strB) return extSortDir === 'asc' ? 1 : -1;
       return 0;
     });
+  };
+
+  const downloadCsvTemplate = () => {
+    const headers = "Name,Source URL,Published URL\n";
+    const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "external_links_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCsvUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      const parsed = parseCSV(text);
+      if (parsed.error) {
+        showNotification(parsed.error);
+        return;
+      }
+
+      const site = sites.find(s => s.id === selectedSiteId);
+      const currentLinks = site ? (site.externalLinks || []) : [];
+      const processed = processCsvRows(parsed.rows, currentLinks);
+      setCsvPreviewRows(processed);
+      setImportCompleted(false);
+      setCsvSummary(null);
+    };
+    reader.readAsText(file);
+    // Reset file input value so same file can be uploaded again if needed
+    e.target.value = '';
+  };
+
+  const parseCSV = (text) => {
+    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    if (lines.length === 0) return { error: "CSV file is empty" };
+    
+    const headers = lines[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.trim().replace(/^["']|["']$/g, ''));
+    
+    if (headers.length < 2 || headers[0].toLowerCase() !== "name" || headers[1].toLowerCase() !== "source url") {
+      return { error: "Invalid CSV headers. Columns must be exactly: Name, Source URL, Published URL" };
+    }
+    
+    const parsedRows = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cells = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^["']|["']$/g, ''));
+      
+      parsedRows.push({
+        name: cells[0] || '',
+        sourceUrl: cells[1] || '',
+        publishedUrl: cells[2] || ''
+      });
+    }
+    return { rows: parsedRows };
+  };
+
+  const isValidURL = (str) => {
+    try {
+      const url = new URL(str);
+      if (url.protocol !== "http:" && url.protocol !== "https:") return false;
+      const host = url.hostname;
+      if (!host.includes('.') || host.startsWith('.') || host.endsWith('.')) {
+        return false;
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const processCsvRows = (rows, currentLinks) => {
+    const existingMap = new Map();
+    currentLinks.forEach(link => {
+      existingMap.set((link.sourceUrl || '').trim().toLowerCase(), link);
+    });
+
+    return rows.map(row => {
+      const name = row.name.trim();
+      const sourceUrl = row.sourceUrl.trim();
+      const publishedUrl = row.publishedUrl.trim();
+
+      let status = "Ready";
+      let errorMsg = "";
+
+      if (!name) {
+        status = "Invalid";
+        errorMsg = "Name is required";
+      } else if (!sourceUrl) {
+        status = "Invalid";
+        errorMsg = "Source URL is required";
+      } else if (!isValidURL(sourceUrl)) {
+        status = "Invalid";
+        errorMsg = "Invalid Source URL format";
+      } else if (publishedUrl && !isValidURL(publishedUrl)) {
+        status = "Invalid";
+        errorMsg = "Invalid Published URL format";
+      } else {
+        const existing = existingMap.get(sourceUrl.toLowerCase());
+        if (existing) {
+          const existingPubUrl = (existing.targetUrl || '').trim();
+          if (!existingPubUrl && publishedUrl) {
+            status = "Update Existing";
+          } else {
+            status = "Duplicate";
+          }
+        }
+      }
+
+      return {
+        name,
+        sourceUrl,
+        publishedUrl,
+        status,
+        errorMsg
+      };
+    });
+  };
+
+  const handleConfirmBulkImport = () => {
+    const site = sites.find(s => s.id === selectedSiteId);
+    if (!site) return;
+
+    const currentLinks = site.externalLinks || [];
+    let newRecordsCount = 0;
+    let existingRecordsUpdatedCount = 0;
+    let duplicatesSkippedCount = 0;
+    let invalidRowsRejectedCount = 0;
+
+    const updatedLinks = [...currentLinks];
+    const timestamp = new Date().getTime();
+
+    csvPreviewRows.forEach((row, i) => {
+      if (row.status === "Invalid") {
+        invalidRowsRejectedCount++;
+      } else if (row.status === "Duplicate") {
+        duplicatesSkippedCount++;
+      } else if (row.status === "Update Existing") {
+        const idx = updatedLinks.findIndex(l => (l.sourceUrl || '').trim().toLowerCase() === row.sourceUrl.toLowerCase());
+        if (idx !== -1) {
+          updatedLinks[idx] = {
+            ...updatedLinks[idx],
+            targetUrl: row.publishedUrl
+          };
+          existingRecordsUpdatedCount++;
+        }
+      } else if (row.status === "Ready") {
+        const newLink = {
+          id: `ext-lnk-${timestamp}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+          linkName: row.name,
+          sourceUrl: row.sourceUrl,
+          targetUrl: row.publishedUrl,
+          linkType: "Backlink",
+          status: "Pending",
+          indexed: "Unknown",
+          dateAdded: new Date().toISOString().split('T')[0],
+          lastChecked: "Never",
+          notes: ""
+        };
+        updatedLinks.push(newLink);
+        newRecordsCount++;
+      }
+    });
+
+    setSites(prev => prev.map(s => s.id === site.id ? { ...s, externalLinks: updatedLinks } : s));
+
+    setCsvSummary({
+      newCount: newRecordsCount,
+      updatedCount: existingRecordsUpdatedCount,
+      skippedCount: duplicatesSkippedCount,
+      rejectedCount: invalidRowsRejectedCount
+    });
+    setImportCompleted(true);
+    showNotification("Bulk import completed successfully!");
   };
 
   const starterPackUrls = [
@@ -9574,6 +9758,10 @@ export default function App() {
                                         setExtDateAdded(new Date().toISOString().split('T')[0]);
                                         setExtLastChecked("Never");
                                         setExtNotes("");
+                                        setExtLinkTab('single');
+                                        setCsvPreviewRows([]);
+                                        setCsvSummary(null);
+                                        setImportCompleted(false);
                                         setIsExternalLinkModalOpen(true);
                                       }}
                                       style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700 }}
@@ -12480,9 +12668,12 @@ export default function App() {
             }}>
               <div style={{
                 backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '16px', padding: '2rem 2.5rem', maxWidth: '800px', width: '100%',
+                borderRadius: '16px', padding: '2rem 2.5rem', 
+                maxWidth: (!editingExternalLinkId && extLinkTab === 'bulk' && csvPreviewRows.length > 0) ? '950px' : '800px', 
+                width: '100%',
                 boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
-                textAlign: 'left'
+                textAlign: 'left',
+                transition: 'max-width 0.3s ease'
               }}>
                 <button
                   onClick={() => setIsExternalLinkModalOpen(false)}
@@ -12499,166 +12690,335 @@ export default function App() {
                   {editingExternalLinkId ? "Edit External Link" : "Add External Link"}
                 </h3>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                  {/* Left Column */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {/* Link Name */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Link Name</label>
-                      <input
-                        type="text"
-                        value={extLinkName}
-                        onChange={(e) => setExtLinkName(e.target.value)}
-                        placeholder="e.g. Acme guest post backlink"
-                        style={{
-                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
-                        }}
-                      />
-                    </div>
-
-                    {/* Source URL */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Source URL</label>
-                      <input
-                        type="text"
-                        value={extSourceUrl}
-                        onChange={(e) => setExtSourceUrl(e.target.value)}
-                        placeholder="https://example-blog.com/post-1"
-                        style={{
-                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
-                        }}
-                      />
-                    </div>
-
-                    {/* Published URL */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Published URL</label>
-                      <input
-                        type="text"
-                        value={extTargetUrl}
-                        onChange={(e) => setExtTargetUrl(e.target.value)}
-                        placeholder="https://mysite.com/landing-page"
-                        style={{
-                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
-                        }}
-                      />
-                    </div>
-
-                    {/* Link Type */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Link Type</label>
-                      <select
-                        value={extLinkType}
-                        onChange={(e) => setExtLinkType(e.target.value)}
-                        style={{
-                          width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
-                        }}
-                      >
-                        <option value="Backlink">Backlink</option>
-                        <option value="Guest Post">Guest Post</option>
-                        <option value="Editorial">Editorial</option>
-                        <option value="Directory">Directory</option>
-                        <option value="Social">Social</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
+                {/* Tabs - Only show when creating a new link */}
+                {!editingExternalLinkId && (
+                  <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '1.5rem', paddingBottom: '0.5rem' }}>
+                    <button
+                      onClick={() => setExtLinkTab('single')}
+                      style={{
+                        background: 'none', border: 'none', color: extLinkTab === 'single' ? '#3b82f6' : 'var(--text-secondary)',
+                        fontSize: '0.95rem', fontWeight: extLinkTab === 'single' ? 800 : 500, cursor: 'pointer',
+                        padding: '0.5rem 1rem', borderBottom: extLinkTab === 'single' ? '2px solid #3b82f6' : 'none',
+                        outline: 'none'
+                      }}
+                    >
+                      Single Entry
+                    </button>
+                    <button
+                      onClick={() => setExtLinkTab('bulk')}
+                      style={{
+                        background: 'none', border: 'none', color: extLinkTab === 'bulk' ? '#3b82f6' : 'var(--text-secondary)',
+                        fontSize: '0.95rem', fontWeight: extLinkTab === 'bulk' ? 800 : 500, cursor: 'pointer',
+                        padding: '0.5rem 1rem', borderBottom: extLinkTab === 'bulk' ? '2px solid #3b82f6' : 'none',
+                        outline: 'none'
+                      }}
+                    >
+                      Bulk Import (CSV)
+                    </button>
                   </div>
+                )}
 
-                  {/* Right Column */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                    {/* Status */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Status</label>
-                      <select
-                        value={extStatus}
-                        onChange={(e) => setExtStatus(e.target.value)}
-                        style={{
-                          width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
-                        }}
-                      >
-                        <option value="Live">Live</option>
-                        <option value="Broken">Broken</option>
-                        <option value="Pending">Pending</option>
-                      </select>
+                {/* Conditional Tab Rendering */}
+                {editingExternalLinkId || extLinkTab === 'single' ? (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                      {/* Left Column */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        {/* Link Name */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Link Name</label>
+                          <input
+                            type="text"
+                            value={extLinkName}
+                            onChange={(e) => setExtLinkName(e.target.value)}
+                            placeholder="e.g. Acme guest post backlink"
+                            style={{
+                              width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          />
+                        </div>
+
+                        {/* Source URL */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Source URL</label>
+                          <input
+                            type="text"
+                            value={extSourceUrl}
+                            onChange={(e) => setExtSourceUrl(e.target.value)}
+                            placeholder="https://example-blog.com/post-1"
+                            style={{
+                              width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          />
+                        </div>
+
+                        {/* Published URL */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Published URL</label>
+                          <input
+                            type="text"
+                            value={extTargetUrl}
+                            onChange={(e) => setExtTargetUrl(e.target.value)}
+                            placeholder="https://mysite.com/landing-page"
+                            style={{
+                              width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          />
+                        </div>
+
+                        {/* Link Type */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Link Type</label>
+                          <select
+                            value={extLinkType}
+                            onChange={(e) => setExtLinkType(e.target.value)}
+                            style={{
+                              width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          >
+                            <option value="Backlink">Backlink</option>
+                            <option value="Guest Post">Guest Post</option>
+                            <option value="Editorial">Editorial</option>
+                            <option value="Directory">Directory</option>
+                            <option value="Social">Social</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Right Column */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        {/* Status */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Status</label>
+                          <select
+                            value={extStatus}
+                            onChange={(e) => setExtStatus(e.target.value)}
+                            style={{
+                              width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          >
+                            <option value="Live">Live</option>
+                            <option value="Broken">Broken</option>
+                            <option value="Pending">Pending</option>
+                          </select>
+                        </div>
+
+                        {/* Indexed */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Indexed</label>
+                          <select
+                            value={extIndexed}
+                            onChange={(e) => setExtIndexed(e.target.value)}
+                            style={{
+                              width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          >
+                            <option value="Indexed">Indexed</option>
+                            <option value="Not Indexed">Not Indexed</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Error">Error</option>
+                            <option value="Unknown">Unknown</option>
+                          </select>
+                        </div>
+
+                        {/* Date Added */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Date Added</label>
+                          <input
+                            type="date"
+                            value={extDateAdded}
+                            onChange={(e) => setExtDateAdded(e.target.value)}
+                            style={{
+                              width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          />
+                        </div>
+
+                        {/* Last Checked */}
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Last Checked</label>
+                          <input
+                            type="text"
+                            value={extLastChecked}
+                            onChange={(e) => setExtLastChecked(e.target.value)}
+                            placeholder="Never or timestamp"
+                            style={{
+                              width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
+                              borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                              fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Indexed */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Indexed</label>
-                      <select
-                        value={extIndexed}
-                        onChange={(e) => setExtIndexed(e.target.value)}
-                        style={{
-                          width: '100%', backgroundColor: '#07090e', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
-                        }}
-                      >
-                        <option value="Indexed">Indexed</option>
-                        <option value="Not Indexed">Not Indexed</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Error">Error</option>
-                        <option value="Unknown">Unknown</option>
-                      </select>
-                    </div>
-
-                    {/* Date Added */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Date Added</label>
-                      <input
-                        type="date"
-                        value={extDateAdded}
-                        onChange={(e) => setExtDateAdded(e.target.value)}
+                    {/* Notes */}
+                    <div style={{ marginBottom: '1.75rem' }}>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Notes</label>
+                      <textarea
+                        value={extNotes}
+                        onChange={(e) => setExtNotes(e.target.value)}
+                        placeholder="Enter any additional details or context..."
                         style={{
                           width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '80px', resize: 'vertical'
                         }}
                       />
                     </div>
+                  </>
+                ) : (
+                  /* Bulk Import UI */
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                    {/* Setup Actions Row */}
+                    {!importCompleted && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.04)', paddingBottom: '1.5rem' }}>
+                        {/* Download Template Column */}
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <h4 style={{ fontFamily: 'Outfit', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>1. Prepare CSV Template</h4>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+                              Download our CSV template containing exactly: <strong style={{ color: '#ffffff' }}>Name, Source URL, Published URL</strong>
+                            </p>
+                          </div>
+                          <button
+                            onClick={downloadCsvTemplate}
+                            className="btn-secondary"
+                            style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600, marginTop: '1rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            📥 Download CSV Template
+                          </button>
+                        </div>
 
-                    {/* Last Checked */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Last Checked</label>
-                      <input
-                        type="text"
-                        value={extLastChecked}
-                        onChange={(e) => setExtLastChecked(e.target.value)}
-                        placeholder="Never or timestamp"
-                        style={{
-                          width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
-                        }}
-                      />
-                    </div>
+                        {/* Upload CSV Column */}
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.01)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '12px', padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <h4 style={{ fontFamily: 'Outfit', color: 'var(--text-primary)', fontSize: '0.95rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>2. Upload CSV File</h4>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, lineHeight: 1.4 }}>
+                              Select your prepared CSV file. The name and source URL fields are required.
+                            </p>
+                          </div>
+                          <div>
+                            <input
+                              type="file"
+                              accept=".csv"
+                              id="bulk-csv-upload"
+                              onChange={handleCsvUpload}
+                              style={{ display: 'none' }}
+                            />
+                            <label
+                              htmlFor="bulk-csv-upload"
+                              className="btn-primary"
+                              style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, marginTop: '1rem', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                            >
+                              📁 Choose CSV File
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preview Table */}
+                    {csvPreviewRows.length > 0 && !importCompleted && (
+                      <div>
+                        <h4 style={{ fontFamily: 'Outfit', color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 700, margin: '0 0 0.75rem 0' }}>
+                          CSV Preview ({csvPreviewRows.length} Rows Detected)
+                        </h4>
+                        <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '8px', overflow: 'hidden' }}>
+                          <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', textAlign: 'left' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)', position: 'sticky', top: 0, zIndex: 10 }}>
+                                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Name</th>
+                                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Source URL</th>
+                                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600 }}>Published URL</th>
+                                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {csvPreviewRows.map((row, idx) => {
+                                  const badgeStyle = 
+                                    row.status === "Ready" ? { backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' } :
+                                    row.status === "Duplicate" ? { backgroundColor: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b' } :
+                                    row.status === "Update Existing" ? { backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' } :
+                                    { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' };
+
+                                  return (
+                                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                                      <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }} title={row.name}>{row.name}</td>
+                                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }} title={row.sourceUrl}>{row.sourceUrl}</td>
+                                      <td style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }} title={row.publishedUrl}>{row.publishedUrl || "—"}</td>
+                                      <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                                        <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, ...badgeStyle }}>
+                                          {row.status}
+                                        </span>
+                                        {row.errorMsg && (
+                                          <div style={{ color: '#ef4444', fontSize: '0.65rem', marginTop: '2px' }}>{row.errorMsg}</div>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Import Summary */}
+                    {importCompleted && csvSummary && (
+                      <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', borderRadius: '12px', padding: '1.75rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>✅</div>
+                        <h4 style={{ fontFamily: 'Outfit', color: 'var(--text-primary)', fontSize: '1.15rem', fontWeight: 700, margin: '0 0 1rem 0' }}>Bulk Import Completed!</h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem 0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>{csvSummary.newCount}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 600 }}>New Imported</div>
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem 0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#3b82f6' }}>{csvSummary.updatedCount}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 600 }}>Updated</div>
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem 0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f59e0b' }}>{csvSummary.skippedCount}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 600 }}>Skipped Dups</div>
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem 0.5rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.03)' }}>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>{csvSummary.rejectedCount}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px', textTransform: 'uppercase', fontWeight: 600 }}>Rejected Invalid</div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCsvPreviewRows([]);
+                            setCsvSummary(null);
+                            setImportCompleted(false);
+                          }}
+                          className="btn-secondary"
+                          style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600, marginTop: '1.5rem', cursor: 'pointer' }}
+                        >
+                          🔄 Import Another File
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                {/* Notes */}
-                <div style={{ marginBottom: '1.75rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Notes</label>
-                  <textarea
-                    value={extNotes}
-                    onChange={(e) => setExtNotes(e.target.value)}
-                    placeholder="Enter any additional details or context..."
-                    style={{
-                      width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)',
-                      borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                      fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '80px', resize: 'vertical'
-                    }}
-                  />
-                </div>
+                )}
 
                 {/* Footer buttons */}
                 <div style={{ display: 'flex', justifyContent: editingExternalLinkId ? 'space-between' : 'flex-end', gap: '1rem', alignItems: 'center' }}>
@@ -12682,15 +13042,33 @@ export default function App() {
                       onClick={() => setIsExternalLinkModalOpen(false)}
                       style={{ padding: '10px 20px', cursor: 'pointer' }}
                     >
-                      Cancel
+                      {importCompleted ? "Close" : "Cancel"}
                     </button>
-                    <button
-                      className="btn-primary"
-                      onClick={handleSaveExternalLink}
-                      style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 700 }}
-                    >
-                      {editingExternalLinkId ? "Save Changes" : "Add Link"}
-                    </button>
+                    {(editingExternalLinkId || extLinkTab === 'single') ? (
+                      <button
+                        className="btn-primary"
+                        onClick={handleSaveExternalLink}
+                        style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 700 }}
+                      >
+                        {editingExternalLinkId ? "Save Changes" : "Add Link"}
+                      </button>
+                    ) : (
+                      !importCompleted && (
+                        <button
+                          className="btn-primary"
+                          onClick={handleConfirmBulkImport}
+                          disabled={!csvPreviewRows.some(r => r.status === 'Ready' || r.status === 'Update Existing')}
+                          style={{ 
+                            padding: '10px 20px', 
+                            cursor: csvPreviewRows.some(r => r.status === 'Ready' || r.status === 'Update Existing') ? 'pointer' : 'not-allowed', 
+                            fontWeight: 700,
+                            opacity: csvPreviewRows.some(r => r.status === 'Ready' || r.status === 'Update Existing') ? 1 : 0.5
+                          }}
+                        >
+                          Confirm Import
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
