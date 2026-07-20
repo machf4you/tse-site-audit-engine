@@ -1917,14 +1917,17 @@ export default function App() {
               let indexed = "Unknown";
               let notes = link.notes || "";
               if (statusVal === 1 || statusVal === "1") {
-                indexed = "Yes";
+                indexed = "Indexed";
                 notes = "";
               } else if (statusVal === 0 || statusVal === "0") {
-                indexed = "No";
+                indexed = "Not Indexed";
                 notes = "";
               } else if (statusVal === -1 || statusVal === "-1") {
-                indexed = "Unknown";
+                indexed = "Pending";
                 notes = "Check pending";
+              } else {
+                indexed = "Error";
+                notes = typeof statusVal === 'string' ? statusVal : "Check failed";
               }
               return {
                 ...link,
@@ -9441,7 +9444,7 @@ export default function App() {
                             const externalLinks = site.externalLinks || [];
                             const totalLinks = externalLinks.length;
                             const liveLinks = externalLinks.filter(l => l.status === "Live").length;
-                            const indexedLinks = externalLinks.filter(l => l.indexed === "Yes").length;
+                            const indexedLinks = externalLinks.filter(l => l.indexed === "Yes" || l.indexed === "Indexed").length;
                             const pendingLinks = externalLinks.filter(l => l.status === "Pending").length;
 
                             return (
@@ -9517,7 +9520,6 @@ export default function App() {
                                         <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Link Name</th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Published URL</th>
-                                          <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Status</th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'center' }}>Indexed</th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Date Added</th>
                                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Last Checked</th>
@@ -9531,74 +9533,102 @@ export default function App() {
                                           if (sortedLinks.length === 0) {
                                             return (
                                               <tr>
-                                                <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                                <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                                   No external links found. Click "+ Add External Link" to begin tracking.
                                                 </td>
                                               </tr>
                                             );
                                           }
-                                          return sortedLinks.map((link) => (
-                                            <tr key={link.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                                              <td style={{ padding: '16px 20px' }}>
-                                                <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{link.linkName}</div>
-                                                <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-                                                  <a href={link.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'none', wordBreak: 'break-all', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                    {link.sourceUrl}
-                                                    <ExternalLink size={12} />
+                                          return sortedLinks.map((link) => {
+                                            // Determine the checking status of the link
+                                            const isCheckingLink = isCheckingIndexStatus && link.targetUrl && link.targetUrl.trim() !== "";
+                                            
+                                            let displayIndexed = link.indexed || "Unknown";
+                                            if (displayIndexed === "Yes") displayIndexed = "Indexed";
+                                            if (displayIndexed === "No") displayIndexed = "Not Indexed";
+
+                                            // Remove "Unknown" as a displayed value once a link has been checked.
+                                            const hasBeenChecked = link.lastChecked && link.lastChecked !== "Never";
+                                            if (displayIndexed === "Unknown" && hasBeenChecked) {
+                                              if (link.notes && link.notes.toLowerCase().includes('pending')) {
+                                                displayIndexed = "Pending";
+                                              } else {
+                                                displayIndexed = "Error";
+                                              }
+                                            }
+
+                                            const badgeStyle = 
+                                              (displayIndexed === "Indexed" || displayIndexed === "Yes") ? { backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981' } :
+                                              (displayIndexed === "Not Indexed" || displayIndexed === "No") ? { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' } :
+                                              displayIndexed === "Pending" ? { backgroundColor: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' } :
+                                              displayIndexed === "Error" ? { backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' } :
+                                              { backgroundColor: 'rgba(255, 255, 255, 0.06)', color: 'var(--text-secondary)' };
+
+                                            return (
+                                              <tr key={link.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                                <td style={{ padding: '16px 20px' }}>
+                                                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{link.linkName}</div>
+                                                  <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                    <a href={link.sourceUrl} target="_blank" rel="noreferrer" style={{ color: '#10b981', textDecoration: 'none', wordBreak: 'break-all', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                      {link.sourceUrl}
+                                                      <ExternalLink size={12} />
+                                                    </a>
+                                                  </div>
+                                                </td>
+                                                <td style={{ padding: '16px 20px' }}>
+                                                  <a href={link.targetUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', wordBreak: 'break-all' }}>
+                                                    {link.targetUrl}
                                                   </a>
-                                                </div>
-                                              </td>
-                                              <td style={{ padding: '16px 20px' }}>
-                                                <a href={link.targetUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', textDecoration: 'none', wordBreak: 'break-all' }}>
-                                                  {link.targetUrl}
-                                                </a>
-                                              </td>
-                                              <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                                                <span style={{
-                                                  padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
-                                                  backgroundColor: link.status === "Live" ? 'rgba(16, 185, 129, 0.1)' : link.status === "Broken" ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                                  color: link.status === "Live" ? '#10b981' : link.status === "Broken" ? '#ef4444' : '#f59e0b'
-                                                }}>
-                                                  {link.status}
-                                                </span>
-                                              </td>
-                                              <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                                                <span style={{
-                                                  padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
-                                                  backgroundColor: link.indexed === "Yes" ? 'rgba(16, 185, 129, 0.1)' : link.indexed === "No" ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.06)',
-                                                  color: link.indexed === "Yes" ? '#10b981' : link.indexed === "No" ? '#ef4444' : 'var(--text-secondary)'
-                                                }}>
-                                                  {link.indexed}
-                                                </span>
-                                              </td>
-                                              <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{link.dateAdded}</td>
-                                              <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{link.lastChecked}</td>
-                                              <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={link.notes}>
-                                                {link.notes || "—"}
-                                              </td>
-                                              <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                                <button
-                                                  className="btn-secondary site-btn-sm"
-                                                  style={{ display: 'inline-flex', width: 'auto', padding: '4px 8px' }}
-                                                  onClick={() => {
-                                                    setEditingExternalLinkId(link.id);
-                                                    setExtLinkName(link.linkName || "");
-                                                    setExtSourceUrl(link.sourceUrl || "");
-                                                    setExtTargetUrl(link.targetUrl || "");
-                                                    setExtLinkType(link.linkType || "Backlink");
-                                                    setExtStatus(link.status || "Pending");
-                                                    setExtIndexed(link.indexed || "Unknown");
-                                                    setExtDateAdded(link.dateAdded || "");
-                                                    setExtLastChecked(link.lastChecked || "Never");
-                                                    setExtNotes(link.notes || "");
-                                                    setIsExternalLinkModalOpen(true);
-                                                  }}
-                                                >
-                                                  Edit
-                                                </button>
-                                              </td>
-                                            </tr>
-                                          ));
+                                                </td>
+                                                <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                                                  {isCheckingLink ? (
+                                                    <span style={{
+                                                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                                      padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
+                                                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                      color: '#3b82f6'
+                                                    }}>
+                                                      <RefreshCw size={12} className="spinner" style={{ display: 'inline-block' }} />
+                                                      Checking...
+                                                    </span>
+                                                  ) : (
+                                                    <span style={{
+                                                      padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
+                                                      ...badgeStyle
+                                                    }}>
+                                                      {displayIndexed}
+                                                    </span>
+                                                  )}
+                                                </td>
+                                                <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{link.dateAdded}</td>
+                                                <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>{link.lastChecked}</td>
+                                                <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={link.notes}>
+                                                  {link.notes || "—"}
+                                                </td>
+                                                <td style={{ padding: '16px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                                  <button
+                                                    className="btn-secondary site-btn-sm"
+                                                    style={{ display: 'inline-flex', width: 'auto', padding: '4px 8px' }}
+                                                    onClick={() => {
+                                                      setEditingExternalLinkId(link.id);
+                                                      setExtLinkName(link.linkName || "");
+                                                      setExtSourceUrl(link.sourceUrl || "");
+                                                      setExtTargetUrl(link.targetUrl || "");
+                                                      setExtLinkType(link.linkType || "Backlink");
+                                                      setExtStatus(link.status || "Pending");
+                                                      setExtIndexed(link.indexed || "Unknown");
+                                                      setExtDateAdded(link.dateAdded || "");
+                                                      setExtLastChecked(link.lastChecked || "Never");
+                                                      setExtNotes(link.notes || "");
+                                                      setIsExternalLinkModalOpen(true);
+                                                    }}
+                                                  >
+                                                    Edit
+                                                  </button>
+                                                </td>
+                                              </tr>
+                                            );
+                                          });
                                         })()}
                                       </tbody>
                                     </table>
@@ -12437,8 +12467,10 @@ export default function App() {
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', boxSizing: 'border-box', height: '42px'
                         }}
                       >
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
+                        <option value="Indexed">Indexed</option>
+                        <option value="Not Indexed">Not Indexed</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Error">Error</option>
                         <option value="Unknown">Unknown</option>
                       </select>
                     </div>
