@@ -1528,6 +1528,8 @@ export default function App() {
   const [csvPreviewRows, setCsvPreviewRows] = useState([]);
   const [csvSummary, setCsvSummary] = useState(null);
   const [importCompleted, setImportCompleted] = useState(false);
+  const [indexCheckerMessage, setIndexCheckerMessage] = useState("");
+  const pollingTimerRef = useRef(null);
   
   const selectedSiteRaw = sites.find(s => s.id === selectedSiteId) || null;
   const selectedSite = selectedSiteRaw ? {
@@ -1548,6 +1550,23 @@ export default function App() {
       return { ...t, state: derivedState };
     })
   } : null;
+
+  useEffect(() => {
+    return () => {
+      if (pollingTimerRef.current) {
+        clearTimeout(pollingTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+    setIsCheckingIndexStatus(false);
+    setIndexCheckerMessage("");
+  }, [selectedSiteId]);
 
   const getEnrichedTask = (task) => {
     if (!task || !selectedSite) return task;
@@ -1856,7 +1875,6 @@ export default function App() {
     if (!site) return;
 
     const externalLinks = site.externalLinks || [];
-    // Only send links to IndexChecker where the Published URL (targetUrl) is populated
     const linksToCheck = externalLinks.filter(l => l.targetUrl && l.targetUrl.trim() !== "");
 
     if (linksToCheck.length === 0) {
@@ -1864,91 +1882,138 @@ export default function App() {
       return;
     }
 
+    if (pollingTimerRef.current) {
+      clearTimeout(pollingTimerRef.current);
+      pollingTimerRef.current = null;
+    }
+
     setIsCheckingIndexStatus(true);
+    setIndexCheckerMessage("Checking backlinks...");
     showNotification("Checking indexing status...");
 
+    const startTime = Date.now();
+    const urls = linksToCheck.map(l => l.sourceUrl).filter(Boolean);
+    const existingProjectId = site.indexCheckerProjectId || null;
+
     try {
-      const urls = linksToCheck.map(l => l.sourceUrl).filter(Boolean);
-      let projectId = site.indexCheckerProjectId;
+      const syncResponse = await fetch(`${API_BASE}/index-checker/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteId: site.id,
+          siteName: site.siteName || site.name || `site-${site.id}`,
+          urls: urls,
+          existingProjectId: existingProjectId
+        })
+      });
 
+      if (!syncResponse.ok) {
+        const errData = await syncResponse.json();
+        throw new Error(errData.error || "Failed to sync IndexChecker project.");
+      }
+
+      const syncData = await syncResponse.json();
+      const projectId = syncData.projectId;
       if (!projectId) {
-        const syncResponse = await fetch(`${API_BASE}/index-checker/sync`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            siteId: site.id,
-            siteName: site.siteName || site.name || `site-${site.id}`,
-            urls: urls,
-            existingProjectId: null
-          })
-        });
-
-        if (!syncResponse.ok) {
-          const errData = await syncResponse.json();
-          throw new Error(errData.error || "Failed to create IndexChecker project.");
-        }
-
-        const syncData = await syncResponse.json();
-        projectId = syncData.projectId;
-        if (!projectId) {
-          throw new Error("No project ID was returned from the server.");
-        }
-
-        // Save project ID against the website
-        setSites(prev => prev.map(s => s.id === site.id ? { ...s, indexCheckerProjectId: projectId } : s));
+        throw new Error("No project ID was returned from the server.");
       }
 
-      // Fetch project details
-      const detailsResponse = await fetch(`${API_BASE}/index-checker/details?projectId=${projectId}`);
-      if (!detailsResponse.ok) {
-        const errData = await detailsResponse.json();
-        throw new Error(errData.error || "Failed to fetch project details.");
-      }
+      setSites(prev => prev.map(s => s.id === site.id ? { ...s, indexCheckerProjectId: projectId } : s));
 
-      const detailsData = await detailsResponse.json();
-      const urlStatusMap = detailsData.urls || {};
-      const currentDate = new Date().toISOString().split('T')[0];
+      const poll = async () => {
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        if (elapsedSeconds >= 180) {
+          setIsCheckingIndexStatus(false);
+          setIndexCheckerMessage("Indexing check timed out. Some links are still pending.");
+          showNotification("Indexing check timed out. Some links are still pending.");
+          return;
+        }
 
-      setSites(prev => prev.map(s => {
-        if (s.id === site.id) {
-          const updatedLinks = (s.externalLinks || []).map(link => {
-            // Only update the Indexed, Last Checked and Notes columns for the links that were actually checked
-            const isChecked = link.targetUrl && link.targetUrl.trim() !== "";
-            if (!isChecked) {
-              return link;
-            }
+        try {
+          const detailsResponse = await fetch(`${API_BASE}/index-checker/details?projectId=${projectId}`);
+          if (!detailsResponse.ok) {
+            const errData = await detailsResponse.json();
+            throw new Error(errData.error || "Failed to fetch project details.");
+          }
 
+          const detailsData = await detailsResponse.json();
+          const urlStatusMap = detailsData.urls || {};
+          const currentDate = new Date().toISOString().split('T')[0];
+
+          let completedCount = 0;
+          let anyPending = false;
+
+          linksToCheck.forEach(link => {
             const statusVal = urlStatusMap[link.sourceUrl];
-            if (statusVal !== undefined) {
-              let indexed = "Unknown";
-              if (statusVal === 1 || statusVal === "1") {
-                indexed = "Indexed";
-              } else if (statusVal === 0 || statusVal === "0") {
-                indexed = "Not Indexed";
-              } else if (statusVal === -1 || statusVal === "-1") {
-                indexed = "Pending";
-              } else {
-                indexed = "Error";
-              }
-              return {
-                ...link,
-                indexed: indexed,
-                lastChecked: currentDate
-              };
+            if (statusVal === 1 || statusVal === "1") {
+              completedCount++;
+            } else if (statusVal === 0 || statusVal === "0") {
+              completedCount++;
+            } else if (statusVal === -1 || statusVal === "-1") {
+              anyPending = true;
+            } else if (statusVal !== undefined) {
+              completedCount++;
+            } else {
+              anyPending = true;
             }
-            return link;
           });
-          return { ...s, externalLinks: updatedLinks };
-        }
-        return s;
-      }));
 
-      showNotification("Indexing status updated successfully!");
+          setSites(prev => prev.map(s => {
+            if (s.id === site.id) {
+              const updatedLinks = (s.externalLinks || []).map(link => {
+                const isChecked = link.targetUrl && link.targetUrl.trim() !== "";
+                if (!isChecked) {
+                  return link;
+                }
+
+                const statusVal = urlStatusMap[link.sourceUrl];
+                if (statusVal !== undefined) {
+                  let indexed = "Unknown";
+                  if (statusVal === 1 || statusVal === "1") {
+                    indexed = "Indexed";
+                  } else if (statusVal === 0 || statusVal === "0") {
+                    indexed = "Not Indexed";
+                  } else if (statusVal === -1 || statusVal === "-1") {
+                    indexed = "Pending";
+                  } else {
+                    indexed = "Error";
+                  }
+                  return {
+                    ...link,
+                    indexed: indexed,
+                    lastChecked: currentDate
+                  };
+                }
+                return link;
+              });
+              return { ...s, externalLinks: updatedLinks };
+            }
+            return s;
+          }));
+
+          const totalCount = linksToCheck.length;
+
+          if (!anyPending || completedCount === totalCount) {
+            setIsCheckingIndexStatus(false);
+            setIndexCheckerMessage("Indexing check completed.");
+            showNotification("Indexing check completed.");
+          } else {
+            setIndexCheckerMessage(`${completedCount} of ${totalCount} links completed.`);
+            pollingTimerRef.current = setTimeout(poll, 15000);
+          }
+        } catch (pollErr) {
+          console.error("[IndexChecker] Poll error:", pollErr);
+          pollingTimerRef.current = setTimeout(poll, 15000);
+        }
+      };
+
+      await poll();
+
     } catch (err) {
-      console.error("[IndexChecker] Check error:", err);
-      showNotification(`Failed to check indexing status: ${err.message}`);
-    } finally {
+      console.error("[IndexChecker] Start error:", err);
       setIsCheckingIndexStatus(false);
+      setIndexCheckerMessage(`Failed to check indexing: ${err.message}`);
+      showNotification(`Failed to check indexing status: ${err.message}`);
     }
   };
 
@@ -9743,7 +9808,14 @@ export default function App() {
                                       disabled={isCheckingIndexStatus}
                                       style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.9rem', padding: '8px 16px', fontWeight: 700, opacity: isCheckingIndexStatus ? 0.7 : 1 }}
                                     >
-                                      {isCheckingIndexStatus ? "Checking..." : "🔍 Check Indexing Status"}
+                                      {isCheckingIndexStatus ? (
+                                        <>
+                                          <RefreshCw size={14} className="spinning" style={{ display: 'inline-block' }} />
+                                          <span>{indexCheckerMessage || "Checking backlinks..."}</span>
+                                        </>
+                                      ) : (
+                                        <span>{indexCheckerMessage || "🔍 Check Indexing Status"}</span>
+                                      )}
                                     </button>
                                     <button
                                       className="btn-primary"
