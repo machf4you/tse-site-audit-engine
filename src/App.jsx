@@ -1850,8 +1850,11 @@ export default function App() {
     if (!site) return;
 
     const externalLinks = site.externalLinks || [];
-    if (externalLinks.length === 0) {
-      showNotification("No external links found to check indexing status.");
+    // Only send links to IndexChecker where the Published URL (targetUrl) is populated
+    const linksToCheck = externalLinks.filter(l => l.targetUrl && l.targetUrl.trim() !== "");
+
+    if (linksToCheck.length === 0) {
+      showNotification("No external links with a populated Published URL found to check.");
       return;
     }
 
@@ -1859,7 +1862,7 @@ export default function App() {
     showNotification("Checking indexing status...");
 
     try {
-      const urls = externalLinks.map(l => l.sourceUrl).filter(Boolean);
+      const urls = linksToCheck.map(l => l.sourceUrl).filter(Boolean);
       let projectId = site.indexCheckerProjectId;
 
       if (!projectId) {
@@ -1903,6 +1906,12 @@ export default function App() {
       setSites(prev => prev.map(s => {
         if (s.id === site.id) {
           const updatedLinks = (s.externalLinks || []).map(link => {
+            // Only update the Indexed, Last Checked and Notes columns for the links that were actually checked
+            const isChecked = link.targetUrl && link.targetUrl.trim() !== "";
+            if (!isChecked) {
+              return link;
+            }
+
             const statusVal = urlStatusMap[link.sourceUrl];
             if (statusVal !== undefined) {
               let indexed = "Unknown";
