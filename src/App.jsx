@@ -5261,7 +5261,7 @@ export default function App() {
             appId: "LEAD_GENERATOR",
             accentColor: "#6366f1",
             IconComponent: Database,
-            launchUrl: "http://localhost:5175/"
+            launchUrl: "https://lead-finder.thesearchequation.co.uk"
           })}
 
           {renderAppCard({
