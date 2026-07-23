@@ -2962,6 +2962,15 @@ export default function App() {
   const [rpSortColumn, setRpSortColumn] = useState("id");
   const [rpSortDirection, setRpSortDirection] = useState("desc");
   
+  // Create Restore Point Modal & Form State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreatingRestorePoint, setIsCreatingRestorePoint] = useState(false);
+  const [createApp, setCreateApp] = useState("Website Management");
+  const [createVersion, setCreateVersion] = useState("");
+  const [createFeature, setCreateFeature] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createError, setCreateError] = useState(null);
+  
   // Details Modal
   const [selectedVersionDetail, setSelectedVersionDetail] = useState(null);
 
@@ -2978,6 +2987,43 @@ export default function App() {
       setVersionHistoryError(e.message);
     } finally {
       setIsVersionHistoryLoading(false);
+    }
+  };
+
+  const handleCreateRestorePoint = async (e) => {
+    e.preventDefault();
+    if (!createVersion || !createFeature) {
+      setCreateError("Version and Features Included are required.");
+      return;
+    }
+    setIsCreatingRestorePoint(true);
+    setCreateError(null);
+    try {
+      const res = await fetch(`${API_BASE}/restore-points/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          app: createApp,
+          version: createVersion,
+          feature: createFeature,
+          description: createDescription
+        })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to create restore point.");
+      }
+      // Success! Clear state and reload list
+      setIsCreateModalOpen(false);
+      setCreateVersion("");
+      setCreateFeature("");
+      setCreateDescription("");
+      await fetchVersionHistory();
+    } catch (err) {
+      console.error(err);
+      setCreateError(err.message);
+    } finally {
+      setIsCreatingRestorePoint(false);
     }
   };
 
@@ -12666,9 +12712,25 @@ export default function App() {
 
                         return (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
-                              Master register of system restore points and application recovery states across all TSE applications.
-                            </p>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                                Master register of system restore points and application recovery states across all TSE applications.
+                              </p>
+                              <button
+                                className="btn-primary"
+                                onClick={() => {
+                                  setCreateApp("Website Management");
+                                  setCreateVersion("");
+                                  setCreateFeature("");
+                                  setCreateDescription("");
+                                  setCreateError(null);
+                                  setIsCreateModalOpen(true);
+                                }}
+                                style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+                              >
+                                + Create Restore Point
+                              </button>
+                            </div>
 
                             {/* Restore Points Table */}
                             <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -12780,10 +12842,10 @@ export default function App() {
                                         const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
                                         const dateFormatted = `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
                                         
-                                        const statusColor = item.status === "Live" ? '#10b981' : 
+                                        const statusColor = item.status === "Live" || item.status === "Available" ? '#10b981' : 
                                                             item.status === "Testing" ? '#fbbf24' : 
                                                             item.status === "Development" ? '#3b82f6' : '#ef4444';
-                                        const statusBg = item.status === "Live" ? 'rgba(16, 185, 129, 0.08)' : 
+                                        const statusBg = item.status === "Live" || item.status === "Available" ? 'rgba(16, 185, 129, 0.08)' : 
                                                          item.status === "Testing" ? 'rgba(245, 158, 11, 0.08)' : 
                                                          item.status === "Development" ? 'rgba(59, 130, 246, 0.08)' : 'rgba(239, 68, 68, 0.08)';
 
@@ -12967,12 +13029,21 @@ export default function App() {
                                       <div>
                                         <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Status</span>
                                         <span style={{
-                                          color: selectedVersionDetail.status === "Live" ? '#10b981' : 
+                                          color: selectedVersionDetail.status === "Live" || selectedVersionDetail.status === "Available" ? '#10b981' : 
                                                  selectedVersionDetail.status === "Testing" ? '#fbbf24' : 
                                                  selectedVersionDetail.status === "Development" ? '#3b82f6' : '#ef4444',
                                           fontWeight: 'bold',
                                           fontSize: '0.8rem'
                                         }}>{selectedVersionDetail.status}</span>
+                                      </div>
+                                      <div></div>
+                                      <div style={{ gridColumn: 'span 2' }}>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Git Tag</span>
+                                        <code style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>{selectedVersionDetail.git_tag || 'N/A'}</code>
+                                      </div>
+                                      <div style={{ gridColumn: 'span 2' }}>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Database Backup Filename</span>
+                                        <code style={{ color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.85rem' }}>{selectedVersionDetail.backup || 'N/A'}</code>
                                       </div>
                                     </div>
 
@@ -13001,6 +13072,164 @@ export default function App() {
                                 </div>
                               );
                             })()}
+
+                            {/* Create Restore Point Modal Overlay */}
+                            {isCreateModalOpen && (
+                              <div style={{
+                                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                                backgroundColor: 'rgba(5, 7, 11, 0.85)', backdropFilter: 'blur(8px)',
+                                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                zIndex: 4000, padding: '1rem'
+                              }} onClick={() => { if (!isCreatingRestorePoint) setIsCreateModalOpen(false); }}>
+                                <div style={{
+                                  backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
+                                  borderRadius: '16px', padding: '2rem', maxWidth: '500px', width: '100%',
+                                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
+                                  textAlign: 'left'
+                                }} onClick={(e) => e.stopPropagation()}>
+                                  {!isCreatingRestorePoint && (
+                                    <button
+                                      onClick={() => setIsCreateModalOpen(false)}
+                                      style={{
+                                        position: 'absolute', top: '1rem', right: '1rem',
+                                        background: 'none', border: 'none', color: 'var(--text-secondary)',
+                                        fontSize: '1.25rem', cursor: 'pointer', outline: 'none'
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+                                  )}
+
+                                  <h3 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
+                                    Create Restore Point
+                                  </h3>
+                                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
+                                    Capture code tags and full database serialization for disaster recovery.
+                                  </p>
+
+                                  <form onSubmit={handleCreateRestorePoint} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>
+                                        Application
+                                      </label>
+                                      <select
+                                        value={createApp}
+                                        onChange={(e) => setCreateApp(e.target.value)}
+                                        disabled={isCreatingRestorePoint}
+                                        style={{
+                                          width: '100%', backgroundColor: 'rgba(255,255,255,0.03)',
+                                          border: '1px solid var(--border-color)', borderRadius: '8px',
+                                          padding: '10px 12px', color: 'var(--text-primary)', fontSize: '0.85rem',
+                                          outline: 'none', boxSizing: 'border-box'
+                                        }}
+                                      >
+                                        <option value="Website Management" style={{ backgroundColor: '#0c101b' }}>Website Management</option>
+                                        <option value="Lead Finder" style={{ backgroundColor: '#0c101b' }}>Lead Finder</option>
+                                      </select>
+                                    </div>
+
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>
+                                        Version
+                                      </label>
+                                      <input
+                                        type="text"
+                                        placeholder="e.g. v1.2"
+                                        value={createVersion}
+                                        onChange={(e) => setCreateVersion(e.target.value)}
+                                        disabled={isCreatingRestorePoint}
+                                        required
+                                        style={{
+                                          width: '100%', backgroundColor: 'rgba(255,255,255,0.03)',
+                                          border: '1px solid var(--border-color)', borderRadius: '8px',
+                                          padding: '10px 12px', color: 'var(--text-primary)', fontSize: '0.85rem',
+                                          outline: 'none', boxSizing: 'border-box'
+                                        }}
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>
+                                        Features Included
+                                      </label>
+                                      <input
+                                        type="text"
+                                        placeholder="e.g. Local Restore Point Engine Phase 1"
+                                        value={createFeature}
+                                        onChange={(e) => setCreateFeature(e.target.value)}
+                                        disabled={isCreatingRestorePoint}
+                                        required
+                                        style={{
+                                          width: '100%', backgroundColor: 'rgba(255,255,255,0.03)',
+                                          border: '1px solid var(--border-color)', borderRadius: '8px',
+                                          padding: '10px 12px', color: 'var(--text-primary)', fontSize: '0.85rem',
+                                          outline: 'none', boxSizing: 'border-box'
+                                        }}
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label style={{ display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, marginBottom: '0.5rem' }}>
+                                        Notes
+                                      </label>
+                                      <textarea
+                                        placeholder="Detailed recovery descriptions or notes..."
+                                        value={createDescription}
+                                        onChange={(e) => setCreateDescription(e.target.value)}
+                                        disabled={isCreatingRestorePoint}
+                                        rows={4}
+                                        style={{
+                                          width: '100%', backgroundColor: 'rgba(255,255,255,0.03)',
+                                          border: '1px solid var(--border-color)', borderRadius: '8px',
+                                          padding: '10px 12px', color: 'var(--text-primary)', fontSize: '0.85rem',
+                                          outline: 'none', resize: 'vertical', boxSizing: 'border-box',
+                                          lineHeight: 1.5
+                                        }}
+                                      />
+                                    </div>
+
+                                    {createError && (
+                                      <div style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600 }}>
+                                        ⚠️ {createError}
+                                      </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                      {!isCreatingRestorePoint && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setIsCreateModalOpen(false)}
+                                          className="btn-secondary"
+                                          style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer' }}
+                                        >
+                                          Cancel
+                                        </button>
+                                      )}
+                                      <button
+                                        type="submit"
+                                        disabled={isCreatingRestorePoint}
+                                        className="btn-primary"
+                                        style={{
+                                          padding: '8px 20px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer',
+                                          display: 'flex', alignItems: 'center', gap: '8px', opacity: isCreatingRestorePoint ? 0.7 : 1
+                                        }}
+                                      >
+                                        {isCreatingRestorePoint ? (
+                                          <>
+                                            <span className="spinner-mini" style={{
+                                              display: 'inline-block', width: '12px', height: '12px',
+                                              border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+                                              borderRadius: '50%', animation: 'spin 0.8s linear infinite'
+                                            }} />
+                                            Creating...
+                                          </>
+                                        ) : 'Create Snapshot'}
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })()}

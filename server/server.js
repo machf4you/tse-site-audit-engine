@@ -15,7 +15,8 @@ const {
   getArchitectureNotes,
   saveArchitectureNotes,
   getVersionHistory,
-  addVersionHistoryEntry
+  addVersionHistoryEntry,
+  createDatabaseBackup
 } = require('./db');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -259,6 +260,87 @@ app.post('/api/version-history', async (req, res) => {
     res.json(entry);
   } catch (err) {
     console.error('POST /api/version-history error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Create Restore Point (Disaster Recovery Phase 1)
+app.post('/api/restore-points/create', async (req, res) => {
+  try {
+    const { app: appName, version, feature, description } = req.body;
+
+    if (!appName || !version || !feature) {
+      return res.status(400).json({ error: 'app, version, and feature are required.' });
+    }
+
+    // 1. Get current git HEAD commit hash
+    const commitHash = await new Promise((resolve) => {
+      exec('git rev-parse HEAD', { cwd: path.join(__dirname, '..') }, (err, stdout) => {
+        if (err) {
+          console.error("Git rev-parse HEAD failed:", err.message);
+          resolve('unknown');
+        } else {
+          resolve(stdout.trim());
+        }
+      });
+    });
+
+    // 2. Fetch version history to determine the next ID
+    const history = await getVersionHistory();
+    const nextId = history.length > 0 ? Math.max(...history.map(h => h.id)) + 1 : 1;
+
+    // 3. Define unique backup filename
+    const timestampStr = new Date().toISOString().replace(/[:.]/g, '-');
+    const safeApp = appName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const safeVer = version.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const backupFilename = `db_backup_rp${nextId}_${safeApp}_${safeVer}_${timestampStr}.json`;
+
+    // 4. Create database backup file
+    await createDatabaseBackup(backupFilename);
+
+    // 5. Create Git Tag
+    const tagName = `rt-rp${nextId}-${timestampStr}`;
+    const tagMessage = `Restore Point RP-${String(nextId).padStart(3, '0')}: ${feature}`;
+
+    await new Promise((resolve, reject) => {
+      exec(`git tag -a ${tagName} -m "${tagMessage.replace(/"/g, '\\"')}"`, { cwd: path.join(__dirname, '..') }, (err) => {
+        if (err) {
+          reject(new Error(`Failed to create Git tag: ${err.message}`));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // 6. Verify Git Tag exists
+    await new Promise((resolve, reject) => {
+      exec(`git tag -l ${tagName}`, { cwd: path.join(__dirname, '..') }, (err, stdout) => {
+        if (err) {
+          reject(new Error(`Failed to verify Git tag: ${err.message}`));
+        } else if (stdout.trim() !== tagName) {
+          reject(new Error(`Git tag verification failed. Tag ${tagName} was not found.`));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // 7. Save Restore Point record to version history
+    const entry = await addVersionHistoryEntry({
+      app: appName,
+      version,
+      feature,
+      description: description || '',
+      developer: 'Admin',
+      commit_hash: commitHash,
+      status: 'Available',
+      backup: backupFilename,
+      git_tag: tagName
+    });
+
+    res.json({ success: true, entry });
+  } catch (err) {
+    console.error('POST /api/restore-points/create error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

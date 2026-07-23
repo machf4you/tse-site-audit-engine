@@ -405,13 +405,16 @@ async function initDb() {
         developer VARCHAR(100) NOT NULL,
         commit_hash VARCHAR(100) NOT NULL,
         status VARCHAR(50) NOT NULL,
-        backup VARCHAR(50) NOT NULL DEFAULT 'Not Available'
+        backup VARCHAR(255) NOT NULL DEFAULT 'Not Available',
+        git_tag VARCHAR(100)
       );
     `);
 
     // Self-healing migration for backup column in version_history table
-    await pool.query("ALTER TABLE version_history ADD COLUMN IF NOT EXISTS backup VARCHAR(50) NOT NULL DEFAULT 'Not Available'");
+    await pool.query("ALTER TABLE version_history ADD COLUMN IF NOT EXISTS backup VARCHAR(255) NOT NULL DEFAULT 'Not Available'");
+    await pool.query("ALTER TABLE version_history ALTER COLUMN backup TYPE VARCHAR(255)");
     await pool.query("UPDATE version_history SET backup = 'Code Rollback Only' WHERE version IN ('v1.0', 'v1.1') AND backup = 'Not Available'");
+    await pool.query("ALTER TABLE version_history ADD COLUMN IF NOT EXISTS git_tag VARCHAR(100)");
 
     // Load config fallback credentials
     const credentialsPath = path.join(__dirname, 'fallback_credentials.json');
@@ -958,7 +961,8 @@ async function getVersionHistory() {
         developer: r.developer,
         commit_hash: r.commit_hash,
         status: r.status,
-        backup: r.backup || 'Not Available'
+        backup: r.backup || 'Not Available',
+        git_tag: r.git_tag || ''
       }));
     } catch (err) {
       console.error("Database getVersionHistory failed:", err.message);
@@ -967,18 +971,20 @@ async function getVersionHistory() {
   const data = loadFallback();
   return (data.versionHistory || []).map(h => ({
     ...h,
-    backup: h.backup || 'Not Available'
+    backup: h.backup || 'Not Available',
+    git_tag: h.git_tag || ''
   })).sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
 }
 
 async function addVersionHistoryEntry(entry) {
   const dateStr = entry.date_time || new Date().toISOString();
   const backupVal = entry.backup || 'Not Available';
+  const gitTagVal = entry.git_tag || '';
   if (useDb) {
     try {
       const { rows } = await pool.query(
-        `INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status, backup)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        `INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status, backup, git_tag)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING *`,
         [
           dateStr,
@@ -989,7 +995,8 @@ async function addVersionHistoryEntry(entry) {
           entry.developer,
           entry.commit_hash,
           entry.status,
-          backupVal
+          backupVal,
+          gitTagVal
         ]
       );
       return rows[0];
@@ -1010,11 +1017,59 @@ async function addVersionHistoryEntry(entry) {
     developer: entry.developer,
     commit_hash: entry.commit_hash,
     status: entry.status,
-    backup: backupVal
+    backup: backupVal,
+    git_tag: gitTagVal
   };
   data.versionHistory.push(newEntry);
   saveFallback(data);
   return newEntry;
+}
+
+async function createDatabaseBackup(backupFilename) {
+  // Ensure the server/backups directory exists
+  const backupsDir = path.join(__dirname, 'backups');
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+  }
+
+  const backupFilePath = path.join(backupsDir, backupFilename);
+
+  if (useDb) {
+    // Query all tables
+    const tables = ['websites', 'page_configurations', 'page_classifications', 'architecture_notes', 'version_history'];
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      database_type: 'PostgreSQL',
+      tables: {}
+    };
+
+    for (const table of tables) {
+      const { rows } = await pool.query(`SELECT * FROM ${table}`);
+      backupData.tables[table] = rows;
+    }
+
+    fs.writeFileSync(backupFilePath, JSON.stringify(backupData, null, 2), 'utf8');
+  } else {
+    // Fallback: Copy db_backup.json
+    const defaultData = loadFallback();
+    const backupData = {
+      timestamp: new Date().toISOString(),
+      database_type: 'JSONFallback',
+      data: defaultData
+    };
+    fs.writeFileSync(backupFilePath, JSON.stringify(backupData, null, 2), 'utf8');
+  }
+
+  // Verification: Verify the file exists and is not empty
+  if (!fs.existsSync(backupFilePath)) {
+    throw new Error(`Backup file ${backupFilename} was not created.`);
+  }
+  const stats = fs.statSync(backupFilePath);
+  if (stats.size === 0) {
+    throw new Error(`Backup file ${backupFilename} is empty (0 bytes).`);
+  }
+
+  return backupFilePath;
 }
 
 module.exports = {
@@ -1028,5 +1083,6 @@ module.exports = {
   getArchitectureNotes,
   saveArchitectureNotes,
   getVersionHistory,
-  addVersionHistoryEntry
+  addVersionHistoryEntry,
+  createDatabaseBackup
 };

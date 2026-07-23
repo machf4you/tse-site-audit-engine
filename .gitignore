@@ -48,4 +48,7 @@ server/db_backup.json
 *.bak
 *hotfix-backup*
 
+# Database backups directory
+server/backups/
+
 
