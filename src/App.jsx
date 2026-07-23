@@ -12654,11 +12654,11 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* Global Version History */}
-                      {activeSettingsTab === "global_version_history" && (
+                      {/* Global Restore Points */}
+                      {activeSettingsTab === "global_restore_points" && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                           <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
-                            Audit trail of development history, release milestones, and active version status across all TSE applications.
+                            Master register of system restore points and application recovery states across all TSE applications.
                           </p>
 
                           {/* Filters bar */}
