@@ -2958,11 +2958,9 @@ export default function App() {
   const [isVersionHistoryLoading, setIsVersionHistoryLoading] = useState(false);
   const [versionHistoryError, setVersionHistoryError] = useState(null);
   
-  // Filters
-  const [versionFilterApp, setVersionFilterApp] = useState("All");
-  const [versionFilterStatus, setVersionFilterStatus] = useState("All");
-  const [versionFilterStartDate, setVersionFilterStartDate] = useState("");
-  const [versionFilterEndDate, setVersionFilterEndDate] = useState("");
+  // Sorting for Global Restore Points
+  const [rpSortColumn, setRpSortColumn] = useState("id");
+  const [rpSortDirection, setRpSortDirection] = useState("desc");
   
   // Details Modal
   const [selectedVersionDetail, setSelectedVersionDetail] = useState(null);
