@@ -3163,7 +3163,7 @@ export default function App() {
   }, [activeSettingsTab]);
 
   useEffect(() => {
-    if (activeSettingsTab === "global_version_history") {
+    if (activeSettingsTab === "global_restore_points") {
       fetchVersionHistory();
     }
   }, [activeSettingsTab]);
@@ -11890,7 +11890,7 @@ export default function App() {
                     items: [
                       { id: "version", label: "Version" },
                       { id: "release_notes", label: "Release Notes" },
-                      { id: "global_version_history", label: "Global Version History" }
+                      { id: "global_restore_points", label: "Global Restore Points" }
                     ]
                   }
                 ];
@@ -12777,34 +12777,32 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* Version History Table */}
+                          {/* Restore Points Table */}
                           <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
                             <div style={{ overflowX: 'auto' }}>
                               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                                 <thead>
                                   <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px' }}>Date & Time</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px' }}>App</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '60px' }}>Version</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '250px' }}>Feature</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '80px' }}>Developer</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '80px' }}>Commit Hash</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px' }}>Restore Point</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px' }}>Application</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px' }}>Created</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '250px' }}>Features Included</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px' }}>Recovery Type</th>
                                     <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '90px' }}>Status</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '130px' }}>Backup</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', textAlign: 'right', width: '150px' }}>Actions</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', textAlign: 'right', width: '180px' }}>Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {isVersionHistoryLoading ? (
                                     <tr>
-                                      <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                        Loading version history audit trail...
+                                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                        Loading restore points register...
                                       </td>
                                     </tr>
                                   ) : versionHistoryError ? (
                                     <tr>
-                                      <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
-                                        Error loading history: {versionHistoryError}
+                                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
+                                        Error loading restore points: {versionHistoryError}
                                       </td>
                                     </tr>
                                   ) : (() => {
@@ -12832,8 +12830,8 @@ export default function App() {
                                     if (filtered.length === 0) {
                                       return (
                                         <tr>
-                                          <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                            No release records match the current filters.
+                                          <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                            No restore points match the current filters.
                                           </td>
                                         </tr>
                                       );
@@ -12850,32 +12848,46 @@ export default function App() {
                                                        item.status === "Development" ? 'rgba(59, 130, 246, 0.08)' : 'rgba(239, 68, 68, 0.08)';
 
                                       const backupVal = item.backup || 'Not Available';
-                                      const backupColor = backupVal === "Full Backup Available" ? '#10b981' : 
-                                                          backupVal === "Code Rollback Only" ? '#fbbf24' : '#94a3b8';
-                                      const backupBg = backupVal === "Full Backup Available" ? 'rgba(16, 185, 129, 0.08)' : 
-                                                       backupVal === "Code Rollback Only" ? 'rgba(245, 158, 11, 0.08)' : 'rgba(148, 163, 184, 0.08)';
+                                      const getRecoveryType = (b) => {
+                                        if (b === "Full Backup Available" || b === "Full System") return "Full System";
+                                        if (b === "Code Rollback Only" || b === "Code + Database") return "Code + Database";
+                                        return "Code Only";
+                                      };
+                                      const recoveryVal = getRecoveryType(backupVal);
+                                      const recoveryColor = recoveryVal === "Full System" ? '#10b981' : 
+                                                            recoveryVal === "Code + Database" ? '#fbbf24' : '#94a3b8';
+                                      const recoveryBg = recoveryVal === "Full System" ? 'rgba(16, 185, 129, 0.08)' : 
+                                                         recoveryVal === "Code + Database" ? 'rgba(245, 158, 11, 0.08)' : 'rgba(148, 163, 184, 0.08)';
+
+                                      const rpId = `RP-${String(item.id).padStart(3, '0')}`;
 
                                       return (
                                         <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                                          <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                            {dateFormatted}
+                                          <td style={{ padding: '12px 10px', color: '#60a5fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                                            {rpId}
                                           </td>
                                           <td style={{ padding: '12px 10px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                                             {item.app}
                                           </td>
-                                          <td style={{ padding: '12px 10px', color: '#60a5fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                            {item.version}
+                                          <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                            {dateFormatted}
                                           </td>
                                           <td style={{ padding: '12px 10px', fontWeight: 600 }}>
                                             {item.feature}
                                           </td>
-                                          <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                            {item.developer}
-                                          </td>
                                           <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
-                                            <code style={{ fontSize: '0.8rem', color: '#cbd5e1' }} title={item.commit_hash}>
-                                              {item.commit_hash.substring(0, 8)}
-                                            </code>
+                                            <span style={{
+                                              color: recoveryColor,
+                                              backgroundColor: recoveryBg,
+                                              padding: '3px 8px',
+                                              borderRadius: '4px',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 700,
+                                              textTransform: 'uppercase',
+                                              border: `1px solid ${recoveryColor}22`
+                                            }}>
+                                              {recoveryVal}
+                                            </span>
                                           </td>
                                           <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
                                             <span style={{
@@ -12891,20 +12903,6 @@ export default function App() {
                                               {item.status}
                                             </span>
                                           </td>
-                                          <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
-                                            <span style={{
-                                              color: backupColor,
-                                              backgroundColor: backupBg,
-                                              padding: '3px 8px',
-                                              borderRadius: '4px',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 700,
-                                              textTransform: 'uppercase',
-                                              border: `1px solid ${backupColor}22`
-                                            }}>
-                                              {backupVal}
-                                            </span>
-                                          </td>
                                           <td style={{ padding: '12px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                               <button
@@ -12912,17 +12910,21 @@ export default function App() {
                                                 onClick={() => setSelectedVersionDetail(item)}
                                                 style={{ width: 'auto', padding: '4px 10px', fontSize: '0.75rem' }}
                                               >
-                                                Details
+                                                View Details
                                               </button>
                                               <button
                                                 className="btn-secondary site-btn-sm"
-                                                onClick={() => {
-                                                  navigator.clipboard.writeText(item.commit_hash);
-                                                  showNotification("Commit hash copied to clipboard!");
+                                                disabled
+                                                style={{
+                                                  width: 'auto',
+                                                  padding: '4px 10px',
+                                                  fontSize: '0.75rem',
+                                                  opacity: 0.5,
+                                                  cursor: 'not-allowed'
                                                 }}
-                                                style={{ width: 'auto', padding: '4px 10px', fontSize: '0.75rem' }}
+                                                title="Restore functionality will be enabled in a future release."
                                               >
-                                                Copy Hash
+                                                Restore
                                               </button>
                                             </div>
                                           </td>
@@ -12961,61 +12963,68 @@ export default function App() {
                                 </button>
 
                                 <h3 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
-                                  Release Details
+                                  Restore Point Details
                                 </h3>
                                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
-                                  Full audit specifications for this system milestone.
+                                  System configuration and recovery metadata.
                                 </p>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1rem' }}>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Restore Point ID</span>
+                                    <strong style={{ color: '#60a5fa' }}>{`RP-${String(selectedVersionDetail.id).padStart(3, '0')}`}</strong>
+                                  </div>
                                   <div>
                                     <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Application</span>
                                     <strong style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.app}</strong>
                                   </div>
                                   <div>
                                     <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Version</span>
-                                    <strong style={{ color: '#60a5fa' }}>{selectedVersionDetail.version}</strong>
+                                    <strong style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.version}</strong>
                                   </div>
                                   <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Release Date</span>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Date & Time</span>
                                     <span style={{ color: 'var(--text-primary)' }}>{new Date(selectedVersionDetail.date_time).toLocaleString()}</span>
                                   </div>
                                   <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Release Status</span>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Recovery Type</span>
                                     <span style={{
-                                      color: selectedVersionDetail.status === "Live" ? '#10b981' : '#fbbf24',
+                                      color: (() => {
+                                        const b = selectedVersionDetail.backup || 'Not Available';
+                                        if (b === "Full Backup Available" || b === "Full System") return '#10b981';
+                                        if (b === "Code Rollback Only" || b === "Code + Database") return '#fbbf24';
+                                        return '#94a3b8';
+                                      })(),
+                                      fontWeight: 'bold',
+                                      fontSize: '0.8rem'
+                                    }}>{(() => {
+                                      const b = selectedVersionDetail.backup || 'Not Available';
+                                      if (b === "Full Backup Available" || b === "Full System") return "Full System";
+                                      if (b === "Code Rollback Only" || b === "Code + Database") return "Code + Database";
+                                      return "Code Only";
+                                    })()}</span>
+                                  </div>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Current Status</span>
+                                    <span style={{
+                                      color: selectedVersionDetail.status === "Live" ? '#10b981' : 
+                                             selectedVersionDetail.status === "Testing" ? '#fbbf24' : 
+                                             selectedVersionDetail.status === "Development" ? '#3b82f6' : '#ef4444',
                                       fontWeight: 'bold',
                                       fontSize: '0.8rem'
                                     }}>{selectedVersionDetail.status}</span>
                                   </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Developer</span>
-                                    <span style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.developer}</span>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Commit Hash</span>
-                                    <code style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>{selectedVersionDetail.commit_hash}</code>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Backup Status</span>
-                                    <span style={{
-                                      color: selectedVersionDetail.backup === "Full Backup Available" ? '#10b981' : 
-                                             selectedVersionDetail.backup === "Code Rollback Only" ? '#fbbf24' : '#94a3b8',
-                                      fontWeight: 'bold',
-                                      fontSize: '0.8rem'
-                                    }}>{selectedVersionDetail.backup || 'Not Available'}</span>
-                                  </div>
                                 </div>
 
                                 <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Feature / Release Title</span>
+                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Completed Features</span>
                                   <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>{selectedVersionDetail.feature}</strong>
                                 </div>
 
                                 <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Description</span>
+                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Notes</span>
                                   <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                                    {selectedVersionDetail.description || 'No description provided for this milestone.'}
+                                    {selectedVersionDetail.description || 'No notes provided for this restore point.'}
                                   </p>
                                 </div>
 
@@ -13037,7 +13046,7 @@ export default function App() {
                       )}
 
                       {/* Coming Soon placeholders for other settings sub-pages */}
-                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_version_history" && (
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_restore_points" && (
                         <div style={{
                           backgroundColor: '#070b13',
                           border: '1px solid rgba(255, 255, 255, 0.06)',
