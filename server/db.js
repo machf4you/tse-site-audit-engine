@@ -185,32 +185,51 @@ function loadFallback() {
     saveFallback(loadedData);
   }
 
-  if (loadedData && !loadedData.versionHistory) {
-    loadedData.versionHistory = [
-      {
-        id: 1,
-        date_time: "2026-07-23T06:00:00Z",
-        app: "Lead Finder",
-        version: "v1.0",
-        feature: "Lead Opportunity Dashboard Baseline",
-        description: "Baseline release of Lead Opportunity Dashboard featuring weighted opportunity scoring, Google Business Profile matching, technical SEO audit metrics, and AI-generated email strategies.",
-        developer: "Antigravity",
-        commit_hash: "649e72dd1bde6edab8330a25fdf8ff4b64d57f18",
-        status: "Live"
-      },
-      {
-        id: 2,
-        date_time: "2026-07-23T06:50:00Z",
-        app: "Lead Finder",
-        version: "v1.1",
-        feature: "Search Results Dashboard and Bulk Analysis",
-        description: "Bulk sequence analysis engine with sequential audits, live progression indicators, smart local cache preservation, opportunity scoring status dots, and sortable position/score tables.",
-        developer: "Antigravity",
-        commit_hash: "894a4c08e1bedb65315684fffec331953a6eeacb",
-        status: "Live"
-      }
-    ];
-    saveFallback(loadedData);
+  if (loadedData) {
+    if (!loadedData.versionHistory) {
+      loadedData.versionHistory = [];
+    }
+    let fallbackChanged = false;
+    if (loadedData.versionHistory.length === 0) {
+      loadedData.versionHistory = [
+        {
+          id: 1,
+          date_time: "2026-07-23T06:00:00Z",
+          app: "Lead Finder",
+          version: "v1.0",
+          feature: "Lead Opportunity Dashboard Baseline",
+          description: "Baseline release of Lead Opportunity Dashboard featuring weighted opportunity scoring, Google Business Profile matching, technical SEO audit metrics, and AI-generated email strategies.",
+          developer: "Antigravity",
+          commit_hash: "649e72dd1bde6edab8330a25fdf8ff4b64d57f18",
+          status: "Live",
+          backup: "Code Rollback Only"
+        },
+        {
+          id: 2,
+          date_time: "2026-07-23T06:50:00Z",
+          app: "Lead Finder",
+          version: "v1.1",
+          feature: "Search Results Dashboard and Bulk Analysis",
+          description: "Bulk sequence analysis engine with sequential audits, live progression indicators, smart local cache preservation, opportunity scoring status dots, and sortable position/score tables.",
+          developer: "Antigravity",
+          commit_hash: "894a4c08e1bedb65315684fffec331953a6eeacb",
+          status: "Live",
+          backup: "Code Rollback Only"
+        }
+      ];
+      fallbackChanged = true;
+    } else {
+      loadedData.versionHistory = loadedData.versionHistory.map(h => {
+        if (!h.backup) {
+          h.backup = (h.version === "v1.0" || h.version === "v1.1") ? "Code Rollback Only" : "Not Available";
+          fallbackChanged = true;
+        }
+        return h;
+      });
+    }
+    if (fallbackChanged) {
+      saveFallback(loadedData);
+    }
   }
 
   // Ensure all pages have their Page Auditor assigned type mirrored
@@ -385,9 +404,14 @@ async function initDb() {
         description TEXT,
         developer VARCHAR(100) NOT NULL,
         commit_hash VARCHAR(100) NOT NULL,
-        status VARCHAR(50) NOT NULL
+        status VARCHAR(50) NOT NULL,
+        backup VARCHAR(50) NOT NULL DEFAULT 'Not Available'
       );
     `);
+
+    // Self-healing migration for backup column in version_history table
+    await pool.query("ALTER TABLE version_history ADD COLUMN IF NOT EXISTS backup VARCHAR(50) NOT NULL DEFAULT 'Not Available'");
+    await pool.query("UPDATE version_history SET backup = 'Code Rollback Only' WHERE version IN ('v1.0', 'v1.1') AND backup = 'Not Available'");
 
     // Load config fallback credentials
     const credentialsPath = path.join(__dirname, 'fallback_credentials.json');
@@ -464,10 +488,10 @@ async function initDb() {
     if (parseInt(versionCountRows[0].count, 10) === 0) {
       console.log("Seeding initial version history data...");
       await pool.query(`
-        INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status)
+        INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status, backup)
         VALUES 
-        ('2026-07-23T06:00:00Z', 'Lead Finder', 'v1.0', 'Lead Opportunity Dashboard Baseline', 'Baseline release of Lead Opportunity Dashboard featuring weighted opportunity scoring, Google Business Profile matching, technical SEO audit metrics, and AI-generated email strategies.', 'Antigravity', '649e72dd1bde6edab8330a25fdf8ff4b64d57f18', 'Live'),
-        ('2026-07-23T06:50:00Z', 'Lead Finder', 'v1.1', 'Search Results Dashboard and Bulk Analysis', 'Bulk sequence analysis engine with sequential audits, live progression indicators, smart local cache preservation, opportunity scoring status dots, and sortable position/score tables.', 'Antigravity', '894a4c08e1bedb65315684fffec331953a6eeacb', 'Live')
+        ('2026-07-23T06:00:00Z', 'Lead Finder', 'v1.0', 'Lead Opportunity Dashboard Baseline', 'Baseline release of Lead Opportunity Dashboard featuring weighted opportunity scoring, Google Business Profile matching, technical SEO audit metrics, and AI-generated email strategies.', 'Antigravity', '649e72dd1bde6edab8330a25fdf8ff4b64d57f18', 'Live', 'Code Rollback Only'),
+        ('2026-07-23T06:50:00Z', 'Lead Finder', 'v1.1', 'Search Results Dashboard and Bulk Analysis', 'Bulk sequence analysis engine with sequential audits, live progression indicators, smart local cache preservation, opportunity scoring status dots, and sortable position/score tables.', 'Antigravity', '894a4c08e1bedb65315684fffec331953a6eeacb', 'Live', 'Code Rollback Only')
       `);
     }
 
@@ -933,23 +957,28 @@ async function getVersionHistory() {
         description: r.description,
         developer: r.developer,
         commit_hash: r.commit_hash,
-        status: r.status
+        status: r.status,
+        backup: r.backup || 'Not Available'
       }));
     } catch (err) {
       console.error("Database getVersionHistory failed:", err.message);
     }
   }
   const data = loadFallback();
-  return (data.versionHistory || []).sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
+  return (data.versionHistory || []).map(h => ({
+    ...h,
+    backup: h.backup || 'Not Available'
+  })).sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
 }
 
 async function addVersionHistoryEntry(entry) {
   const dateStr = entry.date_time || new Date().toISOString();
+  const backupVal = entry.backup || 'Not Available';
   if (useDb) {
     try {
       const { rows } = await pool.query(
-        `INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status, backup)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING *`,
         [
           dateStr,
@@ -959,7 +988,8 @@ async function addVersionHistoryEntry(entry) {
           entry.description,
           entry.developer,
           entry.commit_hash,
-          entry.status
+          entry.status,
+          backupVal
         ]
       );
       return rows[0];
@@ -979,7 +1009,8 @@ async function addVersionHistoryEntry(entry) {
     description: entry.description,
     developer: entry.developer,
     commit_hash: entry.commit_hash,
-    status: entry.status
+    status: entry.status,
+    backup: backupVal
   };
   data.versionHistory.push(newEntry);
   saveFallback(data);

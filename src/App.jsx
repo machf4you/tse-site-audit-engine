@@ -11508,7 +11508,7 @@ export default function App() {
           )}
 
           {currentView === "SETTINGS" && (
-            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+            <div style={{ maxWidth: selectedSiteId ? '1200px' : '1500px', margin: '0 auto', padding: '2rem' }}>
               
               {selectedSiteId ? (() => {
                 const selectedSite = sites.find(s => s.id === selectedSiteId);
@@ -12783,26 +12783,27 @@ export default function App() {
                               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
                                 <thead>
                                   <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Date & Time</th>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>App</th>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Version</th>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Feature</th>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Developer</th>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Commit Hash</th>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Status</th>
-                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px' }}>Date & Time</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px' }}>App</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '60px' }}>Version</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '250px' }}>Feature</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '80px' }}>Developer</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '80px' }}>Commit Hash</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '90px' }}>Status</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '130px' }}>Backup</th>
+                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', textAlign: 'right', width: '150px' }}>Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {isVersionHistoryLoading ? (
                                     <tr>
-                                      <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                         Loading version history audit trail...
                                       </td>
                                     </tr>
                                   ) : versionHistoryError ? (
                                     <tr>
-                                      <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
+                                      <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
                                         Error loading history: {versionHistoryError}
                                       </td>
                                     </tr>
@@ -12831,7 +12832,7 @@ export default function App() {
                                     if (filtered.length === 0) {
                                       return (
                                         <tr>
-                                          <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                          <td colSpan="9" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                             No release records match the current filters.
                                           </td>
                                         </tr>
@@ -12839,7 +12840,8 @@ export default function App() {
                                     }
 
                                     return filtered.map((item) => {
-                                      const dateFormatted = new Date(item.date_time).toLocaleString();
+                                      const dt = new Date(item.date_time);
+                                      const dateFormatted = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
                                       const statusColor = item.status === "Live" ? '#10b981' : 
                                                           item.status === "Testing" ? '#fbbf24' : 
                                                           item.status === "Development" ? '#3b82f6' : '#ef4444';
@@ -12847,29 +12849,35 @@ export default function App() {
                                                        item.status === "Testing" ? 'rgba(245, 158, 11, 0.08)' : 
                                                        item.status === "Development" ? 'rgba(59, 130, 246, 0.08)' : 'rgba(239, 68, 68, 0.08)';
 
+                                      const backupVal = item.backup || 'Not Available';
+                                      const backupColor = backupVal === "Full Backup Available" ? '#10b981' : 
+                                                          backupVal === "Code Rollback Only" ? '#fbbf24' : '#94a3b8';
+                                      const backupBg = backupVal === "Full Backup Available" ? 'rgba(16, 185, 129, 0.08)' : 
+                                                       backupVal === "Code Rollback Only" ? 'rgba(245, 158, 11, 0.08)' : 'rgba(148, 163, 184, 0.08)';
+
                                       return (
                                         <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                                          <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                          <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                                             {dateFormatted}
                                           </td>
-                                          <td style={{ padding: '16px 20px', fontWeight: 'bold' }}>
+                                          <td style={{ padding: '12px 10px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                                             {item.app}
                                           </td>
-                                          <td style={{ padding: '16px 20px', color: '#60a5fa', fontWeight: 'bold' }}>
+                                          <td style={{ padding: '12px 10px', color: '#60a5fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
                                             {item.version}
                                           </td>
-                                          <td style={{ padding: '16px 20px', fontWeight: 600 }}>
+                                          <td style={{ padding: '12px 10px', fontWeight: 600 }}>
                                             {item.feature}
                                           </td>
-                                          <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>
+                                          <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                                             {item.developer}
                                           </td>
-                                          <td style={{ padding: '16px 20px' }}>
+                                          <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
                                             <code style={{ fontSize: '0.8rem', color: '#cbd5e1' }} title={item.commit_hash}>
                                               {item.commit_hash.substring(0, 8)}
                                             </code>
                                           </td>
-                                          <td style={{ padding: '16px 20px' }}>
+                                          <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
                                             <span style={{
                                               color: statusColor,
                                               backgroundColor: statusBg,
@@ -12883,7 +12891,21 @@ export default function App() {
                                               {item.status}
                                             </span>
                                           </td>
-                                          <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                          <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
+                                            <span style={{
+                                              color: backupColor,
+                                              backgroundColor: backupBg,
+                                              padding: '3px 8px',
+                                              borderRadius: '4px',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 700,
+                                              textTransform: 'uppercase',
+                                              border: `1px solid ${backupColor}22`
+                                            }}>
+                                              {backupVal}
+                                            </span>
+                                          </td>
+                                          <td style={{ padding: '12px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                               <button
                                                 className="btn-secondary site-btn-sm"
@@ -12973,6 +12995,15 @@ export default function App() {
                                   <div>
                                     <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Commit Hash</span>
                                     <code style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>{selectedVersionDetail.commit_hash}</code>
+                                  </div>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Backup Status</span>
+                                    <span style={{
+                                      color: selectedVersionDetail.backup === "Full Backup Available" ? '#10b981' : 
+                                             selectedVersionDetail.backup === "Code Rollback Only" ? '#fbbf24' : '#94a3b8',
+                                      fontWeight: 'bold',
+                                      fontSize: '0.8rem'
+                                    }}>{selectedVersionDetail.backup || 'Not Available'}</span>
                                   </div>
                                 </div>
 
