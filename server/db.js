@@ -291,13 +291,12 @@ if (databaseUrl) {
   });
   useDb = true;
 } else {
-  console.warn("DATABASE_URL environment variable is not defined. Using local file fallback (db_backup.json).");
+  throw new Error("DATABASE_URL environment variable is not defined. JSON fallback is disabled.");
 }
 
 async function initDb() {
   if (!useDb) {
-    loadFallback();
-    return;
+    throw new Error("Database connection not established. JSON fallback is disabled.");
   }
 
   try {
