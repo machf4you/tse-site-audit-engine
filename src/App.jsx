@@ -2953,12 +2953,43 @@ export default function App() {
     return null;
   });
 
+  // Version History state variables
+  const [versionHistory, setVersionHistory] = useState([]);
+  const [isVersionHistoryLoading, setIsVersionHistoryLoading] = useState(false);
+  const [versionHistoryError, setVersionHistoryError] = useState(null);
+  
+  // Filters
+  const [versionFilterApp, setVersionFilterApp] = useState("All");
+  const [versionFilterStatus, setVersionFilterStatus] = useState("All");
+  const [versionFilterStartDate, setVersionFilterStartDate] = useState("");
+  const [versionFilterEndDate, setVersionFilterEndDate] = useState("");
+  
+  // Details Modal
+  const [selectedVersionDetail, setSelectedVersionDetail] = useState(null);
+
+  const fetchVersionHistory = async () => {
+    setIsVersionHistoryLoading(true);
+    setVersionHistoryError(null);
+    try {
+      const response = await fetch(`${API_BASE}/version-history`);
+      if (!response.ok) throw new Error('Failed to load version history data');
+      const data = await response.json();
+      setVersionHistory(data);
+    } catch (e) {
+      console.error(e);
+      setVersionHistoryError(e.message);
+    } finally {
+      setIsVersionHistoryLoading(false);
+    }
+  };
+
   // Architecture view state variables
   const [selectedArchTaskId, setSelectedArchTaskId] = useState("t1");
   const [activeSettingsTab, setActiveSettingsTab] = useState("general_settings");
   const [expandedSettingsGroups, setExpandedSettingsGroups] = useState({
     "GENERAL": true,
-    "DEVELOPER": true
+    "DEVELOPER": true,
+    "ABOUT": true
   });
 
   const [archNotes, setArchNotes] = useState("");
@@ -3128,6 +3159,12 @@ export default function App() {
           console.error("Failed to load architecture notes:", err);
           setSaveStatus("Failed to load notes");
         });
+    }
+  }, [activeSettingsTab]);
+
+  useEffect(() => {
+    if (activeSettingsTab === "global_version_history") {
+      fetchVersionHistory();
     }
   }, [activeSettingsTab]);
 
@@ -11852,7 +11889,8 @@ export default function App() {
                     title: "ABOUT",
                     items: [
                       { id: "version", label: "Version" },
-                      { id: "release_notes", label: "Release Notes" }
+                      { id: "release_notes", label: "Release Notes" },
+                      { id: "global_version_history", label: "Global Version History" }
                     ]
                   }
                 ];
@@ -12616,8 +12654,359 @@ export default function App() {
                         </div>
                       )}
 
+                      {/* Global Version History */}
+                      {activeSettingsTab === "global_version_history" && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            Audit trail of development history, release milestones, and active version status across all TSE applications.
+                          </p>
+
+                          {/* Filters bar */}
+                          <div style={{ 
+                            display: 'flex', 
+                            flexWrap: 'wrap', 
+                            gap: '1rem',
+                            backgroundColor: 'rgba(255,255,255,0.01)',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '12px',
+                            padding: '1.25rem'
+                          }}>
+                            {/* App Filter */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>App</span>
+                              <select
+                                value={versionFilterApp}
+                                onChange={(e) => setVersionFilterApp(e.target.value)}
+                                style={{
+                                  padding: '8px 12px',
+                                  backgroundColor: '#070b13',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.85rem',
+                                  outline: 'none'
+                                }}
+                              >
+                                <option value="All">All Apps</option>
+                                <option value="Lead Finder">Lead Finder</option>
+                                <option value="Website Management">Website Management</option>
+                              </select>
+                            </div>
+
+                            {/* Status Filter */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Status</span>
+                              <select
+                                value={versionFilterStatus}
+                                onChange={(e) => setVersionFilterStatus(e.target.value)}
+                                style={{
+                                  padding: '8px 12px',
+                                  backgroundColor: '#070b13',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.85rem',
+                                  outline: 'none'
+                                }}
+                              >
+                                <option value="All">All Statuses</option>
+                                <option value="Development">Development</option>
+                                <option value="Testing">Testing</option>
+                                <option value="Live">Live</option>
+                                <option value="Rolled Back">Rolled Back</option>
+                              </select>
+                            </div>
+
+                            {/* Start Date */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Start Date</span>
+                              <input
+                                type="date"
+                                value={versionFilterStartDate}
+                                onChange={(e) => setVersionFilterStartDate(e.target.value)}
+                                style={{
+                                  padding: '8px 12px',
+                                  backgroundColor: '#070b13',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.85rem',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+
+                            {/* End Date */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
+                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>End Date</span>
+                              <input
+                                type="date"
+                                value={versionFilterEndDate}
+                                onChange={(e) => setVersionFilterEndDate(e.target.value)}
+                                style={{
+                                  padding: '8px 12px',
+                                  backgroundColor: '#070b13',
+                                  border: '1px solid var(--border-color)',
+                                  borderRadius: '8px',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '0.85rem',
+                                  outline: 'none'
+                                }}
+                              />
+                            </div>
+
+                            {/* Reset Filters */}
+                            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                              <button
+                                className="btn-secondary"
+                                onClick={() => {
+                                  setVersionFilterApp("All");
+                                  setVersionFilterStatus("All");
+                                  setVersionFilterStartDate("");
+                                  setVersionFilterEndDate("");
+                                }}
+                                style={{
+                                  padding: '8px 16px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Reset
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Version History Table */}
+                          <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+                            <div style={{ overflowX: 'auto' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Date & Time</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>App</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Version</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Feature</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Developer</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Commit Hash</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Status</th>
+                                    <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, textAlign: 'right' }}>Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {isVersionHistoryLoading ? (
+                                    <tr>
+                                      <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                        Loading version history audit trail...
+                                      </td>
+                                    </tr>
+                                  ) : versionHistoryError ? (
+                                    <tr>
+                                      <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
+                                        Error loading history: {versionHistoryError}
+                                      </td>
+                                    </tr>
+                                  ) : (() => {
+                                    // Apply Filters
+                                    let filtered = [...versionHistory];
+                                    if (versionFilterApp !== "All") {
+                                      filtered = filtered.filter(h => h.app === versionFilterApp);
+                                    }
+                                    if (versionFilterStatus !== "All") {
+                                      filtered = filtered.filter(h => h.status === versionFilterStatus);
+                                    }
+                                    if (versionFilterStartDate) {
+                                      const startLimit = new Date(versionFilterStartDate);
+                                      filtered = filtered.filter(h => new Date(h.date_time) >= startLimit);
+                                    }
+                                    if (versionFilterEndDate) {
+                                      const endLimit = new Date(versionFilterEndDate);
+                                      endLimit.setHours(23, 59, 59, 999);
+                                      filtered = filtered.filter(h => new Date(h.date_time) <= endLimit);
+                                    }
+
+                                    // Sort (Default: Newest First)
+                                    filtered.sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
+
+                                    if (filtered.length === 0) {
+                                      return (
+                                        <tr>
+                                          <td colSpan="8" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                            No release records match the current filters.
+                                          </td>
+                                        </tr>
+                                      );
+                                    }
+
+                                    return filtered.map((item) => {
+                                      const dateFormatted = new Date(item.date_time).toLocaleString();
+                                      const statusColor = item.status === "Live" ? '#10b981' : 
+                                                          item.status === "Testing" ? '#fbbf24' : 
+                                                          item.status === "Development" ? '#3b82f6' : '#ef4444';
+                                      const statusBg = item.status === "Live" ? 'rgba(16, 185, 129, 0.08)' : 
+                                                       item.status === "Testing" ? 'rgba(245, 158, 11, 0.08)' : 
+                                                       item.status === "Development" ? 'rgba(59, 130, 246, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+
+                                      return (
+                                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                          <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                            {dateFormatted}
+                                          </td>
+                                          <td style={{ padding: '16px 20px', fontWeight: 'bold' }}>
+                                            {item.app}
+                                          </td>
+                                          <td style={{ padding: '16px 20px', color: '#60a5fa', fontWeight: 'bold' }}>
+                                            {item.version}
+                                          </td>
+                                          <td style={{ padding: '16px 20px', fontWeight: 600 }}>
+                                            {item.feature}
+                                          </td>
+                                          <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>
+                                            {item.developer}
+                                          </td>
+                                          <td style={{ padding: '16px 20px' }}>
+                                            <code style={{ fontSize: '0.8rem', color: '#cbd5e1' }} title={item.commit_hash}>
+                                              {item.commit_hash.substring(0, 8)}
+                                            </code>
+                                          </td>
+                                          <td style={{ padding: '16px 20px' }}>
+                                            <span style={{
+                                              color: statusColor,
+                                              backgroundColor: statusBg,
+                                              padding: '3px 8px',
+                                              borderRadius: '4px',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 700,
+                                              textTransform: 'uppercase',
+                                              border: `1px solid ${statusColor}22`
+                                            }}>
+                                              {item.status}
+                                            </span>
+                                          </td>
+                                          <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                              <button
+                                                className="btn-secondary site-btn-sm"
+                                                onClick={() => setSelectedVersionDetail(item)}
+                                                style={{ width: 'auto', padding: '4px 10px', fontSize: '0.75rem' }}
+                                              >
+                                                Details
+                                              </button>
+                                              <button
+                                                className="btn-secondary site-btn-sm"
+                                                onClick={() => {
+                                                  navigator.clipboard.writeText(item.commit_hash);
+                                                  showNotification("Commit hash copied to clipboard!");
+                                                }}
+                                                style={{ width: 'auto', padding: '4px 10px', fontSize: '0.75rem' }}
+                                              >
+                                                Copy Hash
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    });
+                                  })()}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* Version Details Overlay Modal */}
+                          {selectedVersionDetail && (
+                            <div style={{
+                              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                              backgroundColor: 'rgba(5, 7, 11, 0.85)', backdropFilter: 'blur(8px)',
+                              display: 'flex', justifyContent: 'center', alignItems: 'center',
+                              zIndex: 4000, padding: '1rem'
+                            }} onClick={() => setSelectedVersionDetail(null)}>
+                              <div style={{
+                                backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '16px', padding: '2rem', maxWidth: '600px', width: '100%',
+                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
+                                textAlign: 'left'
+                              }} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={() => setSelectedVersionDetail(null)}
+                                  style={{
+                                    position: 'absolute', top: '1rem', right: '1rem',
+                                    background: 'none', border: 'none', color: 'var(--text-secondary)',
+                                    fontSize: '1.25rem', cursor: 'pointer', outline: 'none'
+                                  }}
+                                >
+                                  ✕
+                                </button>
+
+                                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
+                                  Release Details
+                                </h3>
+                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
+                                  Full audit specifications for this system milestone.
+                                </p>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1rem' }}>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Application</span>
+                                    <strong style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.app}</strong>
+                                  </div>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Version</span>
+                                    <strong style={{ color: '#60a5fa' }}>{selectedVersionDetail.version}</strong>
+                                  </div>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Release Date</span>
+                                    <span style={{ color: 'var(--text-primary)' }}>{new Date(selectedVersionDetail.date_time).toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Release Status</span>
+                                    <span style={{
+                                      color: selectedVersionDetail.status === "Live" ? '#10b981' : '#fbbf24',
+                                      fontWeight: 'bold',
+                                      fontSize: '0.8rem'
+                                    }}>{selectedVersionDetail.status}</span>
+                                  </div>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Developer</span>
+                                    <span style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.developer}</span>
+                                  </div>
+                                  <div>
+                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Commit Hash</span>
+                                    <code style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>{selectedVersionDetail.commit_hash}</code>
+                                  </div>
+                                </div>
+
+                                <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Feature / Release Title</span>
+                                  <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>{selectedVersionDetail.feature}</strong>
+                                </div>
+
+                                <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Description</span>
+                                  <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                    {selectedVersionDetail.description || 'No description provided for this milestone.'}
+                                  </p>
+                                </div>
+
+
+
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                  <button
+                                    className="btn-secondary"
+                                    onClick={() => setSelectedVersionDetail(null)}
+                                    style={{ padding: '8px 20px', fontWeight: 600 }}
+                                  >
+                                    Close Details
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Coming Soon placeholders for other settings sub-pages */}
-                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && (
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_version_history" && (
                         <div style={{
                           backgroundColor: '#070b13',
                           border: '1px solid rgba(255, 255, 255, 0.06)',

@@ -185,6 +185,34 @@ function loadFallback() {
     saveFallback(loadedData);
   }
 
+  if (loadedData && !loadedData.versionHistory) {
+    loadedData.versionHistory = [
+      {
+        id: 1,
+        date_time: "2026-07-23T06:00:00Z",
+        app: "Lead Finder",
+        version: "v1.0",
+        feature: "Lead Opportunity Dashboard Baseline",
+        description: "Baseline release of Lead Opportunity Dashboard featuring weighted opportunity scoring, Google Business Profile matching, technical SEO audit metrics, and AI-generated email strategies.",
+        developer: "Antigravity",
+        commit_hash: "649e72dd1bde6edab8330a25fdf8ff4b64d57f18",
+        status: "Live"
+      },
+      {
+        id: 2,
+        date_time: "2026-07-23T06:50:00Z",
+        app: "Lead Finder",
+        version: "v1.1",
+        feature: "Search Results Dashboard and Bulk Analysis",
+        description: "Bulk sequence analysis engine with sequential audits, live progression indicators, smart local cache preservation, opportunity scoring status dots, and sortable position/score tables.",
+        developer: "Antigravity",
+        commit_hash: "894a4c08e1bedb65315684fffec331953a6eeacb",
+        status: "Live"
+      }
+    ];
+    saveFallback(loadedData);
+  }
+
   // Ensure all pages have their Page Auditor assigned type mirrored
   if (loadedData && loadedData.pagesData) {
     let changed = false;
@@ -347,6 +375,20 @@ async function initDb() {
       );
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS version_history (
+        id SERIAL PRIMARY KEY,
+        date_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        app VARCHAR(100) NOT NULL,
+        version VARCHAR(50) NOT NULL,
+        feature VARCHAR(255) NOT NULL,
+        description TEXT,
+        developer VARCHAR(100) NOT NULL,
+        commit_hash VARCHAR(100) NOT NULL,
+        status VARCHAR(50) NOT NULL
+      );
+    `);
+
     // Load config fallback credentials
     const credentialsPath = path.join(__dirname, 'fallback_credentials.json');
     let fallbackCredentials = {};
@@ -415,6 +457,18 @@ async function initDb() {
       );
 
       console.log("Seeding completed successfully.");
+    }
+
+    // Seed version_history if empty
+    const { rows: versionCountRows } = await pool.query("SELECT COUNT(*) FROM version_history");
+    if (parseInt(versionCountRows[0].count, 10) === 0) {
+      console.log("Seeding initial version history data...");
+      await pool.query(`
+        INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status)
+        VALUES 
+        ('2026-07-23T06:00:00Z', 'Lead Finder', 'v1.0', 'Lead Opportunity Dashboard Baseline', 'Baseline release of Lead Opportunity Dashboard featuring weighted opportunity scoring, Google Business Profile matching, technical SEO audit metrics, and AI-generated email strategies.', 'Antigravity', '649e72dd1bde6edab8330a25fdf8ff4b64d57f18', 'Live'),
+        ('2026-07-23T06:50:00Z', 'Lead Finder', 'v1.1', 'Search Results Dashboard and Bulk Analysis', 'Bulk sequence analysis engine with sequential audits, live progression indicators, smart local cache preservation, opportunity scoring status dots, and sortable position/score tables.', 'Antigravity', '894a4c08e1bedb65315684fffec331953a6eeacb', 'Live')
+      `);
     }
 
     // Self-healing migration for existing databases:
@@ -866,6 +920,72 @@ async function saveArchitectureNotes(content) {
   fs.writeFileSync(notesPath, content, 'utf8');
 }
 
+async function getVersionHistory() {
+  if (useDb) {
+    try {
+      const { rows } = await pool.query("SELECT * FROM version_history ORDER BY date_time DESC");
+      return rows.map(r => ({
+        id: r.id,
+        date_time: r.date_time,
+        app: r.app,
+        version: r.version,
+        feature: r.feature,
+        description: r.description,
+        developer: r.developer,
+        commit_hash: r.commit_hash,
+        status: r.status
+      }));
+    } catch (err) {
+      console.error("Database getVersionHistory failed:", err.message);
+    }
+  }
+  const data = loadFallback();
+  return (data.versionHistory || []).sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
+}
+
+async function addVersionHistoryEntry(entry) {
+  const dateStr = entry.date_time || new Date().toISOString();
+  if (useDb) {
+    try {
+      const { rows } = await pool.query(
+        `INSERT INTO version_history (date_time, app, version, feature, description, developer, commit_hash, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [
+          dateStr,
+          entry.app,
+          entry.version,
+          entry.feature,
+          entry.description,
+          entry.developer,
+          entry.commit_hash,
+          entry.status
+        ]
+      );
+      return rows[0];
+    } catch (err) {
+      console.error("Database addVersionHistoryEntry failed:", err.message);
+    }
+  }
+  const data = loadFallback();
+  if (!data.versionHistory) data.versionHistory = [];
+  const newId = data.versionHistory.length > 0 ? Math.max(...data.versionHistory.map(h => h.id)) + 1 : 1;
+  const newEntry = {
+    id: newId,
+    date_time: dateStr,
+    app: entry.app,
+    version: entry.version,
+    feature: entry.feature,
+    description: entry.description,
+    developer: entry.developer,
+    commit_hash: entry.commit_hash,
+    status: entry.status
+  };
+  data.versionHistory.push(newEntry);
+  saveFallback(data);
+  return newEntry;
+}
+
 module.exports = {
   initDb,
   getSites,
@@ -875,5 +995,7 @@ module.exports = {
   savePageConfig,
   saveAllPagesForSite,
   getArchitectureNotes,
-  saveArchitectureNotes
+  saveArchitectureNotes,
+  getVersionHistory,
+  addVersionHistoryEntry
 };

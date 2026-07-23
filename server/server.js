@@ -13,7 +13,9 @@ const {
   savePageConfig,
   saveAllPagesForSite,
   getArchitectureNotes,
-  saveArchitectureNotes
+  saveArchitectureNotes,
+  getVersionHistory,
+  addVersionHistoryEntry
 } = require('./db');
 const { exec } = require('child_process');
 const fs = require('fs');
@@ -223,6 +225,41 @@ app.post('/api/audit', async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// GET Version History
+app.get('/api/version-history', async (req, res) => {
+  try {
+    const history = await getVersionHistory();
+    res.json(history);
+  } catch (err) {
+    console.error('GET /api/version-history error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST Add Version History Entry
+app.post('/api/version-history', async (req, res) => {
+  try {
+    const { app, version, feature, description, developer, commit_hash, status, date_time } = req.body;
+    if (!app || !version || !feature || !developer || !commit_hash || !status) {
+      return res.status(400).json({ error: 'app, version, feature, developer, commit_hash, and status are required fields.' });
+    }
+    const entry = await addVersionHistoryEntry({
+      app,
+      version,
+      feature,
+      description: description || '',
+      developer,
+      commit_hash,
+      status,
+      date_time
+    });
+    res.json(entry);
+  } catch (err) {
+    console.error('POST /api/version-history error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
