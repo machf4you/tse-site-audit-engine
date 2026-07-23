@@ -12655,396 +12655,357 @@ export default function App() {
                       )}
 
                       {/* Global Restore Points */}
-                      {activeSettingsTab === "global_restore_points" && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
-                            Master register of system restore points and application recovery states across all TSE applications.
-                          </p>
+                      {activeSettingsTab === "global_restore_points" && (() => {
+                        // Inline sort handler
+                        const handleRpSort = (col) => {
+                          if (rpSortColumn === col) {
+                            setRpSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setRpSortColumn(col);
+                            setRpSortDirection('asc');
+                          }
+                        };
 
-                          {/* Filters bar */}
-                          <div style={{ 
-                            display: 'flex', 
-                            flexWrap: 'wrap', 
-                            gap: '1rem',
-                            backgroundColor: 'rgba(255,255,255,0.01)',
-                            border: '1px solid rgba(255, 255, 255, 0.06)',
-                            borderRadius: '12px',
-                            padding: '1.25rem'
-                          }}>
-                            {/* App Filter */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>App</span>
-                              <select
-                                value={versionFilterApp}
-                                onChange={(e) => setVersionFilterApp(e.target.value)}
-                                style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#070b13',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: '8px',
-                                  color: 'var(--text-primary)',
-                                  fontSize: '0.85rem',
-                                  outline: 'none'
-                                }}
-                              >
-                                <option value="All">All Apps</option>
-                                <option value="Lead Finder">Lead Finder</option>
-                                <option value="Website Management">Website Management</option>
-                              </select>
-                            </div>
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                              Master register of system restore points and application recovery states across all TSE applications.
+                            </p>
 
-                            {/* Status Filter */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Status</span>
-                              <select
-                                value={versionFilterStatus}
-                                onChange={(e) => setVersionFilterStatus(e.target.value)}
-                                style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#070b13',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: '8px',
-                                  color: 'var(--text-primary)',
-                                  fontSize: '0.85rem',
-                                  outline: 'none'
-                                }}
-                              >
-                                <option value="All">All Statuses</option>
-                                <option value="Development">Development</option>
-                                <option value="Testing">Testing</option>
-                                <option value="Live">Live</option>
-                                <option value="Rolled Back">Rolled Back</option>
-                              </select>
-                            </div>
-
-                            {/* Start Date */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Start Date</span>
-                              <input
-                                type="date"
-                                value={versionFilterStartDate}
-                                onChange={(e) => setVersionFilterStartDate(e.target.value)}
-                                style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#070b13',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: '8px',
-                                  color: 'var(--text-primary)',
-                                  fontSize: '0.85rem',
-                                  outline: 'none'
-                                }}
-                              />
-                            </div>
-
-                            {/* End Date */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '150px' }}>
-                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>End Date</span>
-                              <input
-                                type="date"
-                                value={versionFilterEndDate}
-                                onChange={(e) => setVersionFilterEndDate(e.target.value)}
-                                style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#070b13',
-                                  border: '1px solid var(--border-color)',
-                                  borderRadius: '8px',
-                                  color: 'var(--text-primary)',
-                                  fontSize: '0.85rem',
-                                  outline: 'none'
-                                }}
-                              />
-                            </div>
-
-                            {/* Reset Filters */}
-                            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                              <button
-                                className="btn-secondary"
-                                onClick={() => {
-                                  setVersionFilterApp("All");
-                                  setVersionFilterStatus("All");
-                                  setVersionFilterStartDate("");
-                                  setVersionFilterEndDate("");
-                                }}
-                                style={{
-                                  padding: '8px 16px',
-                                  fontSize: '0.85rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                Reset
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Restore Points Table */}
-                          <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
-                            <div style={{ overflowX: 'auto' }}>
-                              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
-                                <thead>
-                                  <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px' }}>Restore Point</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px' }}>Application</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px' }}>Created</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '250px' }}>Features Included</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px' }}>Recovery Type</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '90px' }}>Status</th>
-                                    <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', textAlign: 'right', width: '180px' }}>Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {isVersionHistoryLoading ? (
-                                    <tr>
-                                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                        Loading restore points register...
-                                      </td>
+                            {/* Restore Points Table */}
+                            <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                      <th 
+                                        onClick={() => handleRpSort('id')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Restore Point{rpSortColumn === 'id' ? (rpSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleRpSort('app')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Application{rpSortColumn === 'app' ? (rpSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleRpSort('date_time')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '120px', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Created{rpSortColumn === 'date_time' ? (rpSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleRpSort('feature')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, minWidth: '250px', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Features Included{rpSortColumn === 'feature' ? (rpSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleRpSort('recovery')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '140px', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Recovery Type{rpSortColumn === 'recovery' ? (rpSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleRpSort('status')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', width: '90px', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Status{rpSortColumn === 'status' ? (rpSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', textAlign: 'right', width: '180px' }}>Actions</th>
                                     </tr>
-                                  ) : versionHistoryError ? (
-                                    <tr>
-                                      <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
-                                        Error loading restore points: {versionHistoryError}
-                                      </td>
-                                    </tr>
-                                  ) : (() => {
-                                    // Apply Filters
-                                    let filtered = [...versionHistory];
-                                    if (versionFilterApp !== "All") {
-                                      filtered = filtered.filter(h => h.app === versionFilterApp);
-                                    }
-                                    if (versionFilterStatus !== "All") {
-                                      filtered = filtered.filter(h => h.status === versionFilterStatus);
-                                    }
-                                    if (versionFilterStartDate) {
-                                      const startLimit = new Date(versionFilterStartDate);
-                                      filtered = filtered.filter(h => new Date(h.date_time) >= startLimit);
-                                    }
-                                    if (versionFilterEndDate) {
-                                      const endLimit = new Date(versionFilterEndDate);
-                                      endLimit.setHours(23, 59, 59, 999);
-                                      filtered = filtered.filter(h => new Date(h.date_time) <= endLimit);
-                                    }
+                                  </thead>
+                                  <tbody>
+                                    {isVersionHistoryLoading ? (
+                                      <tr>
+                                        <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                          Loading restore points register...
+                                        </td>
+                                      </tr>
+                                    ) : versionHistoryError ? (
+                                      <tr>
+                                        <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#ef4444' }}>
+                                          Error loading restore points: {versionHistoryError}
+                                        </td>
+                                      </tr>
+                                    ) : (() => {
+                                      let filtered = [...versionHistory];
 
-                                    // Sort (Default: Newest First)
-                                    filtered.sort((a, b) => new Date(b.date_time) - new Date(a.date_time));
+                                      // Sort by selected column
+                                      filtered.sort((a, b) => {
+                                        let valA, valB;
+                                        if (rpSortColumn === 'id') {
+                                          valA = a.id;
+                                          valB = b.id;
+                                        } else if (rpSortColumn === 'app') {
+                                          valA = a.app || '';
+                                          valB = b.app || '';
+                                        } else if (rpSortColumn === 'date_time') {
+                                          valA = new Date(a.date_time);
+                                          valB = new Date(b.date_time);
+                                        } else if (rpSortColumn === 'feature') {
+                                          valA = a.feature || '';
+                                          valB = b.feature || '';
+                                        } else if (rpSortColumn === 'recovery') {
+                                          const getRecVal = (itm) => {
+                                            const b = itm.backup || 'Not Available';
+                                            if (b === "Full Backup Available" || b === "Full System") return 3;
+                                            if (b === "Code Rollback Only" || b === "Code + Database") return 2;
+                                            return 1;
+                                          };
+                                          valA = getRecVal(a);
+                                          valB = getRecVal(b);
+                                        } else if (rpSortColumn === 'status') {
+                                          valA = a.status || '';
+                                          valB = b.status || '';
+                                        }
 
-                                    if (filtered.length === 0) {
-                                      return (
-                                        <tr>
-                                          <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                            No restore points match the current filters.
-                                          </td>
-                                        </tr>
-                                      );
-                                    }
+                                        if (valA < valB) return rpSortDirection === 'asc' ? -1 : 1;
+                                        if (valA > valB) return rpSortDirection === 'asc' ? 1 : -1;
+                                        return 0;
+                                      });
 
-                                    return filtered.map((item) => {
-                                      const dt = new Date(item.date_time);
-                                      const dateFormatted = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
-                                      const statusColor = item.status === "Live" ? '#10b981' : 
-                                                          item.status === "Testing" ? '#fbbf24' : 
-                                                          item.status === "Development" ? '#3b82f6' : '#ef4444';
-                                      const statusBg = item.status === "Live" ? 'rgba(16, 185, 129, 0.08)' : 
-                                                       item.status === "Testing" ? 'rgba(245, 158, 11, 0.08)' : 
-                                                       item.status === "Development" ? 'rgba(59, 130, 246, 0.08)' : 'rgba(239, 68, 68, 0.08)';
+                                      if (filtered.length === 0) {
+                                        return (
+                                          <tr>
+                                            <td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                              No restore points registered.
+                                            </td>
+                                          </tr>
+                                        );
+                                      }
 
-                                      const backupVal = item.backup || 'Not Available';
-                                      const getRecoveryType = (b) => {
-                                        if (b === "Full Backup Available" || b === "Full System") return "Full System";
-                                        if (b === "Code Rollback Only" || b === "Code + Database") return "Code + Database";
-                                        return "Code Only";
-                                      };
-                                      const recoveryVal = getRecoveryType(backupVal);
-                                      const recoveryColor = recoveryVal === "Full System" ? '#10b981' : 
-                                                            recoveryVal === "Code + Database" ? '#fbbf24' : '#94a3b8';
-                                      const recoveryBg = recoveryVal === "Full System" ? 'rgba(16, 185, 129, 0.08)' : 
-                                                         recoveryVal === "Code + Database" ? 'rgba(245, 158, 11, 0.08)' : 'rgba(148, 163, 184, 0.08)';
+                                      return filtered.map((item) => {
+                                        const dt = new Date(item.date_time);
+                                        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                                        const dateFormatted = `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+                                        
+                                        const statusColor = item.status === "Live" ? '#10b981' : 
+                                                            item.status === "Testing" ? '#fbbf24' : 
+                                                            item.status === "Development" ? '#3b82f6' : '#ef4444';
+                                        const statusBg = item.status === "Live" ? 'rgba(16, 185, 129, 0.08)' : 
+                                                         item.status === "Testing" ? 'rgba(245, 158, 11, 0.08)' : 
+                                                         item.status === "Development" ? 'rgba(59, 130, 246, 0.08)' : 'rgba(239, 68, 68, 0.08)';
 
-                                      const rpId = `RP-${String(item.id).padStart(3, '0')}`;
+                                        const backupVal = item.backup || 'Not Available';
+                                        const getRecoveryType = (b) => {
+                                          if (b === "Full Backup Available" || b === "Full System") return "Full System";
+                                          if (b === "Code Rollback Only" || b === "Code + Database") return "Code + Database";
+                                          return "Code Only";
+                                        };
+                                        const recoveryVal = getRecoveryType(backupVal);
+                                        const recoveryColor = recoveryVal === "Full System" ? '#10b981' : 
+                                                              recoveryVal === "Code + Database" ? '#fbbf24' : '#94a3b8';
+                                        const recoveryBg = recoveryVal === "Full System" ? 'rgba(16, 185, 129, 0.08)' : 
+                                                           recoveryVal === "Code + Database" ? 'rgba(245, 158, 11, 0.08)' : 'rgba(148, 163, 184, 0.08)';
 
-                                      return (
-                                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
-                                          <td style={{ padding: '12px 10px', color: '#60a5fa', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                            {rpId}
-                                          </td>
-                                          <td style={{ padding: '12px 10px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                            {item.app}
-                                          </td>
-                                          <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                            {dateFormatted}
-                                          </td>
-                                          <td style={{ padding: '12px 10px', fontWeight: 600 }}>
-                                            {item.feature}
-                                          </td>
-                                          <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
-                                            <span style={{
-                                              color: recoveryColor,
-                                              backgroundColor: recoveryBg,
-                                              padding: '3px 8px',
-                                              borderRadius: '4px',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 700,
-                                              textTransform: 'uppercase',
-                                              border: `1px solid ${recoveryColor}22`
-                                            }}>
-                                              {recoveryVal}
-                                            </span>
-                                          </td>
-                                          <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
-                                            <span style={{
-                                              color: statusColor,
-                                              backgroundColor: statusBg,
-                                              padding: '3px 8px',
-                                              borderRadius: '4px',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 700,
-                                              textTransform: 'uppercase',
-                                              border: `1px solid ${statusColor}22`
-                                            }}>
-                                              {item.status}
-                                            </span>
-                                          </td>
-                                          <td style={{ padding: '12px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                              <button
-                                                className="btn-secondary site-btn-sm"
+                                        const rpId = `RP-${String(item.id).padStart(3, '0')}`;
+
+                                        return (
+                                          <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                            <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
+                                              <span 
                                                 onClick={() => setSelectedVersionDetail(item)}
-                                                style={{ width: 'auto', padding: '4px 10px', fontSize: '0.75rem' }}
-                                              >
-                                                View Details
-                                              </button>
-                                              <button
-                                                className="btn-secondary site-btn-sm"
-                                                disabled
-                                                style={{
-                                                  width: 'auto',
-                                                  padding: '4px 10px',
-                                                  fontSize: '0.75rem',
-                                                  opacity: 0.5,
-                                                  cursor: 'not-allowed'
+                                                style={{ 
+                                                  color: '#60a5fa', 
+                                                  fontWeight: 'bold', 
+                                                  cursor: 'pointer',
+                                                  textDecoration: 'underline'
                                                 }}
-                                                title="Restore functionality will be enabled in a future release."
                                               >
-                                                Restore
-                                              </button>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      );
-                                    });
-                                  })()}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-
-                          {/* Version Details Overlay Modal */}
-                          {selectedVersionDetail && (
-                            <div style={{
-                              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                              backgroundColor: 'rgba(5, 7, 11, 0.85)', backdropFilter: 'blur(8px)',
-                              display: 'flex', justifyContent: 'center', alignItems: 'center',
-                              zIndex: 4000, padding: '1rem'
-                            }} onClick={() => setSelectedVersionDetail(null)}>
-                              <div style={{
-                                backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
-                                borderRadius: '16px', padding: '2rem', maxWidth: '600px', width: '100%',
-                                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
-                                textAlign: 'left'
-                              }} onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  onClick={() => setSelectedVersionDetail(null)}
-                                  style={{
-                                    position: 'absolute', top: '1rem', right: '1rem',
-                                    background: 'none', border: 'none', color: 'var(--text-secondary)',
-                                    fontSize: '1.25rem', cursor: 'pointer', outline: 'none'
-                                  }}
-                                >
-                                  ✕
-                                </button>
-
-                                <h3 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
-                                  Restore Point Details
-                                </h3>
-                                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
-                                  System configuration and recovery metadata.
-                                </p>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1rem' }}>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Restore Point ID</span>
-                                    <strong style={{ color: '#60a5fa' }}>{`RP-${String(selectedVersionDetail.id).padStart(3, '0')}`}</strong>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Application</span>
-                                    <strong style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.app}</strong>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Version</span>
-                                    <strong style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.version}</strong>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Date & Time</span>
-                                    <span style={{ color: 'var(--text-primary)' }}>{new Date(selectedVersionDetail.date_time).toLocaleString()}</span>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Recovery Type</span>
-                                    <span style={{
-                                      color: (() => {
-                                        const b = selectedVersionDetail.backup || 'Not Available';
-                                        if (b === "Full Backup Available" || b === "Full System") return '#10b981';
-                                        if (b === "Code Rollback Only" || b === "Code + Database") return '#fbbf24';
-                                        return '#94a3b8';
-                                      })(),
-                                      fontWeight: 'bold',
-                                      fontSize: '0.8rem'
-                                    }}>{(() => {
-                                      const b = selectedVersionDetail.backup || 'Not Available';
-                                      if (b === "Full Backup Available" || b === "Full System") return "Full System";
-                                      if (b === "Code Rollback Only" || b === "Code + Database") return "Code + Database";
-                                      return "Code Only";
-                                    })()}</span>
-                                  </div>
-                                  <div>
-                                    <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Current Status</span>
-                                    <span style={{
-                                      color: selectedVersionDetail.status === "Live" ? '#10b981' : 
-                                             selectedVersionDetail.status === "Testing" ? '#fbbf24' : 
-                                             selectedVersionDetail.status === "Development" ? '#3b82f6' : '#ef4444',
-                                      fontWeight: 'bold',
-                                      fontSize: '0.8rem'
-                                    }}>{selectedVersionDetail.status}</span>
-                                  </div>
-                                </div>
-
-                                <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Completed Features</span>
-                                  <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>{selectedVersionDetail.feature}</strong>
-                                </div>
-
-                                <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                                  <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Notes</span>
-                                  <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                                    {selectedVersionDetail.description || 'No notes provided for this restore point.'}
-                                  </p>
-                                </div>
-
-
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
-                                  <button
-                                    className="btn-secondary"
-                                    onClick={() => setSelectedVersionDetail(null)}
-                                    style={{ padding: '8px 20px', fontWeight: 600 }}
-                                  >
-                                    Close Details
-                                  </button>
-                                </div>
+                                                {rpId}
+                                              </span>
+                                            </td>
+                                            <td style={{ padding: '12px 10px', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                                              {item.app}
+                                            </td>
+                                            <td style={{ padding: '12px 10px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                              {dateFormatted}
+                                            </td>
+                                            <td style={{ padding: '12px 10px', fontWeight: 600 }}>
+                                              {item.feature}
+                                            </td>
+                                            <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
+                                              <span style={{
+                                                color: recoveryColor,
+                                                backgroundColor: recoveryBg,
+                                                padding: '3px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 700,
+                                                textTransform: 'uppercase',
+                                                border: `1px solid ${recoveryColor}22`
+                                              }}>
+                                                {recoveryVal}
+                                              </span>
+                                            </td>
+                                            <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
+                                              <span style={{
+                                                color: statusColor,
+                                                backgroundColor: statusBg,
+                                                padding: '3px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 700,
+                                                textTransform: 'uppercase',
+                                                border: `1px solid ${statusColor}22`
+                                              }}>
+                                                {item.status}
+                                              </span>
+                                            </td>
+                                            <td style={{ padding: '12px 10px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                                <button
+                                                  className="btn-secondary site-btn-sm"
+                                                  onClick={() => setSelectedVersionDetail(item)}
+                                                  style={{ width: 'auto', padding: '4px 10px', fontSize: '0.75rem' }}
+                                                >
+                                                  View Details
+                                                </button>
+                                                <button
+                                                  className="btn-secondary site-btn-sm"
+                                                  disabled
+                                                  style={{
+                                                    width: 'auto',
+                                                    padding: '4px 10px',
+                                                    fontSize: '0.75rem',
+                                                    opacity: 0.5,
+                                                    cursor: 'not-allowed'
+                                                  }}
+                                                  title="Restore functionality will be enabled in a future release."
+                                                >
+                                                  Restore
+                                                </button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      });
+                                    })()}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
-                          )}
-                        </div>
-                      )}
 
+                            {/* Restore Details Overlay Modal */}
+                            {selectedVersionDetail && (() => {
+                              const modalDt = new Date(selectedVersionDetail.date_time);
+                              const modalMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                              const modalDate = `${modalDt.getDate()} ${modalMonths[modalDt.getMonth()]} ${modalDt.getFullYear()}`;
+                              const modalTime = `${String(modalDt.getHours()).padStart(2, '0')}:${String(modalDt.getMinutes()).padStart(2, '0')}`;
+
+                              return (
+                                <div style={{
+                                  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                                  backgroundColor: 'rgba(5, 7, 11, 0.85)', backdropFilter: 'blur(8px)',
+                                  display: 'flex', justifyContent: 'center', alignItems: 'center',
+                                  zIndex: 4000, padding: '1rem'
+                                }} onClick={() => setSelectedVersionDetail(null)}>
+                                  <div style={{
+                                    backgroundColor: '#0c101b', border: '1px solid rgba(255, 255, 255, 0.08)',
+                                    borderRadius: '16px', padding: '2rem', maxWidth: '600px', width: '100%',
+                                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', position: 'relative',
+                                    textAlign: 'left'
+                                  }} onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      onClick={() => setSelectedVersionDetail(null)}
+                                      style={{
+                                        position: 'absolute', top: '1rem', right: '1rem',
+                                        background: 'none', border: 'none', color: 'var(--text-secondary)',
+                                        fontSize: '1.25rem', cursor: 'pointer', outline: 'none'
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+
+                                    <h3 style={{ fontFamily: 'Outfit', fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
+                                      Restore Point Details
+                                    </h3>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 1.5rem 0' }}>
+                                      System configuration and recovery metadata.
+                                    </p>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.85rem', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '1rem' }}>
+                                      <div>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Restore Point ID</span>
+                                        <strong style={{ color: '#60a5fa' }}>{`RP-${String(selectedVersionDetail.id).padStart(3, '0')}`}</strong>
+                                      </div>
+                                      <div>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Application</span>
+                                        <strong style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.app}</strong>
+                                      </div>
+                                      <div>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Version</span>
+                                        <strong style={{ color: 'var(--text-primary)' }}>{selectedVersionDetail.version}</strong>
+                                      </div>
+                                      <div>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Recovery Type</span>
+                                        <span style={{
+                                          color: (() => {
+                                            const b = selectedVersionDetail.backup || 'Not Available';
+                                            if (b === "Full Backup Available" || b === "Full System") return '#10b981';
+                                            if (b === "Code Rollback Only" || b === "Code + Database") return '#fbbf24';
+                                            return '#94a3b8';
+                                          })(),
+                                          fontWeight: 'bold',
+                                          fontSize: '0.8rem'
+                                        }}>{(() => {
+                                          const b = selectedVersionDetail.backup || 'Not Available';
+                                          if (b === "Full Backup Available" || b === "Full System") return "Full System";
+                                          if (b === "Code Rollback Only" || b === "Code + Database") return "Code + Database";
+                                          return "Code Only";
+                                        })()}</span>
+                                      </div>
+                                      <div>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Date</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{modalDate}</span>
+                                      </div>
+                                      <div>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Time</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{modalTime}</span>
+                                      </div>
+                                      <div>
+                                        <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700 }}>Status</span>
+                                        <span style={{
+                                          color: selectedVersionDetail.status === "Live" ? '#10b981' : 
+                                                 selectedVersionDetail.status === "Testing" ? '#fbbf24' : 
+                                                 selectedVersionDetail.status === "Development" ? '#3b82f6' : '#ef4444',
+                                          fontWeight: 'bold',
+                                          fontSize: '0.8rem'
+                                        }}>{selectedVersionDetail.status}</span>
+                                      </div>
+                                    </div>
+
+                                    <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                                      <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Complete list of features included</span>
+                                      <strong style={{ color: 'var(--text-primary)', fontSize: '1rem' }}>{selectedVersionDetail.feature}</strong>
+                                    </div>
+
+                                    <div style={{ fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                                      <span style={{ color: 'var(--text-secondary)', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, marginBottom: '0.5rem' }}>Notes</span>
+                                      <p style={{ margin: 0, color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', backgroundColor: 'rgba(255,255,255,0.02)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                        {selectedVersionDetail.description || 'No notes provided for this restore point.'}
+                                      </p>
+                                    </div>
+
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                      <button
+                                        className="btn-secondary"
+                                        onClick={() => setSelectedVersionDetail(null)}
+                                        style={{ padding: '8px 20px', fontWeight: 600 }}
+                                      >
+                                        Close Details
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })()}
                       {/* Coming Soon placeholders for other settings sub-pages */}
                       {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_restore_points" && (
                         <div style={{
