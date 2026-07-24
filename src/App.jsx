@@ -3030,6 +3030,9 @@ export default function App() {
   // Architecture view state variables
   const [selectedArchTaskId, setSelectedArchTaskId] = useState("t1");
   const [activeSettingsTab, setActiveSettingsTab] = useState("general_settings");
+  const [platformsSortColumn, setPlatformsSortColumn] = useState("name");
+  const [platformsSortDirection, setPlatformsSortDirection] = useState("asc");
+  const [selectedPlatform, setSelectedPlatform] = useState(null);
   const [expandedSettingsGroups, setExpandedSettingsGroups] = useState({
     "GENERAL": true,
     "DEVELOPER": true,
@@ -11874,7 +11877,8 @@ export default function App() {
                     items: [
                       { id: "general_settings", label: "General Settings" },
                       { id: "default_settings", label: "Default Settings" },
-                      { id: "external_link_library", label: "External Link Library" }
+                      { id: "external_link_library", label: "External Link Library" },
+                      { id: "platforms_services", label: "Platforms & Services" }
                     ]
                   },
                   {
@@ -13233,8 +13237,397 @@ export default function App() {
                           </div>
                         );
                       })()}
+
+                      {/* Platforms & Services */}
+                      {activeSettingsTab === "platforms_services" && (() => {
+                        const SEEDED_PLATFORMS = [
+                          {
+                            name: "OpenAI",
+                            purpose: "AI Content & Auditing",
+                            usedBy: "Page Auditor, Lead Gen",
+                            freePaid: "Paid",
+                            cost: 150.00,
+                            costFormatted: "$150.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 10:15",
+                            description: "Provides advanced language models and embedding APIs for content generation, SEO audit explanations, and smart recommendations.",
+                            loginUrl: "https://platform.openai.com",
+                            subscriptionType: "Usage-Based Pay-as-you-go",
+                            notes: "API keys are rotated monthly. Threshold alerts set at $200."
+                          },
+                          {
+                            name: "Supabase",
+                            purpose: "Primary Database & Auth",
+                            usedBy: "Website Management, Page Auditor",
+                            freePaid: "Paid",
+                            cost: 25.00,
+                            costFormatted: "$25.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 10:10",
+                            description: "Hosted PostgreSQL database, authentication system, and real-time database manager serving as the primary persistent data store.",
+                            loginUrl: "https://supabase.com/dashboard",
+                            subscriptionType: "Pro Plan",
+                            notes: "Database unpaused and healthy. Automatic daily backups active."
+                          },
+                          {
+                            name: "GitHub",
+                            purpose: "Code Hosting & CI/CD",
+                            usedBy: "All Projects",
+                            freePaid: "Free",
+                            cost: 0.00,
+                            costFormatted: "$0.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 10:00",
+                            description: "Source code repository hosting and GitHub Actions runner for continuous integration and automated deployment webhooks.",
+                            loginUrl: "https://github.com",
+                            subscriptionType: "Free Team Account",
+                            notes: "Webhook integration configured with security secret key."
+                          },
+                          {
+                            name: "n8n",
+                            purpose: "Workflow Automation",
+                            usedBy: "Lead Gen, Website Management",
+                            freePaid: "Free",
+                            cost: 0.00,
+                            costFormatted: "$0.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 09:55",
+                            description: "Workflow automation tool used to orchestrate data sync, daily reporting schedules, and notification distributions.",
+                            loginUrl: "http://localhost:5678",
+                            subscriptionType: "Self-Hosted Community",
+                            notes: "Running locally via Docker. Backed up daily to cloud store."
+                          },
+                          {
+                            name: "PM2",
+                            purpose: "Process Management",
+                            usedBy: "TSE Deployer, Website Management",
+                            freePaid: "Free",
+                            cost: 0.00,
+                            costFormatted: "$0.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 09:50",
+                            description: "Production process manager for Node.js applications to ensure zero-downtime restarts and automatic daemon process recovery.",
+                            loginUrl: "N/A (CLI Interface)",
+                            subscriptionType: "Open Source",
+                            notes: "Installed globally. Logs rotated automatically via pm2-logrotate."
+                          },
+                          {
+                            name: "Caddy",
+                            purpose: "Reverse Proxy & SSL",
+                            usedBy: "TSE Deployer, Website Management",
+                            freePaid: "Free",
+                            cost: 0.00,
+                            costFormatted: "$0.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 09:45",
+                            description: "Fast, modern web server and reverse proxy with automatic SSL certificate management and development basic authentication.",
+                            loginUrl: "N/A (Config File)",
+                            subscriptionType: "Open Source",
+                            notes: "SSL renewals handled automatically. Basic auth active on dev subdomains."
+                          },
+                          {
+                            name: "VPS Hosting",
+                            purpose: "Cloud Infrastructure",
+                            usedBy: "All Projects",
+                            freePaid: "Paid",
+                            cost: 45.00,
+                            costFormatted: "$45.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 09:30",
+                            description: "Virtual Private Server hosting on UK Dedicated platform running Debian Linux to run all dev and production services.",
+                            loginUrl: "https://portal.ukdedicated.com",
+                            subscriptionType: "Linux VPS 4 vCPU 8GB RAM",
+                            notes: "Managed server with BitNinja firewall active."
+                          },
+                          {
+                            name: "WordPress",
+                            purpose: "Client CMS Platforms",
+                            usedBy: "Page Auditor, Website Management",
+                            freePaid: "Free",
+                            cost: 0.00,
+                            costFormatted: "$0.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 09:15",
+                            description: "Content Management System (CMS) instances powering the client websites being audited and managed by our engine.",
+                            loginUrl: "N/A (Client Dashboards)",
+                            subscriptionType: "Open Source Self-Hosted",
+                            notes: "TSE Site Exporter plugin installed on client WP sites for sync."
+                          },
+                          {
+                            name: "Cloudflare",
+                            purpose: "DNS & Edge Security",
+                            usedBy: "All Public Domains",
+                            freePaid: "Free",
+                            cost: 0.00,
+                            costFormatted: "$0.00",
+                            status: "Active",
+                            lastChecked: "2026-07-24 09:00",
+                            description: "DNS management, Content Delivery Network (CDN), and Web Application Firewall (WAF) layer protecting external entry points.",
+                            loginUrl: "https://dash.cloudflare.com",
+                            subscriptionType: "Free Plan per Domain",
+                            notes: "Page rules configured to force HTTPS and block suspicious crawler bots."
+                          }
+                        ];
+
+                        const handleSort = (col) => {
+                          if (platformsSortColumn === col) {
+                            setPlatformsSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                          } else {
+                            setPlatformsSortColumn(col);
+                            setPlatformsSortDirection('asc');
+                          }
+                        };
+
+                        const sortedPlatforms = [...SEEDED_PLATFORMS].sort((a, b) => {
+                          let valA = a[platformsSortColumn];
+                          let valB = b[platformsSortColumn];
+
+                          if (platformsSortColumn === 'cost') {
+                            valA = Number(a.cost);
+                            valB = Number(b.cost);
+                          } else {
+                            valA = String(valA || '').toLowerCase();
+                            valB = String(valB || '').toLowerCase();
+                          }
+
+                          if (valA < valB) return platformsSortDirection === 'asc' ? -1 : 1;
+                          if (valA > valB) return platformsSortDirection === 'asc' ? 1 : -1;
+                          return 0;
+                        });
+
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                                Central register of platforms, services, and technologies utilized across all TSE applications.
+                              </p>
+                            </div>
+
+                            <div style={{ backgroundColor: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: '12px', overflow: 'hidden' }}>
+                              <div style={{ overflowX: 'auto' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.85rem' }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                      <th 
+                                        onClick={() => handleSort('name')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Platform{platformsSortColumn === 'name' ? (platformsSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleSort('purpose')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Purpose{platformsSortColumn === 'purpose' ? (platformsSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleSort('usedBy')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Used By{platformsSortColumn === 'usedBy' ? (platformsSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleSort('freePaid')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Free / Paid{platformsSortColumn === 'freePaid' ? (platformsSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleSort('cost')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Monthly Cost{platformsSortColumn === 'cost' ? (platformsSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleSort('status')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Status{platformsSortColumn === 'status' ? (platformsSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th 
+                                        onClick={() => handleSort('lastChecked')}
+                                        style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                                      >
+                                        Last Checked{platformsSortColumn === 'lastChecked' ? (platformsSortDirection === 'asc' ? ' ▲' : ' ▼') : ''}
+                                      </th>
+                                      <th style={{ padding: '12px 10px', color: 'var(--text-secondary)', fontWeight: 600, whiteSpace: 'nowrap', textAlign: 'right', width: '120px' }}>Actions</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {sortedPlatforms.map((platform, idx) => (
+                                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                                        <td style={{ padding: '12px 10px', fontWeight: 600, color: 'var(--text-primary)' }}>{platform.name}</td>
+                                        <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{platform.purpose}</td>
+                                        <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{platform.usedBy}</td>
+                                        <td style={{ padding: '12px 10px' }}>
+                                          <span style={{
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            backgroundColor: platform.freePaid === 'Free' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(249, 115, 22, 0.1)',
+                                            color: platform.freePaid === 'Free' ? '#10b981' : '#f97316'
+                                          }}>{platform.freePaid}</span>
+                                        </td>
+                                        <td style={{ padding: '12px 10px', color: 'var(--text-primary)' }}>{platform.costFormatted}</td>
+                                        <td style={{ padding: '12px 10px' }}>
+                                          <span style={{
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                            color: '#10b981'
+                                          }}>{platform.status}</span>
+                                        </td>
+                                        <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{platform.lastChecked}</td>
+                                        <td style={{ padding: '12px 10px', textAlign: 'right' }}>
+                                          <button
+                                            className="btn-secondary"
+                                            onClick={() => setSelectedPlatform(platform)}
+                                            style={{
+                                              padding: '4px 10px',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 600,
+                                              cursor: 'pointer',
+                                              border: '1px solid rgba(255,255,255,0.1)',
+                                              borderRadius: '4px',
+                                              backgroundColor: 'transparent',
+                                              color: 'var(--text-primary)'
+                                            }}
+                                          >
+                                            Details
+                                          </button>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+
+                            {selectedPlatform && (
+                              <div style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                backgroundColor: 'rgba(5, 8, 16, 0.85)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 1000,
+                                backdropFilter: 'blur(4px)'
+                              }}>
+                                <div style={{
+                                  backgroundColor: '#0c101b',
+                                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                                  borderRadius: '16px',
+                                  width: '600px',
+                                  maxWidth: '95%',
+                                  padding: '2rem',
+                                  boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                                  position: 'relative',
+                                  textAlign: 'left'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.06)', paddingBottom: '0.75rem' }}>
+                                    <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      Platform Details: {selectedPlatform.name}
+                                    </h3>
+                                    <button
+                                      onClick={() => setSelectedPlatform(null)}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: 'var(--text-secondary)',
+                                        fontSize: '1.5rem',
+                                        cursor: 'pointer',
+                                        padding: '0 5px'
+                                      }}
+                                    >
+                                      &times;
+                                    </button>
+                                  </div>
+
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.875rem' }}>
+                                    <div>
+                                      <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Description</span>
+                                      <span style={{ color: 'var(--text-primary)', lineHeight: '1.4' }}>{selectedPlatform.description}</span>
+                                    </div>
+
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+                                      <div>
+                                        <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Purpose</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{selectedPlatform.purpose}</span>
+                                      </div>
+                                      <div>
+                                        <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Applications Using It</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{selectedPlatform.usedBy}</span>
+                                      </div>
+                                      <div>
+                                        <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Login URL</span>
+                                        {selectedPlatform.loginUrl.startsWith('http') ? (
+                                          <a href={selectedPlatform.loginUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#f97316', textDecoration: 'none' }}>
+                                            {selectedPlatform.loginUrl}
+                                          </a>
+                                        ) : (
+                                          <span style={{ color: 'var(--text-primary)' }}>{selectedPlatform.loginUrl}</span>
+                                        )}
+                                      </div>
+                                      <div>
+                                        <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Subscription Type</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{selectedPlatform.subscriptionType}</span>
+                                      </div>
+                                      <div>
+                                        <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Monthly Cost</span>
+                                        <span style={{ color: 'var(--text-primary)' }}>{selectedPlatform.costFormatted}</span>
+                                      </div>
+                                      <div>
+                                        <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Status</span>
+                                        <span style={{
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          padding: '2px 6px',
+                                          borderRadius: '4px',
+                                          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                          color: '#10b981',
+                                          display: 'inline-block'
+                                        }}>{selectedPlatform.status}</span>
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Last Checked</span>
+                                      <span style={{ color: 'var(--text-primary)' }}>{selectedPlatform.lastChecked}</span>
+                                    </div>
+
+                                    <div>
+                                      <span style={{ display: 'block', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>Notes</span>
+                                      <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '8px', padding: '0.75rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: '1.4' }}>
+                                        {selectedPlatform.notes}
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                                    <button
+                                      className="btn-secondary"
+                                      onClick={() => setSelectedPlatform(null)}
+                                      style={{ padding: '8px 16px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer' }}
+                                    >
+                                      Close
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
                       {/* Coming Soon placeholders for other settings sub-pages */}
-                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_restore_points" && (
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_restore_points" && activeSettingsTab !== "platforms_services" && (
                         <div style={{
                           backgroundColor: '#070b13',
                           border: '1px solid rgba(255, 255, 255, 0.06)',
