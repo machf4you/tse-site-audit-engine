@@ -6240,19 +6240,19 @@ export default function App() {
                   })}
 
                   {renderManagementCard({
-                    title: "Open Analysis",
-                    subtitle: "Review audit scores, optimisation opportunities and issues.",
+                    title: "Site Analysis",
+                    subtitle: "Review your site's structure, content and optimisation.",
                     items: [
-                      "On-page SEO audit",
-                      "Technical SEO issues",
-                      "Content optimisation",
-                      "Performance insights"
+                      "Site Structure",
+                      "Internal Links",
+                      "External Links",
+                      "Content Coverage"
                     ],
                     badge: "W5 | Site Analysis",
                     accentColor: "#3b82f6",
                     IconComponent: Activity,
                     onClick: () => setCurrentView("WEBSITES_SITE_ANALYSIS"),
-                    buttonText: "View Analysis"
+                    buttonText: "Open Site Analysis"
                   })}
 
                   {renderManagementCard({
