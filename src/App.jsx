@@ -6551,42 +6551,52 @@ export default function App() {
                           <th 
                             className="sortable-th"
                             onClick={() => handleSortClick('page')}
-                            style={{ padding: '16px 20px', color: w3SortField === 'page' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px' }}
+                            style={{ padding: '16px 20px', color: w3SortField === 'page' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '35%', minWidth: '350px', cursor: 'pointer', userSelect: 'none' }}
                           >
                             Page
-                            {w3SortField === 'page' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                            <span style={{ marginLeft: '6px', color: w3SortField === 'page' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.25)', fontSize: '0.75rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                              {w3SortField === 'page' ? (w3SortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                            </span>
                           </th>
                           <th 
                             className="sortable-th"
                             onClick={() => handleSortClick('type')}
-                            style={{ padding: '16px 20px', color: w3SortField === 'type' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px' }}
+                            style={{ padding: '16px 20px', color: w3SortField === 'type' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '110px', cursor: 'pointer', userSelect: 'none' }}
                           >
                             Type
-                            {w3SortField === 'type' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                            <span style={{ marginLeft: '6px', color: w3SortField === 'type' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.25)', fontSize: '0.75rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                              {w3SortField === 'type' ? (w3SortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                            </span>
                           </th>
                           <th 
                             className="sortable-th"
                             onClick={() => handleSortClick('priority')}
-                            style={{ padding: '16px 20px', color: w3SortField === 'priority' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '100px' }}
+                            style={{ padding: '16px 20px', color: w3SortField === 'priority' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '100px', cursor: 'pointer', userSelect: 'none' }}
                           >
                             Priority
-                            {w3SortField === 'priority' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                            <span style={{ marginLeft: '6px', color: w3SortField === 'priority' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.25)', fontSize: '0.75rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                              {w3SortField === 'priority' ? (w3SortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                            </span>
                           </th>
                           <th 
                             className="sortable-th"
                             onClick={() => handleSortClick('target')}
-                            style={{ padding: '16px 20px', color: w3SortField === 'target' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px' }}
+                            style={{ padding: '16px 20px', color: w3SortField === 'target' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '15%', minWidth: '180px', cursor: 'pointer', userSelect: 'none' }}
                           >
                             Target
-                            {w3SortField === 'target' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                            <span style={{ marginLeft: '6px', color: w3SortField === 'target' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.25)', fontSize: '0.75rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                              {w3SortField === 'target' ? (w3SortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                            </span>
                           </th>
                           <th 
                             className="sortable-th"
                             onClick={() => handleSortClick('status')}
-                            style={{ padding: '16px 20px', color: w3SortField === 'status' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px' }}
+                            style={{ padding: '16px 20px', color: w3SortField === 'status' ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '120px', cursor: 'pointer', userSelect: 'none' }}
                           >
                             Status
-                            {w3SortField === 'status' && <span style={{ marginLeft: '6px', color: 'var(--accent-color)', fontSize: '0.8rem' }}>{w3SortDirection === 'asc' ? '▲' : '▼'}</span>}
+                            <span style={{ marginLeft: '6px', color: w3SortField === 'status' ? 'var(--accent-color)' : 'rgba(255, 255, 255, 0.25)', fontSize: '0.75rem', display: 'inline-block', verticalAlign: 'middle' }}>
+                              {w3SortField === 'status' ? (w3SortDirection === 'asc' ? '▲' : '▼') : '⇅'}
+                            </span>
                           </th>
                           <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600, width: '10%', minWidth: '180px', textAlign: 'right' }}>Actions</th>
                         </tr>

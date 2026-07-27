@@ -64,7 +64,12 @@ export const useSortableTable = (items = [], initialConfig = null, options = {})
 
   const requestSort = (field) => {
     if (sortField === field) {
-      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortField(null);
+        setSortDirection('asc');
+      }
     } else {
       setSortField(field);
       setSortDirection('asc');
