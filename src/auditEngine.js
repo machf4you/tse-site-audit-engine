@@ -66,37 +66,71 @@ export const getPageSEOScore = (pageUrl) => {
 };
 
 export const detectPageType = (pageUrl, pageTitle = "") => {
-  const url = (pageUrl || "").trim().toLowerCase();
+  const url = (pageUrl || "").trim().toLowerCase().replace(/\/+$/, "");
   const title = (pageTitle || "").trim().toLowerCase();
 
-  // Exclude utility pages by default (Thank You, Privacy/Cookie Policy, Terms, Sitemap, 404)
-  const excludedKeywords = [
+  // 1. Homepage = Hub
+  if (url === "" || url === "/") {
+    return "Hub Page";
+  }
+
+  // 2. Utility pages (privacy, cookies, terms, sitemap, thank-you, 404 etc.) = Excluded
+  const utilityKeywords = [
     "thank-you", "thankyou", "thanks",
     "privacy", "privacy-policy",
     "cookie", "cookie-policy", "cookies",
     "terms", "terms-conditions", "terms-of-website-use", "terms-of-use", "terms-of-service",
-    "sitemap",
-    "404"
+    "sitemap", "404", "disclaimer", "legal", "complaints", "conditions",
+    "elementor_library", "template", "library"
   ];
-  
-  const matchesUrl = excludedKeywords.some(kw => url.includes(kw));
-  const matchesTitle = excludedKeywords.some(kw => title.includes(kw));
-  
-  if (matchesUrl || matchesTitle) {
+  if (utilityKeywords.some(kw => url.includes(kw) || title.includes(kw))) {
     return "Excluded";
   }
 
-  const scoreIndex = getPageSEOScore(pageUrl);
-  const mapping = [
-    "Hub Page",        // 0: Homepage
-    "Landing Page",    // 1: Core Service Page
-    "Landing Page",    // 2: Location Page
-    "Supporting Page", // 3: Commercial/Support Page
-    "Topical Page",    // 4: Blog/Content Page
-    "Excluded",        // 5: Legal/System Page
-    "Excluded"         // 6: Elementor/Library Page
+  // 3. Blog/news/articles/posts = Topical
+  const topicalKeywords = [
+    "/blog", "/news", "/articles", "/posts",
+    "blog/", "news/", "articles/", "posts/",
+    "-blog", "-news", "-article", "-post"
   ];
-  return mapping[scoreIndex] || "Supporting Page";
+  if (
+    topicalKeywords.some(kw => url.includes(kw)) ||
+    title.includes("blog") ||
+    title.includes("news") ||
+    title.includes("article") ||
+    title.includes("post")
+  ) {
+    return "Topical Page";
+  }
+
+  // 4 & 5. Service + Location & Core Commercial Services = Landing
+  const services = [
+    "loft-conversions-banstead", "house-extensions-surbiton", "garage-conversions-wimbledon",
+    "loft-conversion", "loft-conversions",
+    "house-extension", "house-extensions",
+    "garage-conversion", "garage-conversions",
+    "garden-office", "garden-offices",
+    "renovation", "renovations",
+    "refurbishment", "refurbishments",
+    "seo-service", "seo-services", "seo-consultant", "local-seo", "ecommerce-seo", "technical-seo",
+    "paid-search", "migration", "ppc", "design", "installation", "fitters"
+  ];
+  if (services.some(service => url.includes(service))) {
+    return "Landing Page";
+  }
+
+  // 6. About, Contact, Areas, Testimonials, FAQs, Careers etc. = Supporting
+  const supportingKeywords = [
+    "about", "contact", "areas", "testimonials", "faqs", "faq", "careers", "career",
+    "gallery", "case-studies", "case-study", "reviews", "portfolio", "prices", "pricing",
+    "about-us", "contact-us"
+  ];
+  if (supportingKeywords.some(kw => url.includes(kw))) {
+    return "Supporting Page";
+  }
+
+  // 7. Default = Supporting
+  return "Supporting Page";
 };
 
 export const pageTypeLabels = [
