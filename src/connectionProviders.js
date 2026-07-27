@@ -266,6 +266,7 @@ export class MagentoProvider extends BaseConnectionProvider {
 
   async getPages(url, credentials) {
     const { username, password } = credentials || {};
+    const storeCode = credentials?.storeCode || credentials?.store_code || 'default';
     if (!username || !password) {
       return [];
     }
@@ -353,9 +354,9 @@ export class MagentoProvider extends BaseConnectionProvider {
     }
 
     // 2. Retrieve & Map CMS Pages
-    console.log(`[MagentoProvider] Retrieving CMS Pages from: ${url}/rest/default/V1/cmsPage/search`);
+    console.log(`[MagentoProvider] Retrieving CMS Pages from: ${url}/rest/${storeCode}/V1/cmsPage/search`);
     try {
-      const cmsRes = await fetchThroughProxy(`${url}/rest/default/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
+      const cmsRes = await fetchThroughProxy(`${url}/rest/${storeCode}/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
         method: "GET",
         headers: {
           "Authorization": authHeaderValue,
@@ -370,7 +371,7 @@ export class MagentoProvider extends BaseConnectionProvider {
         if (cmsData.items && Array.isArray(cmsData.items)) {
           const detailPromises = cmsData.items.map(async (item) => {
             try {
-              const detailRes = await fetchThroughProxy(`${url}/rest/default/V1/cmsPage/${item.id}`, {
+              const detailRes = await fetchThroughProxy(`${url}/rest/${storeCode}/V1/cmsPage/${item.id}`, {
                 method: "GET",
                 headers: {
                   "Authorization": authHeaderValue,
