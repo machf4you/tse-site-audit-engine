@@ -159,7 +159,8 @@ export class WordPressProvider extends BaseConnectionProvider {
           return { success: true, status: 200 };
         }
         if (response.status === 401 || response.status === 403) {
-          return { success: false, status: response.status, message: "Invalid WordPress Username or Application Password." };
+          const errBody = await response.text();
+          return { success: false, status: response.status, message: errBody };
         }
         lastError = { status: response.status, message: `Received status code ${response.status} from API endpoint.` };
       } catch (err) {
