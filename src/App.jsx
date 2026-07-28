@@ -1642,6 +1642,7 @@ export default function App() {
   const [newSiteUrl, setNewSiteUrl] = useState("");
   const [newSiteUsername, setNewSiteUsername] = useState("");
   const [newSitePassword, setNewSitePassword] = useState("");
+  const [newSiteStoreCode, setNewSiteStoreCode] = useState("");
   const [connectionTestStatus, setConnectionTestStatus] = useState("idle"); // "idle", "testing", "success", "failed"
   const [connectionTestMessage, setConnectionTestMessage] = useState("");
   const [w6ConnectionStatus, setW6ConnectionStatus] = useState("idle"); // "idle", "testing", "success", "failed"
@@ -1655,6 +1656,7 @@ export default function App() {
   const [editSiteApiUrl, setEditSiteApiUrl] = useState("");
   const [editSiteUsername, setEditSiteUsername] = useState("");
   const [editSitePassword, setEditSitePassword] = useState("");
+  const [editSiteStoreCode, setEditSiteStoreCode] = useState("");
 
 
   
@@ -1764,6 +1766,7 @@ export default function App() {
     setEditSiteApiUrl(site.apiUrl || defaultApiUrl);
     setEditSiteUsername(site.credentials?.username || "");
     setEditSitePassword(site.credentials?.password || "");
+    setEditSiteStoreCode(site.credentials?.storeCode || "");
     setEditSiteElementorEnabled(!!site.elementorEnabled);
     setIsEditWebsiteModalOpen(true);
   };
@@ -1803,7 +1806,8 @@ export default function App() {
           status: hasCredentials ? "Connected" : "Setup Required",
           credentials: {
             username: editSiteUsername.trim(),
-            password: editSitePassword.trim()
+            password: editSitePassword.trim(),
+            storeCode: editSitePlatform === "Magento" ? editSiteStoreCode.trim() : ""
           }
         };
       }
@@ -2496,7 +2500,7 @@ export default function App() {
     }
   };
 
-  const handleSyncWebsitePages = async (siteId, siteUrl, username, password, passedPlatform) => {
+  const handleSyncWebsitePages = async (siteId, siteUrl, username, password, passedPlatform, storeCode = "") => {
     let cleanUrl = siteUrl.trim();
     if (!/^https?:\/\//i.test(cleanUrl)) {
       cleanUrl = "https://" + cleanUrl;
@@ -2505,10 +2509,11 @@ export default function App() {
 
     const site = sites.find(s => s.id === siteId);
     const platform = passedPlatform || (site ? (site.platform || "WordPress") : "WordPress");
+    const finalStoreCode = storeCode || site?.credentials?.storeCode || "";
 
     try {
       const provider = ConnectionManager.getProvider(platform);
-      const parsedRecords = await provider.getPages(cleanUrl, { username, password });
+      const parsedRecords = await provider.getPages(cleanUrl, { username, password, storeCode: finalStoreCode });
 
       const prevPages = pagesData[siteId] || [];
       const syncedUrls = new Set();
@@ -2641,7 +2646,8 @@ export default function App() {
         name: finalName || existingSite.name,
         credentials: {
           username: finalUsername,
-          password: finalPassword
+          password: finalPassword,
+          storeCode: finalPlatform === "Magento" ? newSiteStoreCode.trim() : ""
         },
         portfolio: newSitePortfolio,
         platform: finalPlatform,
@@ -2678,7 +2684,8 @@ export default function App() {
         tasks: [],
         credentials: {
           username: finalUsername,
-          password: finalPassword
+          password: finalPassword,
+          storeCode: finalPlatform === "Magento" ? newSiteStoreCode.trim() : ""
         },
         portfolio: newSitePortfolio,
         platform: finalPlatform,
@@ -2698,13 +2705,14 @@ export default function App() {
     setNewSiteUrl("");
     setNewSiteUsername("");
     setNewSitePassword("");
+    setNewSiteStoreCode("");
     setNewSitePortfolio("TSE");
     setNewSitePlatform("WordPress");
     setConnectionTestStatus("idle");
     setConnectionTestMessage("");
     setNewSiteElementorEnabled(false);
 
-    await handleSyncWebsitePages(finalId, cleanUrl, finalUsername, finalPassword, finalPlatform);
+    await handleSyncWebsitePages(finalId, cleanUrl, finalUsername, finalPassword, finalPlatform, finalPlatform === "Magento" ? newSiteStoreCode.trim() : "");
   };
 
   // Load sites and page configurations from PostgreSQL database on mount
@@ -3749,7 +3757,8 @@ export default function App() {
       site.url, 
       site.credentials.username, 
       site.credentials.password,
-      site.platform
+      site.platform,
+      site.credentials.storeCode
     );
 
     setSites(prev => prev.map(s => {
@@ -13898,6 +13907,30 @@ export default function App() {
                     />
                   </div>
 
+                  {/* Store Code (Magento only) */}
+                  {newSitePlatform === "Magento" && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                        Store Code
+                      </label>
+                      <input 
+                        type="text"
+                        value={newSiteStoreCode}
+                        onChange={(e) => {
+                          setNewSiteStoreCode(e.target.value);
+                          setConnectionTestStatus("idle");
+                        }}
+                        placeholder="default"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {/* Portfolio Select (Milestone M004) */}
                   <div>
                     <label htmlFor="newSitePortfolioInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
@@ -14655,6 +14688,27 @@ export default function App() {
                         }}
                       />
                     </div>
+
+                    {/* Store Code (Magento only) */}
+                    {editSitePlatform === "Magento" && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+                          Store Code
+                        </label>
+                        <input 
+                          type="text"
+                          value={editSiteStoreCode}
+                          onChange={(e) => setEditSiteStoreCode(e.target.value)}
+                          placeholder="default"
+                          style={{
+                            width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                            borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
+                            fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                    )}
 
                                         {/* Connection Status */}
                     <div>

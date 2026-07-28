@@ -309,9 +309,9 @@ export class MagentoProvider extends BaseConnectionProvider {
     }
 
     // 1. Retrieve & Map Category Tree
-    console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/default/V1/categories`);
+    console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/${storeCode}/V1/categories`);
     try {
-      const catRes = await fetchThroughProxy(`${url}/rest/default/V1/categories`, {
+      const catRes = await fetchThroughProxy(`${url}/rest/${storeCode}/V1/categories`, {
         method: "GET",
         headers: {
           "Authorization": authHeaderValue,
