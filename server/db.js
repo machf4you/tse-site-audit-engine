@@ -320,6 +320,8 @@ async function initDb() {
         store_code VARCHAR(255),
         store_id VARCHAR(255),
         backend_url VARCHAR(255),
+        hub_articles_enabled BOOLEAN DEFAULT FALSE,
+        last_hub_published VARCHAR(100) DEFAULT 'Never',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -334,6 +336,8 @@ async function initDb() {
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS store_code VARCHAR(255)");
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS store_id VARCHAR(255)");
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS backend_url VARCHAR(255)");
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS hub_articles_enabled BOOLEAN DEFAULT FALSE");
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS last_hub_published VARCHAR(100) DEFAULT 'Never'");
 
     // Update existing records with sensible defaults if they are NULL
     await pool.query("UPDATE websites SET portfolio = 'TSE' WHERE id = 'the-search-equation' AND (portfolio IS NULL OR portfolio = 'Other')");
@@ -595,7 +599,7 @@ async function initDb() {
 async function getSites() {
   if (useDb) {
     try {
-      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id, store_code, store_id, backend_url FROM websites ORDER BY created_at ASC");
+      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id, store_code, store_id, backend_url, hub_articles_enabled, last_hub_published FROM websites ORDER BY created_at ASC");
       return rows.map(r => ({
         id: r.id,
         name: r.name,
@@ -612,7 +616,9 @@ async function getSites() {
         },
         portfolio: r.portfolio || "Other",
         platform: r.platform || "Other",
-        indexCheckerProjectId: r.index_checker_project_id || null
+        indexCheckerProjectId: r.index_checker_project_id || null,
+        hubArticlesEnabled: r.hub_articles_enabled ?? false,
+        lastHubPublished: r.last_hub_published || "Never"
       }));
     } catch (err) {
       console.error("Database query sites failed, using fallback:", err.message);
@@ -622,7 +628,9 @@ async function getSites() {
     ...site,
     portfolio: site.portfolio || "Other",
     platform: site.platform || "Other",
-    indexCheckerProjectId: site.indexCheckerProjectId || null
+    indexCheckerProjectId: site.indexCheckerProjectId || null,
+    hubArticlesEnabled: site.hubArticlesEnabled ?? false,
+    lastHubPublished: site.lastHubPublished || "Never"
   }));
 }
 
@@ -630,8 +638,8 @@ async function saveSite(site) {
   if (useDb) {
     try {
       await pool.query(
-        `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id, store_code, store_id, backend_url)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id, store_code, store_id, backend_url, hub_articles_enabled, last_hub_published)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          ON CONFLICT (id) DO UPDATE 
          SET name = EXCLUDED.name, 
              url = EXCLUDED.url, 
@@ -646,6 +654,8 @@ async function saveSite(site) {
              store_code = EXCLUDED.store_code,
              store_id = EXCLUDED.store_id,
              backend_url = EXCLUDED.backend_url,
+             hub_articles_enabled = EXCLUDED.hub_articles_enabled,
+             last_hub_published = EXCLUDED.last_hub_published,
              updated_at = NOW()`,
         [
           site.id, 
@@ -661,7 +671,9 @@ async function saveSite(site) {
           site.indexCheckerProjectId || null,
           site.credentials?.storeCode || "",
           site.credentials?.storeId || "",
-          site.credentials?.backendUrl || ""
+          site.credentials?.backendUrl || "",
+          site.hubArticlesEnabled ?? false,
+          site.lastHubPublished || "Never"
         ]
       );
       return;

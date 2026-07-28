@@ -3065,6 +3065,7 @@ export default function App() {
   const [selectedPlatform, setSelectedPlatform] = useState(null);
   const [expandedSettingsGroups, setExpandedSettingsGroups] = useState({
     "GENERAL": true,
+    "CONNECTED WEBSITES": true,
     "DEVELOPER": true,
     "ABOUT": true
   });
@@ -11927,7 +11928,8 @@ export default function App() {
                     title: "CONNECTED WEBSITES",
                     items: [
                       { id: "wordpress_connections", label: "WordPress Connections" },
-                      { id: "api_connections", label: "API Connections" }
+                      { id: "api_connections", label: "API Connections" },
+                      { id: "website_activity", label: "Website Activity" }
                     ]
                   },
                   {
@@ -12077,6 +12079,115 @@ export default function App() {
                           {activeItem.label}
                         </h2>
                       </div>
+
+                      {/* Website Activity Page */}
+                      {activeSettingsTab === "website_activity" && (
+                        <div>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+                            Track content publishing status and configurations for all connected websites.
+                          </p>
+                          <div style={{ overflowX: 'auto', backgroundColor: '#070b13', border: '1px solid rgba(255, 255, 255, 0.06)', borderRadius: '12px' }}>
+                            <table className="audit-config-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
+                                  <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Website</th>
+                                  <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Platform</th>
+                                  <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Portfolio</th>
+                                  <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Hub Articles</th>
+                                  <th style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: 600 }}>Last Hub Published</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sites.length === 0 ? (
+                                  <tr>
+                                    <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                      No connected websites found.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  sites.map((site) => (
+                                    <tr key={site.id} style={{ borderBottom: '1px solid var(--border-color)' }} className="table-row-hover">
+                                      <td style={{ padding: '16px 20px', textAlign: 'left' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{site.name}</span>
+                                          <a href={site.url} target="_blank" rel="noreferrer" style={{ fontSize: '0.8rem', color: '#10b981', textDecoration: 'none' }}>
+                                            {site.url} <ExternalLink size={10} style={{ marginLeft: '4px', display: 'inline-block', verticalAlign: 'middle' }} />
+                                          </a>
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>
+                                        {site.platform || "Other"}
+                                      </td>
+                                      <td style={{ padding: '16px 20px', color: 'var(--text-secondary)' }}>
+                                        {site.portfolio || "Other"}
+                                      </td>
+                                      <td style={{ padding: '16px 20px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                          <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px' }}>
+                                            <input 
+                                              type="checkbox"
+                                              checked={site.hubArticlesEnabled || false}
+                                              onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setSites(prevSites => prevSites.map(s => {
+                                                  if (s.id === site.id) {
+                                                    return { ...s, hubArticlesEnabled: checked };
+                                                  }
+                                                  return s;
+                                                }));
+                                              }}
+                                              style={{ opacity: 0, width: 0, height: 0 }}
+                                            />
+                                            <span className="slider round" style={{
+                                              position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                                              backgroundColor: site.hubArticlesEnabled ? '#10b981' : '#1e293b',
+                                              transition: '.3s', borderRadius: '20px'
+                                            }}>
+                                              <span style={{
+                                                position: 'absolute', content: '""', height: '14px', width: '14px', left: '3px', bottom: '3px',
+                                                backgroundColor: 'white', transition: '.3s', borderRadius: '50%',
+                                                transform: site.hubArticlesEnabled ? 'translateX(18px)' : 'translateX(0)'
+                                              }} />
+                                            </span>
+                                          </label>
+                                          <span style={{ fontSize: '0.85rem', color: site.hubArticlesEnabled ? '#10b981' : 'var(--text-secondary)', fontWeight: 600 }}>
+                                            {site.hubArticlesEnabled ? "Yes" : "No"}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: '16px 20px' }}>
+                                        <input 
+                                          type="text"
+                                          value={site.lastHubPublished || "Never"}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setSites(prevSites => prevSites.map(s => {
+                                              if (s.id === site.id) {
+                                                return { ...s, lastHubPublished: val };
+                                              }
+                                              return s;
+                                            }));
+                                          }}
+                                          style={{
+                                            backgroundColor: '#07090b',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '6px',
+                                            padding: '6px 12px',
+                                            color: 'var(--text-primary)',
+                                            fontSize: '0.85rem',
+                                            outline: 'none',
+                                            width: '150px'
+                                          }}
+                                        />
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Import/Export backup page */}
                       {activeSettingsTab === "import_export" && (
