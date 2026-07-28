@@ -317,6 +317,8 @@ async function initDb() {
         wp_password VARCHAR(255),
         portfolio VARCHAR(100) DEFAULT 'Other',
         platform VARCHAR(100) DEFAULT 'Other',
+        store_code VARCHAR(255),
+        store_id VARCHAR(255),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
@@ -328,6 +330,8 @@ async function initDb() {
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS portfolio VARCHAR(100) DEFAULT 'Other'");
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS platform VARCHAR(100) DEFAULT 'Other'");
     await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS index_checker_project_id VARCHAR(100)");
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS store_code VARCHAR(255)");
+    await pool.query("ALTER TABLE websites ADD COLUMN IF NOT EXISTS store_id VARCHAR(255)");
 
     // Update existing records with sensible defaults if they are NULL
     await pool.query("UPDATE websites SET portfolio = 'TSE' WHERE id = 'the-search-equation' AND (portfolio IS NULL OR portfolio = 'Other')");
@@ -589,7 +593,7 @@ async function initDb() {
 async function getSites() {
   if (useDb) {
     try {
-      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id FROM websites ORDER BY created_at ASC");
+      const { rows } = await pool.query("SELECT id, name, url, status, last_audit AS \"lastAudit\", tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id, store_code, store_id FROM websites ORDER BY created_at ASC");
       return rows.map(r => ({
         id: r.id,
         name: r.name,
@@ -599,7 +603,9 @@ async function getSites() {
         tasks: typeof r.tasks === 'string' ? JSON.parse(r.tasks) : (r.tasks || []),
         credentials: {
           username: r.wp_username || "",
-          password: r.wp_password || ""
+          password: r.wp_password || "",
+          storeCode: r.store_code || "",
+          storeId: r.store_id || ""
         },
         portfolio: r.portfolio || "Other",
         platform: r.platform || "Other",
@@ -621,8 +627,8 @@ async function saveSite(site) {
   if (useDb) {
     try {
       await pool.query(
-        `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `INSERT INTO websites (id, name, url, status, last_audit, tasks, wp_username, wp_password, portfolio, platform, index_checker_project_id, store_code, store_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          ON CONFLICT (id) DO UPDATE 
          SET name = EXCLUDED.name, 
              url = EXCLUDED.url, 
@@ -634,6 +640,8 @@ async function saveSite(site) {
              portfolio = EXCLUDED.portfolio,
              platform = EXCLUDED.platform,
              index_checker_project_id = EXCLUDED.index_checker_project_id,
+             store_code = EXCLUDED.store_code,
+             store_id = EXCLUDED.store_id,
              updated_at = NOW()`,
         [
           site.id, 
@@ -646,7 +654,9 @@ async function saveSite(site) {
           site.credentials?.password || "",
           site.portfolio || "Other",
           site.platform || "Other",
-          site.indexCheckerProjectId || null
+          site.indexCheckerProjectId || null,
+          site.credentials?.storeCode || "",
+          site.credentials?.storeId || ""
         ]
       );
       return;

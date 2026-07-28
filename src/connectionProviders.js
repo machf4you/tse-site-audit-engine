@@ -266,7 +266,7 @@ export class MagentoProvider extends BaseConnectionProvider {
 
   async getPages(url, credentials) {
     const { username, password } = credentials || {};
-    const storeCode = credentials?.storeCode || credentials?.store_code || 'default';
+    const storeId = credentials?.storeId || credentials?.store_id || '1';
     if (!username || !password) {
       return [];
     }
@@ -309,9 +309,9 @@ export class MagentoProvider extends BaseConnectionProvider {
     }
 
     // 1. Retrieve & Map Category Tree
-    console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/${storeCode}/V1/categories`);
+    console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/V1/categories`);
     try {
-      const catRes = await fetchThroughProxy(`${url}/rest/${storeCode}/V1/categories`, {
+      const catRes = await fetchThroughProxy(`${url}/rest/V1/categories`, {
         method: "GET",
         headers: {
           "Authorization": authHeaderValue,
@@ -354,9 +354,10 @@ export class MagentoProvider extends BaseConnectionProvider {
     }
 
     // 2. Retrieve & Map CMS Pages
-    console.log(`[MagentoProvider] Retrieving CMS Pages from: ${url}/rest/${storeCode}/V1/cmsPage/search`);
+    const cmsSearchUrl = `${url}/rest/V1/cmsPage/search?searchCriteria[filterGroups][0][filters][0][field]=store_id&searchCriteria[filterGroups][0][filters][0][value]=${storeId}`;
+    console.log(`[MagentoProvider] Retrieving CMS Pages from: ${cmsSearchUrl}`);
     try {
-      const cmsRes = await fetchThroughProxy(`${url}/rest/${storeCode}/V1/cmsPage/search?searchCriteria[currentPage]=1`, {
+      const cmsRes = await fetchThroughProxy(cmsSearchUrl, {
         method: "GET",
         headers: {
           "Authorization": authHeaderValue,
@@ -371,7 +372,7 @@ export class MagentoProvider extends BaseConnectionProvider {
         if (cmsData.items && Array.isArray(cmsData.items)) {
           const detailPromises = cmsData.items.map(async (item) => {
             try {
-              const detailRes = await fetchThroughProxy(`${url}/rest/${storeCode}/V1/cmsPage/${item.id}`, {
+              const detailRes = await fetchThroughProxy(`${url}/rest/V1/cmsPage/${item.id}`, {
                 method: "GET",
                 headers: {
                   "Authorization": authHeaderValue,
