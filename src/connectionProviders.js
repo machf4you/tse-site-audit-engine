@@ -218,13 +218,14 @@ export class MagentoProvider extends BaseConnectionProvider {
 
   async testCredentials(url, credentials) {
     const { username, password } = credentials || {};
+    const backendUrl = (credentials?.backendUrl || credentials?.backend_url || url).trim().replace(/\/+$/, "");
     if (!username || !password) {
       return { success: false, status: 400, message: "Magento Admin Username and Password are required." };
     }
 
     let token;
     try {
-      token = await getAdminToken(url, username, password);
+      token = await getAdminToken(backendUrl, username, password);
     } catch (err) {
       return { success: false, status: 401, message: `Authentication failed: ${err.message || "Failed to obtain Magento Admin Token"}` };
     }
@@ -232,8 +233,8 @@ export class MagentoProvider extends BaseConnectionProvider {
     const authHeaderValue = `Bearer ${token}`;
 
     const urls = [
-      `${url}/rest/V1/store/storeConfigs`,
-      `${url}/index.php/rest/V1/store/storeConfigs`
+      `${backendUrl}/rest/V1/store/storeConfigs`,
+      `${backendUrl}/index.php/rest/V1/store/storeConfigs`
     ];
 
     let lastError = null;
@@ -267,13 +268,14 @@ export class MagentoProvider extends BaseConnectionProvider {
   async getPages(url, credentials) {
     const { username, password } = credentials || {};
     const storeId = credentials?.storeId || credentials?.store_id || '1';
+    const backendUrl = (credentials?.backendUrl || credentials?.backend_url || url).trim().replace(/\/+$/, "");
     if (!username || !password) {
       return [];
     }
 
     let token;
     try {
-      token = await getAdminToken(url, username, password);
+      token = await getAdminToken(backendUrl, username, password);
     } catch (err) {
       console.error("Failed to obtain Magento Admin Token during sync:", err);
       return [];
@@ -309,9 +311,9 @@ export class MagentoProvider extends BaseConnectionProvider {
     }
 
     // 1. Retrieve & Map Category Tree
-    console.log(`[MagentoProvider] Retrieving Category Tree from: ${url}/rest/V1/categories`);
+    console.log(`[MagentoProvider] Retrieving Category Tree from: ${backendUrl}/rest/V1/categories`);
     try {
-      const catRes = await fetchThroughProxy(`${url}/rest/V1/categories`, {
+      const catRes = await fetchThroughProxy(`${backendUrl}/rest/V1/categories`, {
         method: "GET",
         headers: {
           "Authorization": authHeaderValue,
@@ -354,7 +356,7 @@ export class MagentoProvider extends BaseConnectionProvider {
     }
 
     // 2. Retrieve & Map CMS Pages
-    const cmsSearchUrl = `${url}/rest/V1/cmsPage/search?searchCriteria[filterGroups][0][filters][0][field]=store_id&searchCriteria[filterGroups][0][filters][0][value]=${storeId}`;
+    const cmsSearchUrl = `${backendUrl}/rest/V1/cmsPage/search?searchCriteria[filterGroups][0][filters][0][field]=store_id&searchCriteria[filterGroups][0][filters][0][value]=${storeId}`;
     console.log(`[MagentoProvider] Retrieving CMS Pages from: ${cmsSearchUrl}`);
     try {
       const cmsRes = await fetchThroughProxy(cmsSearchUrl, {
@@ -372,7 +374,7 @@ export class MagentoProvider extends BaseConnectionProvider {
         if (cmsData.items && Array.isArray(cmsData.items)) {
           const detailPromises = cmsData.items.map(async (item) => {
             try {
-              const detailRes = await fetchThroughProxy(`${url}/rest/V1/cmsPage/${item.id}`, {
+              const detailRes = await fetchThroughProxy(`${backendUrl}/rest/V1/cmsPage/${item.id}`, {
                 method: "GET",
                 headers: {
                   "Authorization": authHeaderValue,

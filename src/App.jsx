@@ -1643,6 +1643,7 @@ export default function App() {
   const [newSiteUsername, setNewSiteUsername] = useState("");
   const [newSitePassword, setNewSitePassword] = useState("");
   const [newSiteStoreId, setNewSiteStoreId] = useState("");
+  const [newSiteBackendUrl, setNewSiteBackendUrl] = useState("");
   const [connectionTestStatus, setConnectionTestStatus] = useState("idle"); // "idle", "testing", "success", "failed"
   const [connectionTestMessage, setConnectionTestMessage] = useState("");
   const [w6ConnectionStatus, setW6ConnectionStatus] = useState("idle"); // "idle", "testing", "success", "failed"
@@ -1657,6 +1658,7 @@ export default function App() {
   const [editSiteUsername, setEditSiteUsername] = useState("");
   const [editSitePassword, setEditSitePassword] = useState("");
   const [editSiteStoreId, setEditSiteStoreId] = useState("");
+  const [editSiteBackendUrl, setEditSiteBackendUrl] = useState("");
 
 
   
@@ -1694,7 +1696,8 @@ export default function App() {
     const provider = ConnectionManager.getProvider(newSitePlatform);
     const credentials = {
       username: newSiteUsername.trim(),
-      password: newSitePassword.trim()
+      password: newSitePassword.trim(),
+      backendUrl: newSitePlatform === "Magento" ? newSiteBackendUrl.trim() : ""
     };
 
     const result = await provider.testCredentials(cleanUrl, credentials);
@@ -1737,7 +1740,8 @@ export default function App() {
     const provider = ConnectionManager.getProvider(platform);
     const credentials = {
       username: (site.credentials?.username || "").trim(),
-      password: (site.credentials?.password || "").trim()
+      password: (site.credentials?.password || "").trim(),
+      backendUrl: (site.credentials?.backendUrl || "").trim()
     };
 
     const result = await provider.testCredentials(cleanUrl, credentials);
@@ -1767,6 +1771,7 @@ export default function App() {
     setEditSiteUsername(site.credentials?.username || "");
     setEditSitePassword(site.credentials?.password || "");
     setEditSiteStoreId(site.credentials?.storeId || "");
+    setEditSiteBackendUrl(site.credentials?.backendUrl || "");
     setEditSiteElementorEnabled(!!site.elementorEnabled);
     setIsEditWebsiteModalOpen(true);
   };
@@ -1808,7 +1813,8 @@ export default function App() {
             username: editSiteUsername.trim(),
             password: editSitePassword.trim(),
             storeCode: s.credentials?.storeCode || "",
-            storeId: editSitePlatform === "Magento" ? editSiteStoreId.trim() : ""
+            storeId: editSitePlatform === "Magento" ? editSiteStoreId.trim() : "",
+            backendUrl: editSitePlatform === "Magento" ? editSiteBackendUrl.trim() : ""
           }
         };
       }
@@ -1816,6 +1822,7 @@ export default function App() {
     }));
 
     showNotification("Website changes saved successfully!");
+    setEditSiteBackendUrl("");
     setIsEditWebsiteModalOpen(false);
   };
 
@@ -2501,7 +2508,7 @@ export default function App() {
     }
   };
 
-  const handleSyncWebsitePages = async (siteId, siteUrl, username, password, passedPlatform, storeId = "") => {
+  const handleSyncWebsitePages = async (siteId, siteUrl, username, password, passedPlatform, storeId = "", backendUrl = "") => {
     let cleanUrl = siteUrl.trim();
     if (!/^https?:\/\//i.test(cleanUrl)) {
       cleanUrl = "https://" + cleanUrl;
@@ -2511,10 +2518,11 @@ export default function App() {
     const site = sites.find(s => s.id === siteId);
     const platform = passedPlatform || (site ? (site.platform || "WordPress") : "WordPress");
     const finalStoreId = storeId || site?.credentials?.storeId || "";
+    const finalBackendUrl = backendUrl || site?.credentials?.backendUrl || "";
 
     try {
       const provider = ConnectionManager.getProvider(platform);
-      const parsedRecords = await provider.getPages(cleanUrl, { username, password, storeId: finalStoreId });
+      const parsedRecords = await provider.getPages(cleanUrl, { username, password, storeId: finalStoreId, backendUrl: finalBackendUrl });
 
       const prevPages = pagesData[siteId] || [];
       const syncedUrls = new Set();
@@ -2649,7 +2657,8 @@ export default function App() {
           username: finalUsername,
           password: finalPassword,
           storeCode: existingSite.credentials?.storeCode || "",
-          storeId: finalPlatform === "Magento" ? newSiteStoreId.trim() : ""
+          storeId: finalPlatform === "Magento" ? newSiteStoreId.trim() : "",
+          backendUrl: finalPlatform === "Magento" ? newSiteBackendUrl.trim() : ""
         },
         portfolio: newSitePortfolio,
         platform: finalPlatform,
@@ -2688,7 +2697,8 @@ export default function App() {
           username: finalUsername,
           password: finalPassword,
           storeCode: "",
-          storeId: finalPlatform === "Magento" ? newSiteStoreId.trim() : ""
+          storeId: finalPlatform === "Magento" ? newSiteStoreId.trim() : "",
+          backendUrl: finalPlatform === "Magento" ? newSiteBackendUrl.trim() : ""
         },
         portfolio: newSitePortfolio,
         platform: finalPlatform,
@@ -2709,13 +2719,22 @@ export default function App() {
     setNewSiteUsername("");
     setNewSitePassword("");
     setNewSiteStoreId("");
+    setNewSiteBackendUrl("");
     setNewSitePortfolio("TSE");
     setNewSitePlatform("WordPress");
     setConnectionTestStatus("idle");
     setConnectionTestMessage("");
     setNewSiteElementorEnabled(false);
 
-    await handleSyncWebsitePages(finalId, cleanUrl, finalUsername, finalPassword, finalPlatform, finalPlatform === "Magento" ? newSiteStoreId.trim() : "");
+    await handleSyncWebsitePages(
+      finalId, 
+      cleanUrl, 
+      finalUsername, 
+      finalPassword, 
+      finalPlatform, 
+      finalPlatform === "Magento" ? newSiteStoreId.trim() : "",
+      finalPlatform === "Magento" ? newSiteBackendUrl.trim() : ""
+    );
   };
 
   // Load sites and page configurations from PostgreSQL database on mount
@@ -3761,7 +3780,8 @@ export default function App() {
       site.credentials.username, 
       site.credentials.password,
       site.platform,
-      site.credentials.storeId
+      site.credentials.storeId,
+      site.credentials.backendUrl
     );
 
     setSites(prev => prev.map(s => {
@@ -13839,6 +13859,28 @@ export default function App() {
                     />
                   </div>
 
+                  {/* Backend URL (Magento only) */}
+                  {newSitePlatform === "Magento" && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Backend URL</label>
+                      <input 
+                        type="text"
+                        value={newSiteBackendUrl}
+                        onChange={(e) => {
+                          setNewSiteBackendUrl(e.target.value);
+                          setConnectionTestStatus("idle");
+                        }}
+                        placeholder="https://example.com"
+                        style={{
+                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
+                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {/* Platform Select (Milestone M004) */}
                   <div>
                     <label htmlFor="newSitePlatformInput" style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
@@ -14578,6 +14620,25 @@ export default function App() {
                         }}
                       />
                     </div>
+
+                    {/* Backend URL (Magento only) */}
+                    {editSitePlatform === "Magento" && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Backend URL</label>
+                        <input 
+                          type="text"
+                          value={editSiteBackendUrl}
+                          onChange={(e) => setEditSiteBackendUrl(e.target.value)}
+                          placeholder="https://example.com"
+                          style={{
+                            width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+                            borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
+                            fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+                    )}
 
                     {/* Portfolio */}
                     <div>
