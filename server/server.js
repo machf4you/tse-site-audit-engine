@@ -580,7 +580,7 @@ app.get('/api/github/status', async (req, res) => {
     }
 
     // 3. Load local metadata
-    const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
+    const metaPath = path.join(__dirname, '..', 'git_pull_metadata.json');
     let metadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: null, currentCommit: null, timeChecked: null, remoteCommit: null, behindCount: null };
     if (fs.existsSync(metaPath)) {
       try {
@@ -866,7 +866,9 @@ app.post('/api/github/pull', async (req, res) => {
 // POST Check GitHub Updates
 app.post('/api/github/check-updates', async (req, res) => {
   try {
-    const cwd = path.join(__dirname, '..');
+    const appRoot = path.join(__dirname, '..');
+    const cachedRepo = path.join(appRoot, 'repo');
+    const cwd = fs.existsSync(path.join(cachedRepo, '.git')) ? cachedRepo : appRoot;
     console.log("Executing git fetch origin...");
     exec('git fetch origin', { cwd }, (fetchErr) => {
       exec('git rev-parse --abbrev-ref HEAD', { cwd }, (err1, branchStdout) => {
@@ -880,7 +882,7 @@ app.post('/api/github/check-updates', async (req, res) => {
               const checkTime = new Date().toISOString();
               
               // Save to metadata file
-              const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
+              const metaPath = path.join(__dirname, '..', 'git_pull_metadata.json');
               let metadata = {};
               if (fs.existsSync(metaPath)) {
                 try {
