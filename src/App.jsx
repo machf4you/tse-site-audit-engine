@@ -11974,7 +11974,8 @@ export default function App() {
                       { id: "task_engine", label: "Task Engine" },
                       { id: "logs", label: "Logs" },
                       { id: "diagnostics", label: "Architecture Notes" },
-                      { id: "github_deployment", label: "GitHub Deployment" }
+                      { id: "github_deployment", label: "GitHub Deployment" },
+                      { id: "deployment", label: "Deployment" }
                     ]
                   },
                   {
@@ -12642,6 +12643,158 @@ export default function App() {
                             </div>
                           </div>
                         )})()}
+
+                      {/* Deployment Page */}
+                      {activeSettingsTab === "deployment" && (
+                        <div style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '1.5rem',
+                          width: '100%',
+                          maxWidth: '900px',
+                          textAlign: 'left'
+                        }}>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0 }}>
+                            Monitor and manage system deployments, server status, and deployment logs.
+                          </p>
+
+                          {/* Section 1: Deployment Status */}
+                          <div style={{
+                            backgroundColor: '#070b13',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '12px',
+                            padding: '1.5rem'
+                          }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem', fontFamily: 'Outfit' }}>
+                              Deployment Status
+                            </h3>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                              gap: '1rem'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>API Status</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#64748b' }}></span>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Unknown</span>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Deployer Status</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#64748b' }}></span>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Unknown</span>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Database Status</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#64748b' }}></span>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Unknown</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section 2: Application */}
+                          <div style={{
+                            backgroundColor: '#070b13',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '12px',
+                            padding: '1.5rem'
+                          }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem', fontFamily: 'Outfit' }}>
+                              Application
+                            </h3>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                              gap: '1rem'
+                            }}>
+                              <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Current Branch</span>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '0.5rem' }}>-</div>
+                              </div>
+                              <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Current Commit</span>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '0.5rem', fontFamily: 'monospace' }}>-</div>
+                              </div>
+                              <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Last Deployment</span>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '0.5rem' }}>-</div>
+                              </div>
+                              <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '8px' }}>
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Last Health Check</span>
+                                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '0.5rem' }}>-</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Section 3: Deployment Log */}
+                          <div style={{
+                            backgroundColor: '#070b13',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '12px',
+                            padding: '1.5rem'
+                          }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem', fontFamily: 'Outfit' }}>
+                              Deployment Log
+                            </h3>
+                            <div style={{
+                              height: '200px',
+                              backgroundColor: '#04060a',
+                              border: '1px solid rgba(255, 255, 255, 0.03)',
+                              borderRadius: '8px',
+                              padding: '1rem',
+                              overflowY: 'auto',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: 'var(--text-secondary)',
+                              fontSize: '0.85rem'
+                            }}>
+                              No deployment information available.
+                            </div>
+                          </div>
+
+                          {/* Section 4: Reserved Actions */}
+                          <div style={{
+                            backgroundColor: '#070b13',
+                            border: '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: '12px',
+                            padding: '1.5rem'
+                          }}>
+                            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: 0, marginBottom: '1rem', fontFamily: 'Outfit' }}>
+                              Reserved Actions
+                            </h3>
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '0.75rem'
+                            }}>
+                              <button className="btn-primary" disabled style={{ opacity: 0.5, cursor: 'not-allowed', padding: '10px 18px', fontSize: '0.85rem' }}>
+                                Deploy Latest
+                              </button>
+                              <button className="btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed', padding: '10px 18px', fontSize: '0.85rem' }}>
+                                Deploy Specific Commit
+                              </button>
+                              <button className="btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed', padding: '10px 18px', fontSize: '0.85rem' }}>
+                                Restart API
+                              </button>
+                              <button className="btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed', padding: '10px 18px', fontSize: '0.85rem' }}>
+                                Restart Deployer
+                              </button>
+                              <button className="btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed', padding: '10px 18px', fontSize: '0.85rem' }}>
+                                Restart All
+                              </button>
+                              <button className="btn-secondary" disabled style={{ opacity: 0.5, cursor: 'not-allowed', padding: '10px 18px', fontSize: '0.85rem' }}>
+                                Rollback
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Global External Link Library */}
                       {activeSettingsTab === "external_link_library" && (
@@ -13780,7 +13933,7 @@ export default function App() {
                       })()}
 
                       {/* Coming Soon placeholders for other settings sub-pages */}
-                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_restore_points" && activeSettingsTab !== "platforms_services" && (
+                      {activeSettingsTab !== "import_export" && activeSettingsTab !== "task_engine" && activeSettingsTab !== "diagnostics" && activeSettingsTab !== "github_deployment" && activeSettingsTab !== "deployment" && activeSettingsTab !== "website_content_activity" && activeSettingsTab !== "external_link_library" && activeSettingsTab !== "global_restore_points" && activeSettingsTab !== "platforms_services" && (
                         <div style={{
                           backgroundColor: '#070b13',
                           border: '1px solid rgba(255, 255, 255, 0.06)',
