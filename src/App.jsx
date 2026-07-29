@@ -13981,27 +13981,9 @@ export default function App() {
                     />
                   </div>
 
-                  {/* Backend URL (Magento only) */}
-                  {newSitePlatform === "Magento" && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Backend URL</label>
-                      <input 
-                        type="text"
-                        value={newSiteBackendUrl}
-                        onChange={(e) => {
-                          setNewSiteBackendUrl(e.target.value);
-                          setConnectionTestStatus("idle");
-                        }}
-                        placeholder="https://example.com"
-                        style={{
-                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 1rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
+
                     </div>
-                  )}
+
 
                   {/* Platform Select (Milestone M004) */}
                   <div>
@@ -14237,7 +14219,7 @@ export default function App() {
                   </button>
                 </div>
               </div>
-            </div>
+            
           )}
 
           
@@ -14743,24 +14725,7 @@ export default function App() {
                       />
                     </div>
 
-                    {/* Backend URL (Magento only) */}
-                    {editSitePlatform === "Magento" && (
-                      <div>
-                        <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>Backend URL</label>
-                        <input 
-                          type="text"
-                          value={editSiteBackendUrl}
-                          onChange={(e) => setEditSiteBackendUrl(e.target.value)}
-                          placeholder="https://example.com"
-                          style={{
-                            width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                            borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
-                            fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                            boxSizing: 'border-box'
-                          }}
-                        />
-                      </div>
-                    )}
+
 
                     {/* Portfolio */}
                     <div>
@@ -14799,6 +14764,25 @@ export default function App() {
                         <option value="Other">Other</option>
                       </select>
                     </div>
+{editSitePlatform === "Magento" && (
+  <div style={{ display: 'block' }}>
+    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+      Backend URL
+    </label>
+    <input
+      type="text"
+      value={editSiteApiUrl}
+      onChange={(e) => setEditSiteApiUrl(e.target.value)}
+      placeholder="Enter backend URL"
+      style={{
+        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+        borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
+        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+        boxSizing: 'border-box'
+      }}
+    />
+  </div>
+)}
 
                     {editSitePlatform === "WordPress" && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '1.25rem', textAlign: 'left' }}>
@@ -14814,29 +14798,30 @@ export default function App() {
                         </label>
                       </div>
                     )}
+    {editSitePlatform === "Magento" && (
+  <div style={{ display: 'block' }}>
+    <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
+      Backend URL
+    </label>
+    <input
+      type="text"
+      value={editSiteApiUrl}
+      onChange={(e) => setEditSiteApiUrl(e.target.value)}
+      placeholder="Enter backend URL"
+      style={{
+        width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
+        borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
+        fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
+        boxSizing: 'border-box'
+      }}
+    />
+  </div>
+)}
                   </div>
 
                   {/* Right Column */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                     {/* WordPress API URL */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
-                        {editSitePlatform === "Magento" ? "Magento REST API URL" : "WordPress API URL"}
-                      </label>
-                      <input 
-                        type="text"
-                        value={editSiteApiUrl}
-                        onChange={(e) => setEditSiteApiUrl(e.target.value)}
-                        placeholder={editSitePlatform === "Magento" ? "https://www.hf4you.co.uk/rest/" : "https://www.bathroomupgrades.co.uk/wp-json/"}
-                        style={{
-                          width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
-                          borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
-                          fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-
+                    
                     {/* WordPress Username */}
                     <div>
                       <label style={{ display: 'block', fontSize: '0.725rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '0.35rem' }}>
@@ -14865,7 +14850,7 @@ export default function App() {
                         type="password"
                         value={editSitePassword}
                         onChange={(e) => setEditSitePassword(e.target.value)}
-                        placeholder={editSitePlatform === "Magento" ? "admin_password" : "xxxx xxxx xxxx xxxx"}
+                        placeholder="••••••••"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
@@ -14874,7 +14859,6 @@ export default function App() {
                         }}
                       />
                     </div>
-
                     {/* Store ID (Magento only) */}
                     {editSitePlatform === "Magento" && (
                       <div>
