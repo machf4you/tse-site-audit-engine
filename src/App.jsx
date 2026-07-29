@@ -11929,7 +11929,7 @@ export default function App() {
                     items: [
                       { id: "wordpress_connections", label: "WordPress Connections" },
                       { id: "api_connections", label: "API Connections" },
-                      { id: "website_activity", label: "Website Activity" }
+                      { id: "website_content_activity", label: "Website Content Activity" }
                     ]
                   },
                   {
@@ -12080,8 +12080,8 @@ export default function App() {
                         </h2>
                       </div>
 
-                      {/* Website Activity Page */}
-                      {activeSettingsTab === "website_activity" && (
+                      {/* Website Content Activity Page */}
+                      {activeSettingsTab === "website_content_activity" && (
                         <div>
                           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: 1.5 }}>
                             Track content publishing status and configurations for all connected websites.
