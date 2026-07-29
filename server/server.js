@@ -516,33 +516,90 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// GET GitHub Deployment Status
 app.get('/api/github/status', async (req, res) => {
   try {
-    exec('git rev-parse --abbrev-ref HEAD', (err1, branchStdout) => {
-      const branch = err1 ? 'unknown' : branchStdout.trim();
-      exec('git rev-parse HEAD', (err2, commitStdout) => {
-        const currentCommit = err2 ? 'unknown' : commitStdout.trim();
-        const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
-        let metadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: null, currentCommit: null };
-        if (fs.existsSync(metaPath)) {
-          try {
-            metadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-          } catch (e) {
-            console.error("Failed to parse metadata file:", e.message);
+    const cwd = path.join(__dirname, '..');
+    
+    // 1. Get fallback local git values
+    let localBranch = 'unknown';
+    let localCommit = 'unknown';
+    try {
+      localBranch = await new Promise((resolve) => {
+        exec('git rev-parse --abbrev-ref HEAD', { cwd }, (err, stdout) => resolve(err ? 'unknown' : stdout.trim()));
+      });
+      localCommit = await new Promise((resolve) => {
+        exec('git rev-parse HEAD', { cwd }, (err, stdout) => resolve(err ? 'unknown' : stdout.trim()));
+      });
+    } catch (e) {}
+
+    // 2. Fetch from Deployer API (localhost:9000)
+    let deployerBranch = null;
+    let deployerCommit = null;
+    let lastPullTime = null;
+    let lastPullStatus = null;
+    let lastPullLog = "";
+    let previousCommit = 'unknown';
+
+    try {
+      const statusRes = await fetch('http://localhost:9000/api/status');
+      if (statusRes.ok) {
+        const statusData = await statusRes.json();
+        const appStatus = statusData.tse_audit_engine;
+        if (appStatus) {
+          deployerBranch = appStatus.branch || appStatus.active_version?.branch;
+          deployerCommit = appStatus.active_version?.commit_hash || appStatus.active_commit;
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to fetch status from deployer:", err.message);
+    }
+
+    try {
+      const deploymentsRes = await fetch('http://localhost:9000/api/deployments');
+      if (deploymentsRes.ok) {
+        const deploymentsData = await deploymentsRes.json();
+        const appDeployments = deploymentsData.filter(d => d.app_id === 'tse_audit_engine');
+        if (appDeployments.length > 0) {
+          const lastDep = appDeployments[0];
+          lastPullTime = lastDep.deploy_time;
+          lastPullStatus = lastDep.status === 'SUCCESS' ? 'success' : (lastDep.status === 'FAILED' ? 'failure' : lastDep.status);
+          lastPullLog = lastDep.status === 'FAILED' 
+            ? `Deployment failed:\n${lastDep.error_log}`
+            : `Deployment completed successfully.\nDuration: ${lastDep.duration_seconds}s\nCommit: ${lastDep.commit_hash}`;
+          
+          // Find the previous successful deployment with a different commit hash
+          const activeHash = deployerCommit || lastDep.commit_hash;
+          const prevDep = appDeployments.find(d => d.status === 'SUCCESS' && d.commit_hash !== activeHash);
+          if (prevDep) {
+            previousCommit = prevDep.commit_hash;
           }
         }
-        exec('pm2 status', (pm2Err, pm2Stdout) => {
-          res.json({
-            branch,
-            currentCommit,
-            lastPullTime: metadata.lastPullTime,
-            lastPullStatus: metadata.lastPullStatus,
-            lastPullLog: (metadata.lastPullLog || "") + "\n\n=== PM2 STATUS ===\n" + (pm2Stdout || pm2Err?.message || ""),
-            previousCommit: metadata.previousCommit || 'unknown'
-          });
-        });
-      });
+      }
+    } catch (err) {
+      console.warn("Failed to fetch deployments from deployer:", err.message);
+    }
+
+    // 3. Load local metadata
+    const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
+    let metadata = { lastPullTime: null, lastPullStatus: null, lastPullLog: null, previousCommit: null, currentCommit: null, timeChecked: null, remoteCommit: null, behindCount: null };
+    if (fs.existsSync(metaPath)) {
+      try {
+        metadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+      } catch (e) {
+        console.error("Failed to parse metadata file:", e.message);
+      }
+    }
+
+    res.json({
+      branch: deployerBranch || localBranch,
+      currentCommit: deployerCommit || localCommit,
+      lastPullTime: lastPullTime || metadata.lastPullTime,
+      lastPullStatus: lastPullStatus || metadata.lastPullStatus,
+      lastPullLog: lastPullLog || metadata.lastPullLog || "No logs available.",
+      previousCommit: previousCommit !== 'unknown' ? previousCommit : (metadata.previousCommit || 'unknown'),
+      timeChecked: metadata.timeChecked || null,
+      remoteCommit: metadata.remoteCommit || 'unknown',
+      behindCount: metadata.behindCount ?? 0
     });
   } catch (err) {
     console.error("GET /api/github/status error:", err.message);
@@ -820,13 +877,30 @@ app.post('/api/github/check-updates', async (req, res) => {
             const remoteCommit = err3 ? localCommit : remoteCommitStdout.trim();
             exec(`git rev-list --count HEAD..origin/${branch}`, { cwd }, (err4, countStdout) => {
               const behindCount = err4 ? 0 : parseInt(countStdout.trim(), 10);
+              const checkTime = new Date().toISOString();
+              
+              // Save to metadata file
+              const metaPath = path.join(__dirname, '..', '..', 'git_pull_metadata.json');
+              let metadata = {};
+              if (fs.existsSync(metaPath)) {
+                try {
+                  metadata = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                } catch (e) {}
+              }
+              metadata.timeChecked = checkTime;
+              metadata.remoteCommit = remoteCommit;
+              metadata.behindCount = behindCount;
+              try {
+                fs.writeFileSync(metaPath, JSON.stringify(metadata, null, 2));
+              } catch (e) {}
+
               res.json({
                 success: true,
                 branch,
                 localCommit,
                 remoteCommit,
                 behindCount,
-                timeChecked: new Date().toISOString()
+                timeChecked: checkTime
               });
             });
           });
