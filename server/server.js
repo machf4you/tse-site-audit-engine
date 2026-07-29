@@ -512,6 +512,10 @@ app.post('/api/platform-proxy', async (req, res) => {
   }
 });
 
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // GET GitHub Deployment Status
 app.get('/api/github/status', async (req, res) => {
   try {
