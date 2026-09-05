@@ -5370,6 +5370,17 @@ export default function App() {
           paddingBottom: '2rem'
         }}>
           {renderAppCard({
+            name: "TSE Site Registry",
+            description: "Master Domain & Asset Registry across TSE and Chili portfolios.",
+            status: "Live",
+            version: "v1.0.0",
+            appId: "SITE_REGISTRY",
+            accentColor: "#3b82f6",
+            IconComponent: Globe,
+            launchUrl: "https://site-registry.thesearchequation.co.uk"
+          })}
+
+          {renderAppCard({
             name: "Website Management",
             description: "Manage connected websites, crawl pages, run phrase fits, and track SEO audits.",
             status: "Live",
