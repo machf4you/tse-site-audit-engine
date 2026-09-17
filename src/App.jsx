@@ -14843,6 +14843,16 @@ export default function App() {
                         value={editSiteUsername}
                         onChange={(e) => setEditSiteUsername(e.target.value)}
                         placeholder={editSitePlatform === "Magento" ? "admin_username" : "admin"}
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        aria-autocomplete="none"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-form-type="other"
+                        data-private="true"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
@@ -14858,15 +14868,26 @@ export default function App() {
                         {editSitePlatform === "Magento" ? "Magento Admin Password" : "WordPress Application Password"}
                       </label>
                       <input 
-                        type="password"
+                        type="text"
                         value={editSitePassword}
                         onChange={(e) => setEditSitePassword(e.target.value)}
                         placeholder="••••••••"
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        autoCapitalize="off"
+                        spellCheck={false}
+                        aria-autocomplete="none"
+                        data-lpignore="true"
+                        data-1p-ignore="true"
+                        data-bwignore="true"
+                        data-form-type="other"
+                        data-private="true"
                         style={{
                           width: '100%', backgroundColor: '#07090b', border: '1px solid var(--border-color)',
                           borderRadius: '8px', padding: '0.75rem 4rem 0.75rem 1.25rem', color: 'var(--text-primary)',
                           fontFamily: 'Inter, sans-serif', fontSize: '0.9rem', outline: 'none',
-                          boxSizing: 'border-box'
+                          boxSizing: 'border-box',
+                          WebkitTextSecurity: 'disc'
                         }}
                       />
                     </div>
